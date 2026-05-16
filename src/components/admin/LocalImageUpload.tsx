@@ -59,17 +59,18 @@ export default function LocalImageUpload({ onSuccess, label }: LocalImageUploadP
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 disabled={isUploading}
+                title="Seleccionar imagen"
             />
             <Button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="rounded-full shadow-lg h-12 px-6"
+                className="rounded-lg shadow-sm h-10 px-6 font-semibold"
             >
                 {isUploading ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                    <Plus className="mr-2 h-5 w-5" />
+                    <Plus className="mr-2 h-4 w-4" />
                 )}
                 {label || "Subir Imagen"}
             </Button>

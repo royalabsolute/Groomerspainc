@@ -9,6 +9,7 @@ import TransformationForm from "@/components/admin/TransformationForm";
 import { deleteTransformation, toggleTransformationVisible } from "@/lib/actions/transformations";
 import { toast } from "sonner";
 import Image from "next/image";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
 interface Transformation {
     id: string;
@@ -41,7 +42,6 @@ export default function AdminTransformationsClient({ initialItems, pageEnabled }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("¿Estás seguro de eliminar esta transformación?")) return;
         const result = await deleteTransformation(id);
         if (result.success) {
             setItems(items.filter(item => item.id !== id));
@@ -55,13 +55,13 @@ export default function AdminTransformationsClient({ initialItems, pageEnabled }
     };
 
     return (
-        <div className="min-h-screen bg-muted/20 p-8">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
             <div className="max-w-7xl mx-auto space-y-8">
                 <AdminHeader
-                    title="Transformaciones Antes & Después"
-                    subtitle="Gestiona las fotos de los resultados de tus trabajos."
+                    title="Antes & Después"
+                    subtitle="Gestiona el catálogo de transformaciones realizadas"
                     action={
-                        <Button onClick={() => { setEditingItem(null); setIsFormOpen(true); }} className="rounded-xl gap-2 shadow-lg shadow-primary/20">
+                        <Button onClick={() => { setEditingItem(null); setIsFormOpen(true); }} className="rounded-lg gap-2 shadow-sm h-11 px-6 font-semibold">
                             <Plus className="h-4 w-4" />
                             Nueva Transformación
                         </Button>
@@ -69,57 +69,62 @@ export default function AdminTransformationsClient({ initialItems, pageEnabled }
                 />
 
                 {!pageEnabled && (
-                    <Card className="bg-amber-50 border-amber-200 p-4">
-                        <div className="flex items-center gap-3 text-amber-800">
-                            <EyeOff className="h-5 w-5" />
-                            <div>
-                                <p className="font-bold">Página deshabilitada</p>
-                                <p className="text-sm">La página pública de transformaciones está oculta. Actívala en la Configuración General.</p>
-                            </div>
+                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-center gap-3 text-amber-800">
+                        <EyeOff className="h-5 w-5 shrink-0" />
+                        <div>
+                            <p className="font-bold text-sm">Página deshabilitada</p>
+                            <p className="text-xs">La sección pública de transformaciones está oculta actualmente.</p>
                         </div>
-                    </Card>
+                    </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {items.length === 0 ? (
-                        <Card className="col-span-full border-dashed border-2 py-20 flex flex-col items-center opacity-50">
-                            <Sparkles className="h-12 w-12 mb-4" />
-                            <p className="font-bold text-xl">No hay transformaciones aún</p>
-                            <p className="text-sm">Empieza subiendo el Antes y Después de un perrito.</p>
-                        </Card>
+                        <div className="col-span-full">
+                            <div className="border-2 border-dashed border-slate-200 bg-white py-24 flex flex-col items-center rounded-xl">
+                                <Sparkles className="h-12 w-12 text-slate-200 mb-4" />
+                                <p className="font-semibold text-slate-900">No hay transformaciones aún</p>
+                                <p className="text-sm text-slate-400">Sube tu primer trabajo para mostrarlo.</p>
+                            </div>
+                        </div>
                     ) : (
                         items.map((item) => (
-                            <Card key={item.id} className="overflow-hidden border-border/40 hover:shadow-xl transition-all duration-300 relative group">
-                                <div className="grid grid-cols-2 gap-px bg-muted">
+                            <Card key={item.id} className="overflow-hidden border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl group bg-white">
+                                <div className="grid grid-cols-2 gap-px bg-slate-100 border-b border-slate-100">
                                     <div className="relative aspect-square">
                                         <Image src={item.beforeImageUrl} alt="Antes" fill unoptimized className="object-cover" />
-                                        <div className="absolute top-2 left-2 bg-black/60 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase">Antes</div>
+                                        <div className="absolute top-2 left-2 bg-slate-900/60 backdrop-blur-md text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Antes</div>
                                     </div>
                                     <div className="relative aspect-square">
                                         <Image src={item.afterImageUrl} alt="Después" fill unoptimized className="object-cover" />
-                                        <div className="absolute top-2 right-2 bg-primary/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase">Después</div>
+                                        <div className="absolute top-2 right-2 bg-primary/80 backdrop-blur-md text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Después</div>
                                     </div>
                                 </div>
                                 
-                                <CardContent className="p-4 space-y-3">
+                                <CardContent className="p-5">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-black text-sm tracking-tight">{item.titleEs}</h3>
-                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1">
+                                        <div className="space-y-1">
+                                            <h3 className="font-bold text-slate-900 leading-tight">{item.titleEs}</h3>
+                                            <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400">
                                                 <Calendar className="h-3 w-3" />
                                                 {new Date(item.date).toLocaleDateString()}
                                             </div>
                                         </div>
-                                        <div className="flex gap-1">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => handleToggleVisible(item.id, item.visible)}>
-                                                {item.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                        <div className="flex items-center gap-1">
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-900" onClick={() => handleToggleVisible(item.id, item.visible)}>
+                                                {item.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4 text-rose-500" />}
                                             </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-blue-600" onClick={() => handleEdit(item)}>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-primary" onClick={() => handleEdit(item)}>
                                                 <Edit2 className="h-4 w-4" />
                                             </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={() => handleDelete(item.id)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <ConfirmDeleteModal 
+                                                onConfirm={() => handleDelete(item.id)}
+                                                trigger={
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                }
+                                            />
                                         </div>
                                     </div>
                                 </CardContent>
@@ -133,7 +138,6 @@ export default function AdminTransformationsClient({ initialItems, pageEnabled }
                         initial={editingItem}
                         onClose={() => setIsFormOpen(false)}
                         onSaved={async () => {
-                            // Simple refresh approach - in a real app might use router.refresh()
                             window.location.reload();
                         }}
                     />

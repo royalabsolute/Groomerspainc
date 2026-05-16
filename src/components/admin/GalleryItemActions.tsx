@@ -1,11 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { Trash2, ExternalLink, Loader2, Copy, Check } from "lucide-react";
 import { deleteGalleryItem } from "@/lib/actions/gallery";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
 
 interface GalleryItemActionsProps {
     id: string;
@@ -14,11 +15,17 @@ interface GalleryItemActionsProps {
 
 export default function GalleryItemActions({ id, url }: GalleryItemActionsProps) {
     const [isDeleting, setIsDeleting] = useState(false);
+    const [copied, setCopied] = useState(false);
     const router = useRouter();
 
-    async function handleDelete() {
-        if (!confirm("¿Estás seguro de que quieres eliminar esta imagen?")) return;
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        toast.success("URL copiada al portapapeles");
+        setTimeout(() => setCopied(false), 2000);
+    };
 
+    async function handleDelete() {
         setIsDeleting(true);
         try {
             const result = await deleteGalleryItem(id);
@@ -26,7 +33,7 @@ export default function GalleryItemActions({ id, url }: GalleryItemActionsProps)
                 toast.success("Imagen eliminada");
                 router.refresh();
             } else {
-                toast.error("Error al eliminar");
+                toast.error("Error al eliminar la imagen");
             }
         } catch (error) {
             toast.error("Error de conexión");
@@ -36,24 +43,44 @@ export default function GalleryItemActions({ id, url }: GalleryItemActionsProps)
     }
 
     return (
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center space-x-2">
+        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center space-x-2 backdrop-blur-[1px]">
+            {/* View Full */}
             <Button
                 onClick={() => window.open(url, '_blank')}
                 size="icon"
                 variant="secondary"
-                className="rounded-full h-10 w-10"
+                title="Ver imagen completa"
+                className="h-9 w-9 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 shadow-sm"
             >
-                <ExternalLink className="h-5 w-5" />
+                <ExternalLink className="h-4 w-4" />
             </Button>
+
+            {/* Copy URL */}
             <Button
-                onClick={handleDelete}
-                disabled={isDeleting}
+                onClick={copyToClipboard}
                 size="icon"
-                variant="destructive"
-                className="rounded-full h-10 w-10"
+                variant="secondary"
+                title="Copiar URL"
+                className="h-9 w-9 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 shadow-sm"
             >
-                {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
+                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
             </Button>
+
+            {/* Delete */}
+            <ConfirmDeleteModal
+                onConfirm={handleDelete}
+                trigger={
+                    <Button
+                        disabled={isDeleting}
+                        size="icon"
+                        variant="destructive"
+                        title="Eliminar imagen"
+                        className="h-9 w-9 rounded-lg bg-red-600 hover:bg-red-700 text-white border-none shadow-sm"
+                    >
+                        {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                }
+            />
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImageIcon, Trash2, ExternalLink } from "lucide-react";
+import { ImageIcon, Trash2, ExternalLink, Calendar, Layers } from "lucide-react";
 import db from "@/lib/db";
 import GalleryUpload from "@/components/admin/GalleryUpload";
 import Image from "next/image";
@@ -13,46 +13,56 @@ export default async function AdminGalleryPage() {
     });
 
     return (
-        <div className="min-h-screen bg-muted/20 p-8">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+            <div className="max-w-7xl mx-auto space-y-6">
                 <AdminHeader
                     title="Administrar Galería"
-                    subtitle="Sube y gestiona las fotos y videos que aparecen en el carrusel y la sección de galería."
+                    subtitle="Gestiona el contenido visual de la plataforma"
                     action={<GalleryUpload />}
                 />
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {galleryItems.length === 0 ? (
                         <div className="col-span-full">
-                            <Card className="border-dashed border-2 border-border/50 bg-transparent py-20 flex flex-col items-center">
-                                <div className="h-20 w-20 bg-muted/50 rounded-full flex items-center justify-center mb-6">
-                                    <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+                            <div className="border-2 border-dashed border-slate-200 bg-white py-24 flex flex-col items-center rounded-2xl">
+                                <div className="h-16 w-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                    <ImageIcon className="h-8 w-8 text-slate-300" />
                                 </div>
-                                <h3 className="text-xl font-bold text-muted-foreground">La galería está vacía</h3>
-                                <p className="text-muted-foreground mt-2">Usa el botón superior para subir tu primera foto.</p>
-                            </Card>
+                                <h3 className="text-lg font-semibold text-slate-900">La galería está vacía</h3>
+                                <p className="text-slate-500 mt-1">Sube imágenes para comenzar.</p>
+                            </div>
                         </div>
                     ) : (
                         galleryItems.map((item) => (
-                            <Card key={item.id} className="group overflow-hidden border-border/40 hover:shadow-xl transition-all duration-500 bg-white">
-                                <div className="relative aspect-square">
+                            <div key={item.id} className="group relative bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                                <div className="relative aspect-square overflow-hidden bg-slate-100">
                                     <Image
                                         src={item.url}
-                                        alt="Gallery"
+                                        alt="Gallery Item"
                                         fill
                                         unoptimized
-                                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                        className="object-cover"
                                         sizes="(max-width: 768px) 100vw, 400px"
                                     />
+                                    
+                                    {/* Actions Overlay */}
                                     <GalleryItemActions id={item.id} url={item.url} />
                                 </div>
-                                <CardContent className="p-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">{item.type}</span>
-                                        <span className="text-[10px] font-medium text-muted-foreground/40">{new Date(item.createdAt).toLocaleDateString()}</span>
+
+                                <div className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center text-slate-400 gap-1.5">
+                                            <Calendar className="h-3.5 w-3.5" />
+                                            <span className="text-xs font-medium">{new Date(item.createdAt).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="flex items-center text-slate-400 gap-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                                                {item.type}
+                                            </span>
+                                        </div>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
                         ))
                     )}
                 </div>

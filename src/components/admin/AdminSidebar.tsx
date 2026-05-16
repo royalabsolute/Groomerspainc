@@ -54,9 +54,9 @@ export default function AdminSidebar() {
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full">
-            <div className="p-8 border-b border-border/10 flex items-center justify-between">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <Link href="/" className="flex items-center">
-                    <div className="relative h-12 w-48">
+                    <div className="relative h-10 w-40">
                         <Image 
                             src="/assets/logo_horizontal.svg" 
                             alt="GroomingPet Logo" 
@@ -67,7 +67,7 @@ export default function AdminSidebar() {
                 </Link>
                 {/* Close button only on mobile */}
                 <button
-                    className="lg:hidden h-9 w-9 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                    className="lg:hidden h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
                     onClick={() => setMobileOpen(false)}
                     title="Cerrar menú"
                 >
@@ -84,39 +84,39 @@ export default function AdminSidebar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group",
+                                "flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group",
                                 isActive
-                                    ? "bg-primary/10 text-primary shadow-sm shadow-primary/5"
-                                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                    ? "bg-primary text-white shadow-sm"
+                                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                             )}
                         >
                             <div className="flex items-center space-x-3">
-                                <item.icon className={cn("h-5 w-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                                <span className="font-semibold text-sm">{item.name}</span>
+                                <item.icon className={cn("h-4.5 w-4.5", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
+                                <span className="font-semibold text-sm tracking-tight">{item.name}</span>
                             </div>
-                            {isActive && <ChevronRight className="h-4 w-4" />}
+                            {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-50" />}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* View Site + Logout */}
-            <div className="p-4 border-t border-border/20 space-y-1">
+            <div className="p-4 border-t border-slate-100 space-y-1">
                 <Link
                     href="/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-all duration-300"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200"
                 >
-                    <Globe className="h-5 w-5" />
-                    <span className="font-semibold text-sm">Ver Sitio Público</span>
+                    <Globe className="h-4.5 w-4.5" />
+                    <span className="font-semibold text-sm tracking-tight">Ver Sitio Público</span>
                 </Link>
                 <button
                     onClick={() => signOut({ callbackUrl: '/' })}
-                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all duration-300"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
                 >
-                    <LogOut className="h-5 w-5" />
-                    <span className="font-semibold text-sm">Cerrar Sesión</span>
+                    <LogOut className="h-4.5 w-4.5" />
+                    <span className="font-semibold text-sm tracking-tight">Cerrar Sesión</span>
                 </button>
             </div>
         </div>

@@ -9,11 +9,14 @@ export default async function AdminUsersPage() {
     });
 
     return (
-        <div className="min-h-screen bg-muted/30 pb-20">
-            <AdminHeader title="Gestión de Usuarios" subtitle="Administra los accesos al panel" />
-            <main className="container max-w-5xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+            <div className="max-w-6xl mx-auto space-y-6">
+                <AdminHeader 
+                    title="Gestión de Usuarios" 
+                    subtitle="Administra los accesos al panel de control" 
+                />
                 <AdminUsersClient initialUsers={users} />
-            </main>
+            </div>
         </div>
     );
 }

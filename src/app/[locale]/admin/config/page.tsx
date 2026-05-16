@@ -8,11 +8,11 @@ export default async function AdminConfigPage() {
     });
 
     return (
-        <div className="min-h-screen bg-muted/20 p-8">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+            <div className="max-w-4xl mx-auto space-y-6">
                 <AdminHeader
-                    title="Configuración del Sitio"
-                    subtitle="Gestiona la información de contacto, textos principales y redes sociales de tu negocio."
+                    title="Configuración"
+                    subtitle="Gestiona la información global de la plataforma"
                 />
 
                 <SettingsForm initialData={config} />

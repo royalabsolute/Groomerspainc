@@ -1,0 +1,28 @@
+import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
+
+const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  images: {
+    qualities: [60, 70, 75, 80],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '**',
+      },
+    ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
+  },
+};
+
+export default withNextIntl(nextConfig);

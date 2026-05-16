@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      String   @default("MODIFIER")
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id       String   @id @default(cuid())
+  titleEs  String
+  titleEn  String
+  descEs   String
+  descEn   String
+  price    Decimal?
+  imageUrl String?
+  active   Boolean  @default(true)
+  order    Int      @default(0)
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  url       String
+  type      String
+  category  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Testimonial {
+  id         String  @id @default(cuid())
+  clientName String
+  messageEs  String
+  messageEn  String?
+  rating     Int     @default(5)
+  imageUrl   String?
+  approved   Boolean @default(false)
+
+  @@index([approved])
+}
+
+model Inquiry {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  message     String
+  petDetails  String?
+  petImageUrl String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  service     String?
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  discountCode String? // New field to store the used discount code
+
+  @@index([createdAt])
+}
+
+model DiscountCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  description String?
+  discount    String?  // Can be "10%", "$5", etc.
+  isActive    Boolean  @default(true)
+  usedCount   Int      @default(0)
+  maxUses     Int?     @default(1) // Default to 1 use if not specified
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SiteConfig {
+  id                String  @id @default("config")
+  phone             String?
+  email             String?
+  address           String?
+  heroTitleEs       String?
+  heroTitleEn       String?
+  facebookUrl       String?
+  footerDescEn      String?
+  footerDescEs      String?
+  heroDescEn        String?
+  heroDescEs        String?
+  heroHighlightEn   String?
+  heroHighlightEs   String?
+  instagramUrl      String?
+  twitterUrl        String?
+  heroBadgeEn       String?
+  heroBadgeEs       String?
+  heroImageUrl      String?
+  notificationEmail String?
+  contactSubtitleEn String?
+  contactSubtitleEs String?
+  contactTitleEn    String?
+  contactTitleEs    String?
+  hoursEn           String?
+  hoursEs           String?
+  transformationsEnabled Boolean @default(false)
+  facebookActive    Boolean @default(true)
+  instagramActive   Boolean @default(true)
+  twitterActive     Boolean @default(true)
+}
+
+model Transformation {
+  id             String   @id @default(cuid())
+  titleEs        String
+  titleEn        String
+  beforeImageUrl String
+  afterImageUrl  String
+  date           DateTime @default(now())
+  visible        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  @@index([date])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+}

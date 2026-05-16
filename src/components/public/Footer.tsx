@@ -131,7 +131,9 @@ export default function Footer({ config, locale }: FooterProps) {
                         )}
                         {(config?.twitterActive !== false) && config?.twitterUrl && (
                             <Link href={config.twitterUrl} target="_blank" rel="noopener noreferrer" aria-label="X (Twitter)" className="h-14 w-14 flex items-center justify-center bg-black border-[3px] border-black shadow-[4px_4px_0px_0px_#0F172A] text-white transition-all rounded-xl hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0F172A]">
-                                <X className="h-6 w-6" />
+                                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-current">
+                                    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293l13.314 17.411z" />
+                                </svg>
                             </Link>
                         )}
                         

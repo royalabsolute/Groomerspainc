@@ -189,7 +189,9 @@ export default function Navbar({ config }: NavbarProps) {
                                 title="X (Twitter)"
                                 className="flex items-center justify-center w-9 h-9 rounded-xl bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_#0F172A] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[1px_1px_0px_0px_#0F172A] transition-all"
                             >
-                                <Twitter className="w-4 h-4" />
+                                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                    <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293l13.314 17.411z" />
+                                </svg>
                             </a>
                         )}
                         <div className="flex bg-white border-2 border-black p-1 rounded-xl shadow-[3px_3px_0px_0px_#0F172A]">

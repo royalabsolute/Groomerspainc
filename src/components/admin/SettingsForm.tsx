@@ -250,7 +250,12 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                         {/* X / Twitter */}
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="twitterUrl" className="flex items-center"><XIcon className="h-4 w-4 mr-2" /> X (Twitter) URL</Label>
+                                <Label htmlFor="twitterUrl" className="flex items-center">
+                                    <svg viewBox="0 0 24 24" className="h-4 w-4 mr-2 fill-current">
+                                        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293l13.314 17.411z" />
+                                    </svg>
+                                    X (Twitter) URL
+                                </Label>
                                 <Input id="twitterUrl" value={formData.twitterUrl || ""} onChange={handleChange} placeholder="https://x.com/..." className="h-12" />
                             </div>
                             <div className="flex items-center justify-between p-3 bg-muted/20 rounded-xl border border-border/10">

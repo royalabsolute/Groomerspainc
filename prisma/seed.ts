@@ -34,7 +34,7 @@ async function main() {
             footerDescEs: 'Servicio premium de estética canina en el corazón de Miami.',
             footerDescEn: 'Premium canine aesthetics service in the heart of Miami.',
             instagramUrl: 'https://instagram.com/groomingpet',
-            facebookUrl: 'https://facebook.com/groomingpet'
+            tiktokUrl: 'https://tiktok.com/@groomingpet'
         }
     })
 

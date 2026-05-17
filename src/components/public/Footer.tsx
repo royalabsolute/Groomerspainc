@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/navigation";
-import { Facebook, Instagram, X, Lock } from "lucide-react";
+import { Instagram, X, Lock } from "lucide-react";
 import Image from "next/image";
 import { DogCollage } from "./DogCollage";
 import { CloudDoodle, StripedCloudDoodle, DiagonalLinesDoodle, CyanPlusDoodle } from "./Doodles";
@@ -14,10 +14,10 @@ interface FooterProps {
         address: string | null;
         footerDescEs: string | null;
         footerDescEn: string | null;
-        facebookUrl: string | null;
+        tiktokUrl: string | null;
         instagramUrl: string | null;
         twitterUrl: string | null;
-        facebookActive?: boolean;
+        tiktokActive?: boolean;
         instagramActive?: boolean;
         twitterActive?: boolean;
         heroHighlightEs?: string | null; 
@@ -119,9 +119,11 @@ export default function Footer({ config, locale }: FooterProps) {
                 {/* Bottom Section: Socials & Copyright */}
                 <div className="pt-8 mt-2 border-t-4 border-black border-dashed flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex space-x-4">
-                        {(config?.facebookActive !== false) && config?.facebookUrl && (
-                            <Link href={config.facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="h-14 w-14 flex items-center justify-center bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_#0F172A] text-[#1877F2] hover:bg-primary hover:text-white transition-all rounded-xl hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0F172A]">
-                                <Facebook className="h-6 w-6 fill-current" />
+                        {(config?.tiktokActive !== false) && config?.tiktokUrl && (
+                            <Link href={config.tiktokUrl} target="_blank" rel="noopener noreferrer" aria-label="TikTok" className="h-14 w-14 flex items-center justify-center bg-black border-[3px] border-black shadow-[4px_4px_0px_0px_#0F172A] text-white hover:bg-primary transition-all rounded-xl hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#0F172A]">
+                                <svg viewBox="0 0 24 24" className="h-6 w-6 fill-current">
+                                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.61-5.46-.21-2.51 1.18-5.03 3.4-6.08 1.37-.62 2.94-.74 4.38-.4.01 1.42.02 2.84 0 4.26-.65-.13-1.33-.11-1.96.12-.9.34-1.6 1.07-1.84 1.99-.27 1.13.11 2.36.99 3.11.7.59 1.63.81 2.53.64 1.25-.26 2.19-1.28 2.39-2.54.12-.86.1-1.74.09-2.61.02-6.52.01-13.04.02-19.56z" />
+                                </svg>
                             </Link>
                         )}
                         {(config?.instagramActive !== false) && config?.instagramUrl && (

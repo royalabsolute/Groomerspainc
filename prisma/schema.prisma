@@ -85,7 +85,7 @@ model SiteConfig {
   address           String?
   heroTitleEs       String?
   heroTitleEn       String?
-  facebookUrl       String?
+  tiktokUrl         String?
   footerDescEn      String?
   footerDescEs      String?
   heroDescEn        String?
@@ -105,7 +105,7 @@ model SiteConfig {
   hoursEn           String?
   hoursEs           String?
   transformationsEnabled Boolean @default(false)
-  facebookActive    Boolean @default(true)
+  tiktokActive      Boolean @default(true)
   instagramActive   Boolean @default(true)
   twitterActive     Boolean @default(true)
 }

@@ -3,7 +3,7 @@
 import { useTranslations, useLocale } from "next-intl";
 import { Link, usePathname, useRouter } from "@/navigation";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, Facebook, Instagram, Twitter, PawPrint, Bone } from "lucide-react";
+import { Menu, X, Globe, Instagram, Twitter, PawPrint, Bone } from "lucide-react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -12,10 +12,10 @@ import { motion, AnimatePresence } from "framer-motion";
 interface NavbarProps {
     config?: {
         transformationsEnabled?: boolean;
-        facebookUrl?: string | null;
+        tiktokUrl?: string | null;
         instagramUrl?: string | null;
         twitterUrl?: string | null;
-        facebookActive?: boolean;
+        tiktokActive?: boolean;
         instagramActive?: boolean;
         twitterActive?: boolean;
     } | null;
@@ -168,16 +168,18 @@ export default function Navbar({ config }: NavbarProps) {
                                 <Instagram className="w-4 h-4" />
                             </a>
                         )}
-                        {(config?.facebookActive !== false) && config?.facebookUrl && (
+                        {(config?.tiktokActive !== false) && config?.tiktokUrl && (
                             <a 
-                                href={config.facebookUrl} 
+                                href={config.tiktokUrl} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                aria-label="Facebook"
-                                title="Facebook"
-                                className="flex items-center justify-center w-9 h-9 rounded-xl bg-white text-[#1877F2] border-2 border-black shadow-[3px_3px_0px_0px_#0F172A] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[1px_1px_0px_0px_#0F172A] transition-all"
+                                aria-label="TikTok"
+                                title="TikTok"
+                                className="flex items-center justify-center w-9 h-9 rounded-xl bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_#0F172A] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-[1px_1px_0px_0px_#0F172A] transition-all"
                             >
-                                <Facebook className="w-4 h-4 fill-current" />
+                                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                                    <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.61-5.46-.21-2.51 1.18-5.03 3.4-6.08 1.37-.62 2.94-.74 4.38-.4.01 1.42.02 2.84 0 4.26-.65-.13-1.33-.11-1.96.12-.9.34-1.6 1.07-1.84 1.99-.27 1.13.11 2.36.99 3.11.7.59 1.63.81 2.53.64 1.25-.26 2.19-1.28 2.39-2.54.12-.86.1-1.74.09-2.61.02-6.52.01-13.04.02-19.56z" />
+                                </svg>
                             </a>
                         )}
                         {(config?.twitterActive !== false) && config?.twitterUrl && (

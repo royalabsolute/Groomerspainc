@@ -147,7 +147,7 @@ export default function Footer({ config, locale }: FooterProps) {
                     </div>
                     
                     <div className="text-sm font-black text-foreground uppercase tracking-widest text-center md:text-right bg-accent px-5 py-3 border-[3px] border-black rounded-xl rotate-1 shadow-[4px_4px_0px_0px_#0F172A]">
-                        &copy; {new Date().getFullYear()} GroomingPet. <br className="md:hidden" /> All rights reserved. 🫧 Miami
+                        &copy; {new Date().getFullYear()} GroomingPet. <br className="md:hidden" /> {t('Footer.rights')} 🫧 Miami
                     </div>
                 </div>
             </div>

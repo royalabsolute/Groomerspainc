@@ -105,6 +105,16 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                         <Input id="notificationEmail" type="email" value="groomersincpetspa@gmail.com" disabled className="h-11 border-primary/20 bg-slate-100 rounded-lg font-medium text-slate-500 cursor-not-allowed" />
                         <p className="text-[10px] text-slate-400 font-medium">Este correo recibirá los mensajes directos de los clientes y está fijado por seguridad.</p>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-50 pt-4 mt-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="hoursEs" className="text-xs font-semibold text-slate-500">Horarios (Español)</Label>
+                            <Input id="hoursEs" value={formData.hoursEs || ""} onChange={handleChange} placeholder="Lun - Sab: 9:00 AM - 6:00 PM" className="h-11 border-slate-200 rounded-lg" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="hoursEn" className="text-xs font-semibold text-slate-500">Hours (English)</Label>
+                            <Input id="hoursEn" value={formData.hoursEn || ""} onChange={handleChange} placeholder="Mon - Sat: 9:00 AM - 6:00 PM" className="h-11 border-slate-200 rounded-lg" />
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -149,6 +159,46 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                         <div className="space-y-1.5">
                             <Label htmlFor="heroDescEn" className="text-xs font-semibold text-slate-500">Description (English)</Label>
                             <Textarea id="heroDescEn" value={formData.heroDescEn || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Footer Section */}
+            <Card className="border-slate-200 shadow-sm overflow-hidden rounded-xl bg-white">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center space-x-2">
+                    <Layout className="h-4 w-4 text-slate-500" />
+                    <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Pie de Página (Footer)</h3>
+                </div>
+                <CardContent className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="footerDescEs" className="text-xs font-semibold text-slate-500">Descripción Footer (Español)</Label>
+                            <Textarea id="footerDescEs" value={formData.footerDescEs || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="footerDescEn" className="text-xs font-semibold text-slate-500">Footer Description (English)</Label>
+                            <Textarea id="footerDescEn" value={formData.footerDescEn || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Footer Section */}
+            <Card className="border-slate-200 shadow-sm overflow-hidden rounded-xl bg-white">
+                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center space-x-2">
+                    <Layout className="h-4 w-4 text-slate-500" />
+                    <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Pie de Página (Footer)</h3>
+                </div>
+                <CardContent className="p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="footerDescEs" className="text-xs font-semibold text-slate-500">Descripción Footer (Español)</Label>
+                            <Textarea id="footerDescEs" value={formData.footerDescEs || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="footerDescEn" className="text-xs font-semibold text-slate-500">Footer Description (English)</Label>
+                            <Textarea id="footerDescEn" value={formData.footerDescEn || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
                         </div>
                     </div>
                 </CardContent>

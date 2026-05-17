@@ -254,48 +254,50 @@ export async function updateInquiryStatus(id: string, status: string) {
 
         await db.inquiry.update({ where: { id }, data: { status } as any });
 
-        if (status === "ACCEPTED") {
-            // Check if transaction already exists for this inquiry
-            const existingTx = await (db as any).transaction.findFirst({
-                where: { inquiryId: id }
-            });
+        revalidatePath("/admin/inquiries");
+        revalidatePath("/admin/dashboard");
+        return { success: true };
+    } catch (error) {
+        console.error("Error updating inquiry status:", error);
+        return { success: false, error: "Failed to update status" };
+    }
+}
 
-            if (!existingTx) {
-                let amount = 50; // fallback price
-                if (inquiry.service) {
-                    const matchedService = await db.service.findFirst({
-                        where: {
-                            OR: [
-                                { titleEs: inquiry.service },
-                                { titleEn: inquiry.service }
-                            ]
-                        }
-                    });
-                    if (matchedService && matchedService.price) {
-                        amount = Number(matchedService.price);
-                    }
-                }
-
-                // Register INCOME
-                await (db as any).transaction.create({
-                    data: {
-                        type: "INCOME",
-                        amount: amount,
-                        description: `Servicio Aceptado: ${inquiry.service || "Grooming"} — Cliente: ${inquiry.name}`,
-                        inquiryId: id,
-                        date: new Date()
-                    }
-                });
-            }
+export async function completeInquiryPayment(id: string, amount: number, description: string) {
+    try {
+        const inquiry = await db.inquiry.findUnique({ where: { id } });
+        if (!inquiry) {
+            return { success: false, error: "Inquiry not found" };
         }
+
+        // Check if transaction already exists for this inquiry
+        const existingTx = await (db as any).transaction.findFirst({
+            where: { inquiryId: id }
+        });
+
+        if (!existingTx) {
+            // Register INCOME
+            await (db as any).transaction.create({
+                data: {
+                    type: "INCOME",
+                    amount: amount,
+                    description: description,
+                    inquiryId: id,
+                    date: new Date()
+                }
+            });
+        }
+
+        // Mark as COMPLETED
+        await db.inquiry.update({ where: { id }, data: { status: "COMPLETED" } as any });
 
         revalidatePath("/admin/inquiries");
         revalidatePath("/admin/finanzas");
         revalidatePath("/admin/dashboard");
         return { success: true };
     } catch (error) {
-        console.error("Error updating inquiry status:", error);
-        return { success: false, error: "Failed to update status" };
+        console.error("Error completing payment:", error);
+        return { success: false, error: "Failed to complete payment" };
     }
 }
 

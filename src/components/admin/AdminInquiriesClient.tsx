@@ -13,13 +13,14 @@ import {
     Ticket,
     MoreVertical
 } from "lucide-react";
-import { deleteInquiry, updateInquiryStatus, markInquiryAsRead } from "@/lib/actions/inquiries";
+import { deleteInquiry, updateInquiryStatus, markInquiryAsRead, completeInquiryPayment } from "@/lib/actions/inquiries";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ConfirmDeleteModal } from "./ConfirmDeleteModal";
+import { RegisterPaymentModal } from "./RegisterPaymentModal";
 
 interface Inquiry {
     id: string;
@@ -77,6 +78,18 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
         }
     };
 
+    const handlePayment = async (id: string, amount: number, notes: string) => {
+        const result = await completeInquiryPayment(id, amount, notes);
+        if (result.success) {
+            setItems(items.map(item => 
+                item.id === id ? { ...item, status: 'COMPLETED', read: true } : item
+            ));
+            toast.success("Pago registrado y cita finalizada");
+        } else {
+            toast.error("Error al registrar pago");
+        }
+    };
+
     const filteredItems = items.filter(item => {
         const matchesSearch = 
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,7 +102,8 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'ACCEPTED': return 'Aceptada';
+            case 'COMPLETED': return 'Completada / Pagada';
+            case 'ACCEPTED': return 'Aceptada (En curso)';
             case 'REJECTED': return 'Rechazada';
             case 'PENDING': return 'Pendiente';
             default: return status;
@@ -98,7 +112,8 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
 
     const getStatusStyles = (status: string) => {
         switch (status) {
-            case 'ACCEPTED': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            case 'COMPLETED': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            case 'ACCEPTED': return 'bg-amber-50 text-amber-700 border-amber-100';
             case 'REJECTED': return 'bg-rose-50 text-rose-700 border-rose-100';
             default: return 'bg-blue-50 text-blue-700 border-blue-100';
         }
@@ -226,22 +241,49 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
 
                                         {/* Actions */}
                                         <div className="flex lg:flex-col gap-2 w-full lg:w-32 pt-4 lg:pt-0 lg:pl-6 lg:border-l border-slate-100">
-                                            <Button 
-                                                variant="default"
-                                                size="sm"
-                                                onClick={() => handleStatusUpdate(item.id, 'ACCEPTED')}
-                                                className="flex-1 lg:w-full h-10 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-700"
-                                            >
-                                                Aceptar
-                                            </Button>
-                                            <Button 
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleStatusUpdate(item.id, 'REJECTED')}
-                                                className="flex-1 lg:w-full h-10 rounded-lg font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
-                                            >
-                                                Rechazar
-                                            </Button>
+                                            {item.status === 'PENDING' && (
+                                                <>
+                                                    <Button 
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => handleStatusUpdate(item.id, 'ACCEPTED')}
+                                                        className="flex-1 lg:w-full h-10 rounded-lg font-bold bg-amber-500 hover:bg-amber-600 text-white"
+                                                    >
+                                                        Aceptar Trabajo
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleStatusUpdate(item.id, 'REJECTED')}
+                                                        className="flex-1 lg:w-full h-10 rounded-lg font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                                                    >
+                                                        Rechazar
+                                                    </Button>
+                                                </>
+                                            )}
+
+                                            {item.status === 'ACCEPTED' && (
+                                                <RegisterPaymentModal 
+                                                    onConfirm={(amount, notes) => handlePayment(item.id, amount, notes)}
+                                                    defaultNotes={`Servicio Pagado: ${item.service || "General"} — Cliente: ${item.name}${item.discountCode ? ` (Cupón: ${item.discountCode})` : ''}`}
+                                                    trigger={
+                                                        <Button 
+                                                            variant="default"
+                                                            size="sm"
+                                                            className="flex-1 lg:w-full h-10 rounded-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                                                        >
+                                                            Validar Pago
+                                                        </Button>
+                                                    }
+                                                />
+                                            )}
+
+                                            {(item.status === 'COMPLETED' || item.status === 'REJECTED') && (
+                                                <div className="flex-1 lg:w-full h-10 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                                    {item.status === 'COMPLETED' ? 'Finalizada' : 'Rechazada'}
+                                                </div>
+                                            )}
+
                                             <div className="shrink-0 lg:w-full">
                                                 <ConfirmDeleteModal 
                                                     onConfirm={() => handleDelete(item.id)}

@@ -105,7 +105,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                         className="relative h-40 w-full max-w-[500px] mb-4"
                     >
                         <Image 
-                            src="/Favicon.svg" 
+                            src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
                             className="object-contain"

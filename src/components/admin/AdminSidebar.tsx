@@ -60,7 +60,7 @@ export default function AdminSidebar() {
                 <Link href="/" className="flex items-center">
                     <div className="relative h-10 w-40">
                         <Image 
-                            src="/Favicon.svg" 
+                            src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
                             className="object-contain object-left"
@@ -136,7 +136,7 @@ export default function AdminSidebar() {
                 <Link href="/" className="flex items-center">
                     <div className="relative h-8 w-36">
                         <Image 
-                            src="/Favicon.svg" 
+                            src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
                             className="object-contain object-left"

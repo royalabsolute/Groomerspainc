@@ -4,7 +4,7 @@ import path from "path";
 
 export async function GET() {
     try {
-        const filePath = path.join(process.cwd(), "public", "Favicon.svg");
+        const filePath = path.join(process.cwd(), "public", "favicon.svg");
         const fileBuffer = fs.readFileSync(filePath);
 
         return new NextResponse(fileBuffer, {

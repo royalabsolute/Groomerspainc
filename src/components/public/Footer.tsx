@@ -58,7 +58,7 @@ export default function Footer({ config, locale }: FooterProps) {
                         <Link href="/" className="inline-block hover:scale-105 hover:translate-y-[-2px] transition-all -rotate-1">
                             <div className="relative h-32 w-64 sm:h-40 sm:w-80 md:h-48 md:w-96">
                                 <Image
-                                    src="/Favicon.svg"
+                                    src="/favicon.svg"
                                     alt="GroomingPet Logo"
                                     fill
                                     className="object-contain drop-shadow-[5px_5px_0px_#1A1A1A]"

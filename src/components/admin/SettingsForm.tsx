@@ -46,7 +46,8 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
             const res = await translateAllMissing();
             if (res.success) {
                 if (res.count && res.count > 0) {
-                    toast.success(`¡${res.count} campos traducidos en toda la web! (Recarga para ver cambios)`, { id: "translate-all" });
+                    toast.success(`¡${res.count} campos traducidos! Recargando...`, { id: "translate-all" });
+                    setTimeout(() => window.location.reload(), 1500);
                 } else {
                     toast.success("Todos los campos ya estaban traducidos.", { id: "translate-all" });
                 }

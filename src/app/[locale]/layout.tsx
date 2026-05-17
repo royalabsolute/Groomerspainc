@@ -27,16 +27,16 @@ export const metadata: Metadata = {
     openGraph: {
         type: "website",
         locale: "en_US",
-        url: "https://groomingpetmiami.com",
+        url: "https://groomersincmiami.com",
         title: "Groomers, INC. | Premium Dog & Pet Grooming in Miami, FL",
         description: "Top-rated professional pet grooming services in Miami, Florida.",
         siteName: "Groomers, INC.",
     },
     alternates: {
-        canonical: "https://groomingpetmiami.com",
+        canonical: "https://groomersincmiami.com",
         languages: {
-            'en-US': 'https://groomingpetmiami.com/en',
-            'es-ES': 'https://groomingpetmiami.com/es',
+            'en-US': 'https://groomersincmiami.com/en',
+            'es-ES': 'https://groomersincmiami.com/es',
         },
     },
     twitter: {

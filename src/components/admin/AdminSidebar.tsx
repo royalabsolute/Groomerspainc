@@ -17,6 +17,7 @@ import {
     CalendarCheck,
     Ticket,
     Users,
+    DollarSign,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
@@ -29,6 +30,7 @@ const menuItems = [
     { name: "Galería", href: "/admin/gallery", icon: ImageIcon },
     { name: "Transformaciones", href: "/admin/transformaciones", icon: Sparkles },
     { name: "Cupones", href: "/admin/cupones", icon: Ticket },
+    { name: "Finanzas", href: "/admin/finanzas", icon: DollarSign },
     { name: "Usuarios", href: "/admin/users", icon: Users },
     { name: "Configuración", href: "/admin/config", icon: Settings },
 ];

@@ -247,8 +247,51 @@ export async function deleteInquiry(id: string) {
 
 export async function updateInquiryStatus(id: string, status: string) {
     try {
+        const inquiry = await db.inquiry.findUnique({ where: { id } });
+        if (!inquiry) {
+            return { success: false, error: "Inquiry not found" };
+        }
+
         await db.inquiry.update({ where: { id }, data: { status } as any });
+
+        if (status === "ACCEPTED") {
+            // Check if transaction already exists for this inquiry
+            const existingTx = await (db as any).transaction.findFirst({
+                where: { inquiryId: id }
+            });
+
+            if (!existingTx) {
+                let amount = 50; // fallback price
+                if (inquiry.service) {
+                    const matchedService = await db.service.findFirst({
+                        where: {
+                            OR: [
+                                { titleEs: inquiry.service },
+                                { titleEn: inquiry.service }
+                            ]
+                        }
+                    });
+                    if (matchedService && matchedService.price) {
+                        amount = Number(matchedService.price);
+                    }
+                }
+
+                // Register INCOME
+                await (db as any).transaction.create({
+                    data: {
+                        type: "INCOME",
+                        amount: amount,
+                        description: `Servicio Aceptado: ${inquiry.service || "Grooming"} — Cliente: ${inquiry.name}`,
+                        inquiryId: id,
+                        date: new Date()
+                    }
+                });
+            }
+        }
+
         revalidatePath("/admin/inquiries");
+        revalidatePath("/admin/finanzas");
+        revalidatePath("/admin/dashboard");
         return { success: true };
     } catch (error) {
         console.error("Error updating inquiry status:", error);

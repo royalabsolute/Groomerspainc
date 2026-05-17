@@ -12,7 +12,9 @@ import {
     ExternalLink,
     Settings,
     LayoutDashboard,
-    CalendarCheck
+    CalendarCheck,
+    DollarSign,
+    Coins,
 } from "lucide-react";
 import { Link } from "@/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,8 @@ interface DashboardContentProps {
         services: number;
         gallery: number;
         inquiries: number;
+        netBalance: number;
+        totalEarnings: number;
     };
 }
 
@@ -89,18 +93,56 @@ export default function DashboardContent({ stats }: DashboardContentProps) {
                         <p className="text-slate-400 text-lg max-w-md font-medium relative z-10">
                             Bienvenido al panel administrativo. Aquí puedes gestionar citas, servicios y el contenido visual de GroomingPet.
                         </p>
-                        <div className="mt-8 relative z-10">
+                        <div className="mt-8 relative z-10 flex flex-wrap gap-4">
                             <Link href="/admin/config">
-                                <Button className="rounded-lg px-6 h-11 font-semibold bg-white text-slate-900 hover:bg-slate-100">
+                                <Button className="rounded-lg px-6 h-11 font-semibold bg-white text-slate-900 hover:bg-slate-100 cursor-pointer">
                                     <Settings className="mr-2 h-4 w-4" /> Configuración Global
+                                </Button>
+                            </Link>
+                            <Link href="/admin/finanzas">
+                                <Button className="rounded-lg px-6 h-11 font-semibold bg-primary text-white hover:bg-primary/95 cursor-pointer">
+                                    <DollarSign className="mr-2 h-4 w-4" /> Registro de Finanzas
                                 </Button>
                             </Link>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* System Status */}
+                {/* System & Finance Status */}
                 <motion.div variants={item} className="space-y-6">
+                    {/* Finance Summary Card */}
+                    <Card className="border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
+                        <CardHeader className="pb-3 border-b border-slate-50 bg-slate-50/50 flex flex-row items-center justify-between">
+                            <div className="flex items-center space-x-2 text-slate-600">
+                                <Coins className="h-4 w-4 text-emerald-500" />
+                                <h4 className="font-semibold text-xs uppercase tracking-wider">Caja y Finanzas</h4>
+                            </div>
+                            <Link href="/admin/finanzas" className="text-xs font-bold text-primary hover:underline uppercase tracking-wider">
+                                Gestionar
+                            </Link>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-500">Balance Neto</span>
+                                    <span className={cn(
+                                        "font-bold text-sm",
+                                        (stats.netBalance ?? 0) >= 0 ? "text-emerald-600" : "text-rose-600"
+                                    )}>
+                                        ${(stats.netBalance ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-slate-500">Ingresos Totales</span>
+                                    <span className="text-slate-900 font-bold text-sm">
+                                        ${(stats.totalEarnings ?? 0).toLocaleString("es-ES", { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* System Status Card */}
                     <Card className="border-slate-200 shadow-sm bg-white rounded-2xl overflow-hidden">
                         <CardHeader className="pb-3 border-b border-slate-50 bg-slate-50/50">
                             <div className="flex items-center space-x-2 text-slate-600">

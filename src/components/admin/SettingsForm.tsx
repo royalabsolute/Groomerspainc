@@ -184,25 +184,6 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                 </CardContent>
             </Card>
 
-            {/* Footer Section */}
-            <Card className="border-slate-200 shadow-sm overflow-hidden rounded-xl bg-white">
-                <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center space-x-2">
-                    <Layout className="h-4 w-4 text-slate-500" />
-                    <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">Pie de Página (Footer)</h3>
-                </div>
-                <CardContent className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1.5">
-                            <Label htmlFor="footerDescEs" className="text-xs font-semibold text-slate-500">Descripción Footer (Español)</Label>
-                            <Textarea id="footerDescEs" value={formData.footerDescEs || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label htmlFor="footerDescEn" className="text-xs font-semibold text-slate-500">Footer Description (English)</Label>
-                            <Textarea id="footerDescEn" value={formData.footerDescEn || ""} onChange={handleChange} className="min-h-[100px] border-slate-200 rounded-lg" />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
 
             {/* Social Media */}
             <Card className="border-slate-200 shadow-sm overflow-hidden rounded-xl bg-white">

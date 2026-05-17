@@ -88,7 +88,7 @@ export default function ForgotPasswordPage() {
                         className="relative h-40 w-full max-w-[500px] mb-4"
                     >
                         <Image
-                            src="/assets/logo_horizontal.svg"
+                            src="/GroomersINCLogo.svg"
                             alt="GroomingPet Logo"
                             fill
                             className="object-contain"

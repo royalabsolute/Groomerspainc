@@ -128,7 +128,7 @@ export default function Navbar({ config }: NavbarProps) {
                 <div className="flex items-center justify-between mx-auto bg-white/90 border-[3px] border-black px-6 py-1 rounded-2xl shadow-[6px_6px_0px_0px_#1A1A1A] backdrop-blur-md max-w-6xl w-full">
                     <Link href="/" className="flex items-center group relative h-14 w-40 sm:h-16 sm:w-56 md:w-60 lg:w-72 hover:scale-105 transition-transform duration-300 -ml-4">
                         <Image
-                            src="/assets/logo_horizontal.svg"
+                            src="/GroomersINCLogo.svg"
                             alt="GroomingPet Logo"
                             fill
                             className="object-contain object-left"

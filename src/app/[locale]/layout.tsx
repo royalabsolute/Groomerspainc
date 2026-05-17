@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     keywords: ["pet grooming Miami", "dog grooming near me", "Miami pet spa", "dog haircuts Miami FL", "professional dog bath", "Groomers, INC.", "pet stylist Florida"],
     authors: [{ name: "Groomers, INC." }],
     creator: "Groomers, INC.",
+    icons: {
+        icon: [
+            { url: '/favicon.svg', type: 'image/svg+xml' }
+        ]
+    },
     openGraph: {
         type: "website",
         locale: "en_US",

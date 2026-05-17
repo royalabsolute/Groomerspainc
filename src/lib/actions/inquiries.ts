@@ -92,7 +92,7 @@ export async function submitInquiry(data: any) {
         }
 
         // Email Notification — always send to company email
-        const targetEmail = "royalabsolute0@gmail.com";
+        const targetEmail = process.env.SMTP_USER || "groomersincpetspa@gmail.com";
         
         const isForm = data instanceof FormData;
         const eName = isForm ? data.get("name") : data.name;

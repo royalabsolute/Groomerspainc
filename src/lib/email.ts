@@ -1,10 +1,13 @@
 import nodemailer from "nodemailer";
 
+const smtpUser = process.env.SMTP_USER || "groomersincpetspa@gmail.com";
+const smtpPass = (process.env.SMTP_PASS || "njtjtbpjyvpussdk").replace(/\s+/g, "");
+
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "royalabsolute0@gmail.com",
-        pass: "ofth sztq efyj cvzu",
+        user: smtpUser,
+        pass: smtpPass,
     },
 });
 
@@ -19,7 +22,7 @@ export async function sendEmail({
 }) {
     try {
         const mailOptions = {
-            from: '"GroomingPet" <royalabsolute0@gmail.com>',
+            from: `"GroomingPet" <${smtpUser}>`,
             to,
             subject,
             html,

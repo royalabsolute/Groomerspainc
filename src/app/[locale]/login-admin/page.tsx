@@ -95,7 +95,7 @@ export default function LoginPage() {
                         className="relative h-40 w-full max-w-[500px] mb-4"
                     >
                         <Image 
-                            src="/GroomersINCLogo.svg" 
+                            src="/Favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
                             className="object-contain"

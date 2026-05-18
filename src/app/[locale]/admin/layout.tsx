@@ -3,6 +3,7 @@ import AdminHeaderBar from "@/components/admin/AdminHeaderBar";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import db from "@/lib/db";
+import SessionProviderWrapper from "@/components/admin/SessionProviderWrapper";
 
 export default async function AdminLayout({
     children,
@@ -28,14 +29,16 @@ export default async function AdminLayout({
     const serializedInquiries = JSON.parse(JSON.stringify(pendingInquiries));
 
     return (
-        <div className="flex bg-[#121212] text-[#E0E0E0] min-h-screen w-full">
-            <AdminSidebar />
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <AdminHeaderBar user={session?.user} pendingInquiries={serializedInquiries} />
-                <main className="flex-1 overflow-y-auto pt-6 pb-24 lg:pt-8 lg:pb-8 px-4 md:px-8">
-                    {children}
-                </main>
+        <SessionProviderWrapper>
+            <div className="flex bg-[#121212] text-[#E0E0E0] min-h-screen w-full">
+                <AdminSidebar />
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <AdminHeaderBar user={session?.user} pendingInquiries={serializedInquiries} />
+                    <main className="flex-1 overflow-y-auto pt-6 pb-24 lg:pt-8 lg:pb-8 px-4 md:px-8">
+                        {children}
+                    </main>
+                </div>
             </div>
-        </div>
+        </SessionProviderWrapper>
     );
 }

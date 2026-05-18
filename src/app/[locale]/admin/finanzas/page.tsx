@@ -19,7 +19,7 @@ export default async function AdminFinancePage() {
     }));
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+        <div className="min-h-screen bg-transparent p-1 sm:p-4">
             <div className="max-w-6xl mx-auto space-y-6">
                 <AdminHeader 
                     title="Control de Finanzas" 

@@ -4,18 +4,20 @@ import db from "@/lib/db";
 
 export default async function AdminUsersPage() {
     const users = await db.user.findMany({
-        select: { id: true, email: true, role: true, createdAt: true },
+        select: { id: true, name: true, email: true, image: true, role: true, createdAt: true },
         orderBy: { createdAt: "desc" }
     });
 
+    const sanitizedUsers = users.map(user => JSON.parse(JSON.stringify(user)));
+
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+        <div className="min-h-screen bg-transparent p-1 sm:p-4">
             <div className="max-w-6xl mx-auto space-y-6">
                 <AdminHeader 
                     title="Gestión de Usuarios" 
                     subtitle="Administra los accesos al panel de control" 
                 />
-                <AdminUsersClient initialUsers={users} />
+                <AdminUsersClient initialUsers={sanitizedUsers} />
             </div>
         </div>
     );

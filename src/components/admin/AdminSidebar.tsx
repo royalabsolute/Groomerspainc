@@ -9,8 +9,6 @@ import {
     Image as ImageIcon,
     Settings,
     LogOut,
-    Menu,
-    X,
     Globe,
     ChevronRight,
     Sparkles,
@@ -20,7 +18,7 @@ import {
     DollarSign,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Image from "next/image";
 import { useLocale } from "next-intl";
 
@@ -39,7 +37,6 @@ const menuItems = [
 export default function AdminSidebar() {
     const pathname = usePathname();
     const locale = useLocale();
-    const [mobileOpen, setMobileOpen] = useState(false);
 
     const handleSignOut = async () => {
         try {
@@ -50,42 +47,24 @@ export default function AdminSidebar() {
         window.location.href = `/${locale}/login-admin`;
     };
 
-    // Close on route change
     useEffect(() => {
-        setMobileOpen(false);
-    }, [pathname]);
-
-    // Prevent body scroll when open on mobile
-    useEffect(() => {
-        if (mobileOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
-        return () => { document.body.style.overflow = ""; };
-    }, [mobileOpen]);
+        // Enforce dark mode as the ONLY permanent theme for the premium admin panel
+        document.documentElement.classList.add("dark");
+    }, []);
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex flex-col h-full bg-[#1A1A1A] border-r border-[#3A3A3A] transition-colors duration-200">
+            <div className="p-6 border-b border-[#3A3A3A] flex items-center justify-between">
                 <Link href="/" className="flex items-center">
                     <div className="relative h-10 w-40">
                         <Image 
                             src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
-                            className="object-contain object-left"
+                            className="object-contain object-left dark:brightness-125 dark:hue-rotate-180"
                         />
                     </div>
                 </Link>
-                {/* Close button only on mobile */}
-                <button
-                    className="lg:hidden h-8 w-8 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
-                    onClick={() => setMobileOpen(false)}
-                    title="Cerrar menú"
-                >
-                    <X className="h-4 w-4" />
-                </button>
             </div>
 
             {/* Nav Links */}
@@ -97,36 +76,36 @@ export default function AdminSidebar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                                "flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 group border border-transparent",
                                 isActive
-                                    ? "bg-primary text-white shadow-sm"
-                                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                                    ? "bg-[#00DDEB]/10 text-[#00DDEB] border-[#00DDEB]/20 shadow-[0_0_15px_rgba(0,221,235,0.05)]"
+                                    : "text-[#E0E0E0] hover:bg-[#252525] hover:text-white"
                             )}
                         >
                             <div className="flex items-center space-x-3">
-                                <item.icon className={cn("h-4.5 w-4.5", isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600")} />
+                                <item.icon className={cn("h-4.5 w-4.5", isActive ? "text-[#00DDEB]" : "text-slate-400 group-hover:text-white transition-colors")} />
                                 <span className="font-semibold text-sm tracking-tight">{item.name}</span>
                             </div>
-                            {isActive && <ChevronRight className="h-3.5 w-3.5 opacity-50" />}
+                            {isActive && <ChevronRight className="h-3.5 w-3.5 text-[#00DDEB]/75" />}
                         </Link>
                     );
                 })}
             </nav>
 
             {/* View Site + Logout */}
-            <div className="p-4 border-t border-slate-100 space-y-1">
+            <div className="p-4 border-t border-[#3A3A3A] space-y-1">
                 <Link
                     href="/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-[#E0E0E0] hover:bg-[#252525] hover:text-white transition-all duration-200"
                 >
-                    <Globe className="h-4.5 w-4.5" />
+                    <Globe className="h-4.5 w-4.5 text-slate-400" />
                     <span className="font-semibold text-sm tracking-tight">Ver Sitio Público</span>
                 </Link>
                 <button
                     onClick={handleSignOut}
-                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                    className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 transition-all duration-200"
                 >
                     <LogOut className="h-4.5 w-4.5" />
                     <span className="font-semibold text-sm tracking-tight">Cerrar Sesión</span>
@@ -138,55 +117,59 @@ export default function AdminSidebar() {
     return (
         <>
             {/* Desktop Sidebar — always visible on lg+ */}
-            <aside className="hidden lg:flex w-64 h-screen bg-white border-r border-border/50 flex-col sticky top-0">
+            <aside className="hidden lg:flex w-64 h-screen bg-[#1A1A1A] border-r border-[#3A3A3A] flex-col sticky top-0 transition-colors duration-200 z-30">
                 <SidebarContent />
             </aside>
 
-            {/* Mobile Top Bar */}
-            <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-border/10 flex items-center justify-between px-6 h-16 shadow-xs">
-                <Link href="/" className="flex items-center">
-                    <div className="relative h-8 w-36">
-                        <Image 
-                            src="/favicon.svg" 
-                            alt="GroomingPet Logo" 
-                            fill 
-                            className="object-contain object-left"
-                        />
-                    </div>
-                </Link>
-                <button
-                    onClick={() => setMobileOpen(true)}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-                    aria-label="Abrir menú"
-                >
-                    <Menu className="h-5 w-5" />
-                </button>
-            </div>
+            {/* Mobile Bottom Swipable Ribbon Navigation Bar */}
+            <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 w-[94%] max-w-xl z-50">
+                <div className="bg-[#1A1A1A]/95 backdrop-blur-lg border border-[#3A3A3A] rounded-2xl p-1.5 flex items-center gap-2 overflow-x-auto scrollbar-none snap-x snap-mandatory shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+                    {menuItems.map((item) => {
+                        const isActive = pathname.includes(item.href);
+                        const Icon = item.icon;
 
-            {/* Mobile Drawer Overlay */}
-            <div
-                className={cn(
-                    "lg:hidden fixed inset-0 z-200 transition-all duration-300",
-                    mobileOpen ? "pointer-events-auto" : "pointer-events-none"
-                )}
-            >
-                {/* Backdrop */}
-                <div
-                    className={cn(
-                        "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
-                        mobileOpen ? "opacity-100" : "opacity-0"
-                    )}
-                    onClick={() => setMobileOpen(false)}
-                />
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "flex flex-col items-center justify-center px-4 py-2.5 rounded-xl transition-all duration-200 select-none cursor-pointer shrink-0 snap-start gap-1.5 border border-transparent min-w-[76px]",
+                                    isActive
+                                        ? "bg-[#00DDEB]/10 text-[#00DDEB] border-[#00DDEB]/25 scale-105 shadow-[0_0_15px_rgba(0,221,235,0.05)]"
+                                        : "text-slate-400 hover:text-white hover:bg-[#252525]"
+                                )}
+                            >
+                                <Icon className="h-5 w-5 shrink-0" />
+                                <span className="text-[10px] font-bold tracking-wider uppercase shrink-0">
+                                    {item.name.substring(0, 7)}
+                                </span>
+                            </Link>
+                        );
+                    })}
 
-                {/* Drawer */}
-                <div
-                    className={cn(
-                        "absolute top-0 left-0 h-full w-72 bg-white shadow-2xl transition-transform duration-300 ease-in-out",
-                        mobileOpen ? "translate-x-0" : "-translate-x-full"
-                    )}
-                >
-                    <SidebarContent />
+                    {/* View Public Site Pill */}
+                    <a
+                        href="/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center justify-center px-4 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#252525] border border-transparent transition-all duration-200 select-none cursor-pointer shrink-0 snap-start gap-1.5 min-w-[76px]"
+                    >
+                        <Globe className="h-5 w-5 shrink-0" />
+                        <span className="text-[10px] font-bold tracking-wider uppercase shrink-0">
+                            Sitio
+                        </span>
+                    </a>
+
+                    {/* LogOut Pill */}
+                    <button
+                        onClick={handleSignOut}
+                        className="flex flex-col items-center justify-center px-4 py-2.5 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/20 border border-transparent transition-all duration-200 select-none cursor-pointer shrink-0 snap-start gap-1.5 min-w-[76px]"
+                    >
+                        <LogOut className="h-5 w-5 shrink-0" />
+                        <span className="text-[10px] font-bold tracking-wider uppercase shrink-0">
+                            Salir
+                        </span>
+                    </button>
                 </div>
             </div>
         </>

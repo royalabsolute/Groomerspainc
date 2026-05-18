@@ -18,7 +18,7 @@ export default async function AdminCuponesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-muted/20 p-8">
+        <div className="min-h-screen bg-transparent p-1 sm:p-4">
             <div className="max-w-7xl mx-auto">
                 <AdminCuponesClient initialCodes={codes} />
             </div>

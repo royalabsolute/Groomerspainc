@@ -53,7 +53,13 @@ export default function ServiceActions({ id, active }: ServiceActionsProps) {
         <div className="flex flex-col items-end gap-3">
             <div className="flex items-center gap-1">
                 <Link href={`/admin/services/${id}`}>
-                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100">
+                    <Button 
+                        title="Editar servicio"
+                        aria-label="Editar servicio"
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-8 w-8 rounded-xl text-slate-400 hover:text-white hover:bg-[#252525] border border-[#3A3A3A] cursor-pointer"
+                    >
                         <Edit2 className="h-4 w-4" />
                     </Button>
                 </Link>
@@ -64,9 +70,11 @@ export default function ServiceActions({ id, active }: ServiceActionsProps) {
                     description="Esta acción eliminará el paquete de servicios de forma permanente."
                     trigger={
                         <Button
+                            title="Eliminar servicio"
+                            aria-label="Eliminar servicio"
                             size="icon"
                             variant="ghost"
-                            className="h-8 w-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                            className="h-8 w-8 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-950/20 border border-[#3A3A3A] cursor-pointer"
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -77,14 +85,14 @@ export default function ServiceActions({ id, active }: ServiceActionsProps) {
             <button
                 onClick={handleToggle}
                 disabled={isToggling}
-                className="transition-opacity hover:opacity-80 disabled:opacity-50"
+                className="transition-opacity hover:opacity-80 disabled:opacity-50 cursor-pointer"
             >
                 {active ? (
-                    <span className="flex items-center text-[9px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                    <span className="flex items-center text-[9px] font-black uppercase tracking-widest text-[#2ECC71] bg-[#2ECC71]/10 px-2.5 py-1 rounded-md border border-[#2ECC71]/20">
                         {isToggling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Eye className="h-3 w-3 mr-1" />} Visible
                     </span>
                 ) : (
-                    <span className="flex items-center text-[9px] font-bold uppercase tracking-widest text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                    <span className="flex items-center text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-500/10 px-2.5 py-1 rounded-md border border-slate-500/20">
                         {isToggling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <EyeOff className="h-3 w-3 mr-1" />} Oculto
                     </span>
                 )}

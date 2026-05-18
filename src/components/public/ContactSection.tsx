@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Phone, Mail, Clock, Headphones } from "lucide-react";
+import { MapPin, Phone, Mail, Clock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import ContactForm from "./ContactForm";
@@ -92,7 +92,7 @@ export default function ContactSection({ config, locale, services }: ContactSect
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <h3 className="font-black text-foreground tracking-tight mb-1 uppercase text-sm">{t('addressTitle')}</h3>
-                                    <p className="text-foreground/80 font-bold text-lg break-words">{config?.address || "123 Miami Ave, Miami, FL 33101"}</p>
+                                    <p className="text-foreground/80 font-bold text-lg wrap-break-word">{config?.address || "123 Miami Ave, Miami, FL 33101"}</p>
                                 </div>
                             </div>
                             <div className="flex items-center space-x-6 group">
@@ -119,7 +119,7 @@ export default function ContactSection({ config, locale, services }: ContactSect
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <h3 className="font-black text-foreground tracking-tight mb-1 uppercase text-sm">{t('hoursTitle')}</h3>
-                                    <p className="text-foreground/80 font-bold text-lg break-words">{hours}</p>
+                                    <p className="text-foreground/80 font-bold text-lg wrap-break-word">{hours}</p>
                                 </div>
                             </div>
                         </motion.div>

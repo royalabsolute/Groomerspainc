@@ -23,7 +23,35 @@ interface TestimonialsSectionProps {
 
 export default function TestimonialsSection({ testimonials, locale }: TestimonialsSectionProps) {
     const t = useTranslations("Index");
-    if (testimonials.length === 0) return null;
+
+    const defaultTestimonials = [
+        {
+            id: "t1",
+            clientName: locale === "es" ? "Sofía Rodríguez" : "Sophia Rodriguez",
+            rating: 5,
+            messageEs: "¡El mejor servicio de peluquería en Miami! Mi perrito Toby quedó hermoso y súper feliz.",
+            messageEn: "The best grooming service in Miami! My dog Toby looked beautiful and super happy.",
+            imageUrl: null
+        },
+        {
+            id: "t2",
+            clientName: locale === "es" ? "Mateo Fernández" : "Matthew Fernandez",
+            rating: 5,
+            messageEs: "Excelente atención y productos de primera. El baño de avena le sentó genial a la piel de mi mascota.",
+            messageEn: "Excellent service and premium products. The oatmeal bath did wonders for my pet's skin.",
+            imageUrl: null
+        },
+        {
+            id: "t3",
+            clientName: locale === "es" ? "Lucía Gómez" : "Lucy Gomez",
+            rating: 5,
+            messageEs: "El equipo es muy profesional y cariñoso. La limpieza dental fue rápida y sin estrés para mi gatito.",
+            messageEn: "The team is very professional and loving. The dental cleaning was quick and stress-free for my kitty.",
+            imageUrl: null
+        }
+    ];
+
+    const displayTestimonials = testimonials.length > 0 ? testimonials : defaultTestimonials;
 
     return (
         <section id="testimonials" className="py-24 bg-[#F8FAFC] relative overflow-hidden">
@@ -92,7 +120,7 @@ export default function TestimonialsSection({ testimonials, locale }: Testimonia
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                    {testimonials.map((testimonial, index) => (
+                    {displayTestimonials.map((testimonial, index) => (
                         <motion.div
                             key={testimonial.id}
                             initial={{ opacity: 0, y: 40 }}

@@ -16,6 +16,7 @@ export async function createService(data: any) {
                 price: data.price,
                 active: data.active,
                 imageUrl: data.imageUrl,
+                icon: data.icon,
             },
             create: {
                 titleEs: data.titleEs,
@@ -25,6 +26,7 @@ export async function createService(data: any) {
                 price: data.price,
                 active: data.active,
                 imageUrl: data.imageUrl,
+                icon: data.icon,
             }
         });
         revalidatePath("/");

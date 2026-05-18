@@ -75,7 +75,7 @@ export default function BeforeAfterSlider({
         >
             {/* After image (full) */}
             <div className="absolute inset-0 z-0">
-                <Image src={afterUrl} alt="Después" fill unoptimized className="object-cover" sizes="(max-width:768px) 100vw, 50vw" />
+                <Image src={afterUrl} alt="Después" fill className="object-cover" sizes="(max-width:768px) 100vw, 50vw" />
                 {/* Labels for AFTER */}
                 <div className="absolute bottom-3 right-3 pointer-events-none">
                     <span className="bg-primary/80 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full backdrop-blur-sm">
@@ -89,7 +89,7 @@ export default function BeforeAfterSlider({
                 className="absolute inset-0 overflow-hidden z-10 w-(--slider-pos)"
             >
                 <div className="absolute inset-0 w-(--slider-width)">
-                    <Image src={beforeUrl} alt="Antes" fill unoptimized className="object-cover" sizes="(max-width:768px) 100vw, 50vw" />
+                    <Image src={beforeUrl} alt="Antes" fill className="object-cover" sizes="(max-width:768px) 100vw, 50vw" />
                     {/* Labels for BEFORE */}
                     <div className="absolute bottom-3 left-3 pointer-events-none">
                         <span className="bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-full backdrop-blur-sm">

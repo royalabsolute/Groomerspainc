@@ -9,22 +9,31 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
+  name      String?
   email     String   @unique
   password  String
+  image     String?
+  avatarUrl String?  // Optional column for Supabase avatar storage
   role      String   @default("MODIFIER")
   createdAt DateTime @default(now())
 }
 
 model Service {
-  id       String   @id @default(cuid())
-  titleEs  String
-  titleEn  String
-  descEs   String
-  descEn   String
-  price    Decimal?
-  imageUrl String?
-  active   Boolean  @default(true)
-  order    Int      @default(0)
+  id                  String   @id @default(cuid())
+  titleEs             String
+  titleEn             String
+  descEs              String
+  descEn              String
+  price               Decimal?
+  imageUrl            String?
+  active              Boolean  @default(true)
+  order               Int      @default(0)
+  icon                String?
+  iconName            String?  // Explicit icon name for lucide-react selection
+  recommendedProducts String?  // String field to store recommended products/supplies (JSON/comma-separated)
+
+  @@index([titleEs])
+  @@index([titleEn])
 }
 
 model GalleryItem {
@@ -50,19 +59,38 @@ model Testimonial {
 }
 
 model Inquiry {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  message     String
-  petDetails  String?
-  petImageUrl String?
-  read        Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  service     String?
-  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  discountCode String? // New field to store the used discount code
+  id              String   @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  message         String
+  petDetails      String?
+  petImageUrl     String?
+  read            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  service         String?
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  discountCode    String?  // Stored discount code used
+  basePrice       Decimal? @default(0)
+  discountApplied Decimal? @default(0)
+  netGain         Decimal? @default(0)
 
+  @@index([name])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
   @@index([createdAt])
 }
 
@@ -70,44 +98,50 @@ model DiscountCode {
   id          String   @id @default(cuid())
   code        String   @unique
   description String?
-  discount    String?  // Can be "10%", "$5", etc.
+  discount    String?  // "10%", "$5", etc.
   isActive    Boolean  @default(true)
   usedCount   Int      @default(0)
-  maxUses     Int?     @default(1) // Default to 1 use if not specified
+  maxUses     Int?     @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model SiteConfig {
-  id                String  @id @default("config")
-  phone             String?
-  email             String?
-  address           String?
-  heroTitleEs       String?
-  heroTitleEn       String?
-  tiktokUrl         String?
-  footerDescEn      String?
-  footerDescEs      String?
-  heroDescEn        String?
-  heroDescEs        String?
-  heroHighlightEn   String?
-  heroHighlightEs   String?
-  instagramUrl      String?
-  twitterUrl        String?
-  heroBadgeEn       String?
-  heroBadgeEs       String?
-  heroImageUrl      String?
-  notificationEmail String?
-  contactSubtitleEn String?
-  contactSubtitleEs String?
-  contactTitleEn    String?
-  contactTitleEs    String?
-  hoursEn           String?
-  hoursEs           String?
-  transformationsEnabled Boolean @default(false)
-  tiktokActive      Boolean @default(true)
-  instagramActive   Boolean @default(true)
-  twitterActive     Boolean @default(true)
+  id                        String  @id @default("config")
+  phone                     String?
+  email                     String?
+  address                   String?
+  heroTitleEs               String?
+  heroTitleEn               String?
+  tiktokUrl                 String?
+  footerDescEn              String?
+  footerDescEs              String?
+  heroDescEn                String?
+  heroDescEs                String?
+  heroHighlightEn           String?
+  heroHighlightEs           String?
+  instagramUrl              String?
+  twitterUrl                String?
+  heroBadgeEn               String?
+  heroBadgeEs               String?
+  heroImageUrl              String?
+  notificationEmail         String?
+  contactSubtitleEn         String?
+  contactSubtitleEs         String?
+  contactTitleEn            String?
+  contactTitleEs            String?
+  hoursEn                   String?
+  hoursEs                   String?
+  transformationsEnabled    Boolean @default(false)
+  tiktokActive              Boolean @default(true)
+  instagramActive           Boolean @default(true)
+  twitterActive             Boolean @default(true)
+  accentColor               String? @default("#00DDEB") // Hex accent color configuration
+  primaryColor              String? @default("#121212") // Primary Hex color configuration
+  heroSectionActive         Boolean @default(true)      // Section toggle states
+  servicesSectionActive     Boolean @default(true)
+  testimonialsSectionActive Boolean @default(true)
+  gallerySectionActive      Boolean @default(true)
 }
 
 model Transformation {

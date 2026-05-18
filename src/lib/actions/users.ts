@@ -7,7 +7,14 @@ import { revalidatePath } from "next/cache";
 export async function getUsers() {
     try {
         const users = await db.user.findMany({
-            select: { id: true, email: true, role: true, createdAt: true },
+            select: { 
+                id: true, 
+                name: true,
+                email: true, 
+                image: true,
+                role: true, 
+                createdAt: true 
+            },
             orderBy: { createdAt: "desc" }
         });
         return { success: true, users };
@@ -26,8 +33,10 @@ export async function createUser(data: any) {
         const hashedPassword = await hash(data.password, 12);
         await db.user.create({
             data: {
+                name: data.name || null,
                 email: data.email,
                 password: hashedPassword,
+                image: data.image || null,
                 role: data.role || "MODIFIER"
             }
         });
@@ -35,6 +44,35 @@ export async function createUser(data: any) {
         return { success: true };
     } catch (error) {
         return { success: false, error: "Error creating user" };
+    }
+}
+
+export async function updateUser(id: string, data: any) {
+    try {
+        const existingUser = await db.user.findUnique({ where: { id } });
+        if (!existingUser) return { success: false, error: "User not found" };
+
+        const updateData: any = {
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            image: data.image
+        };
+
+        if (data.password && data.password.trim() !== "") {
+            updateData.password = await hash(data.password, 12);
+        }
+
+        await db.user.update({
+            where: { id },
+            data: updateData
+        });
+
+        revalidatePath("/admin/users");
+        revalidatePath("/admin/dashboard");
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message || "Error updating user" };
     }
 }
 

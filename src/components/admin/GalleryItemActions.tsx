@@ -43,7 +43,7 @@ export default function GalleryItemActions({ id, url }: GalleryItemActionsProps)
     }
 
     return (
-        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center space-x-2 backdrop-blur-[1px]">
+        <div className="absolute inset-0 bg-slate-900/20 lg:bg-slate-900/40 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-200 flex items-center justify-center space-x-2 backdrop-blur-[1px]">
             {/* View Full */}
             <Button
                 onClick={() => window.open(url, '_blank')}

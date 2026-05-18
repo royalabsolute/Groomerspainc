@@ -98,47 +98,48 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                 </div>
  
                 {/* Logo */}
-                <div className="flex flex-col items-center mb-10">
+                <div className="flex flex-col items-center mb-6 md:mb-10">
                     <motion.div
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        className="relative h-40 w-full max-w-[500px] mb-4"
+                        className="relative h-24 md:h-40 w-full max-w-[300px] md:max-w-[500px] mb-2 md:mb-4"
                     >
                         <Image 
                             src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
+                            unoptimized
                             className="object-contain"
                             priority
                         />
                     </motion.div>
-                    <div className="px-6 py-2">
-                        <p className="text-foreground font-black uppercase tracking-[0.4em] text-sm">
+                    <div className="px-6 py-1">
+                        <p className="text-foreground font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-xs md:text-sm">
                             Restablecer Clave
                         </p>
                     </div>
                 </div>
  
-                <Card className="border-4 border-black shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2.5rem]">
-                    <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-8">
-                        <CardTitle className="text-4xl font-black uppercase tracking-tight text-foreground">Nueva Contraseña</CardTitle>
-                        <CardDescription className="text-foreground/80 font-bold text-lg leading-tight">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
+                    <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-5 md:p-8">
+                        <CardTitle className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">Nueva Contraseña</CardTitle>
+                        <CardDescription className="text-foreground/80 font-bold text-base md:text-lg leading-tight">
                             Crea una nueva contraseña maestra para acceder al panel.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-6">
+                    <CardContent className="p-5 md:p-8 space-y-6">
                         {!token ? (
                             <div className="text-center py-6 space-y-6">
-                                <div className="bg-red-400 p-5 rounded-xl border-4 border-black shadow-[6px_6px_0px_0px_#000]">
-                                    <p className="text-black font-black text-xl uppercase tracking-tight">
+                                <div className="bg-red-400 p-5 rounded-xl border-4 border-black shadow-[4px_4px_0px_0px_#000] md:shadow-[6px_6px_0px_0px_#000]">
+                                    <p className="text-black font-black text-lg md:text-xl uppercase tracking-tight">
                                         ❌ ENLACE INVÁLIDO
                                     </p>
                                 </div>
-                                <p className="text-black font-bold text-lg leading-tight">
+                                <p className="text-black font-bold text-base md:text-lg leading-tight">
                                     El enlace de recuperación no es válido o ha expirado.
                                 </p>
                                 <Link href="/login-admin/forgot-password">
-                                    <Button className="w-full h-16 bg-black hover:bg-black/90 border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-white font-black text-xl uppercase tracking-tighter">
+                                    <Button className="w-full h-14 md:h-16 bg-black hover:bg-black/90 border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-white font-black text-lg md:text-xl uppercase tracking-tighter">
                                         Solicitar nuevo enlace
                                     </Button>
                                 </Link>
@@ -146,15 +147,15 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                         ) : isSubmitted ? (
                             <div className="text-center py-6 space-y-6">
                                 <div className="flex justify-center">
-                                    <div className="bg-emerald-400 p-5 rounded-full border-4 border-black shadow-[6px_6px_0px_0px_#000]">
-                                        <CheckCircle2 className="h-14 w-14 text-black" />
+                                    <div className="bg-emerald-400 p-5 rounded-full border-4 border-black shadow-[4px_4px_0px_0px_#000] md:shadow-[6px_6px_0px_0px_#000]">
+                                        <CheckCircle2 className="h-10 w-10 md:h-14 md:w-14 text-black" />
                                     </div>
                                 </div>
-                                <p className="text-black font-black text-xl uppercase tracking-tight">
+                                <p className="text-black font-black text-lg md:text-xl uppercase tracking-tight">
                                     ¡Tu contraseña ha sido actualizada exitosamente!
                                 </p>
                                 <Link href="/login-admin">
-                                    <Button className="w-full h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-xl uppercase tracking-tighter">
+                                    <Button className="w-full h-14 md:h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] md:shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] md:hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-lg md:text-xl uppercase tracking-tighter">
                                         Iniciar Sesión
                                     </Button>
                                 </Link>
@@ -162,7 +163,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="space-y-3">
-                                    <Label htmlFor="password" className="font-black uppercase text-xs tracking-widest ml-1 text-foreground/70">Nueva Contraseña</Label>
+                                    <Label htmlFor="password" className="font-black uppercase text-[10px] md:text-xs tracking-widest ml-1 text-foreground/70">Nueva Contraseña</Label>
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                                             <KeyRound className="h-5 w-5 text-foreground" />
@@ -172,13 +173,13 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                                             name="password"
                                             type="password"
                                             placeholder="••••••••"
-                                            className="pl-12 h-14 border-[3px] border-black bg-white rounded-2xl text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
+                                            className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-3">
-                                    <Label htmlFor="confirmPassword" className="font-black uppercase text-xs tracking-widest ml-1 text-foreground/70">Confirmar Contraseña</Label>
+                                    <Label htmlFor="confirmPassword" className="font-black uppercase text-[10px] md:text-xs tracking-widest ml-1 text-foreground/70">Confirmar Contraseña</Label>
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                                             <Lock className="h-5 w-5 text-foreground" />
@@ -188,19 +189,19 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                                             name="confirmPassword"
                                             type="password"
                                             placeholder="••••••••"
-                                            className="pl-12 h-14 border-[3px] border-black bg-white rounded-2xl text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
+                                            className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                             required
                                         />
                                     </div>
                                 </div>
                                 <Button 
                                     type="submit" 
-                                    className="w-full h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-2xl uppercase tracking-tighter" 
+                                    className="w-full h-14 md:h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] md:shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] md:hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-xl md:text-2xl uppercase tracking-tighter" 
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
                                         <>
-                                            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                            <Loader2 className="mr-2 h-5 w-5 md:h-6 md:w-6 animate-spin" />
                                             ACTUALIZANDO...
                                         </>
                                     ) : (
@@ -208,7 +209,7 @@ export default function ResetPasswordClient({ token }: { token: string }) {
                                     )}
                                 </Button>
                                 <div className="flex justify-center pt-2">
-                                    <Link href="/login-admin" className="flex items-center gap-2 text-foreground font-black uppercase text-xs tracking-widest hover:text-primary transition-colors">
+                                    <Link href="/login-admin" className="flex items-center gap-2 text-foreground font-black uppercase text-[10px] md:text-xs tracking-widest hover:text-primary transition-colors">
                                         <ArrowLeft className="h-4 w-4" /> Regresar al cuartel general
                                     </Link>
                                 </div>

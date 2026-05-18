@@ -88,40 +88,41 @@ export default function LoginPage() {
                     <PopArtSticker text="LOCKED 🔐" color="bg-info" className="text-xs -rotate-12" />
                 </div>
 
-                <div className="flex flex-col items-center mb-10">
+                <div className="flex flex-col items-center mb-6 md:mb-10">
                     <motion.div 
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        className="relative h-40 w-full max-w-[500px] mb-4"
+                        className="relative h-24 md:h-40 w-full max-w-[300px] md:max-w-[500px] mb-2 md:mb-4"
                     >
                         <Image 
                             src="/favicon.svg" 
                             alt="GroomingPet Logo" 
                             fill 
+                            unoptimized
                             className="object-contain"
                             priority
                         />
                     </motion.div>
-                    <div className="px-6 py-2">
-                        <p className="text-foreground font-black uppercase tracking-[0.4em] text-sm">
+                    <div className="px-6 py-1">
+                        <p className="text-foreground font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-xs md:text-sm">
                             Admin Control Panel
                         </p>
                     </div>
                 </div>
 
-                <Card className="border-4 border-black shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2.5rem]">
-                    <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-8">
-                        <CardTitle className="text-4xl font-black uppercase tracking-tight text-foreground">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
+                    <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-5 md:p-8">
+                        <CardTitle className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">
                             Bienvenido
                         </CardTitle>
-                        <CardDescription className="text-foreground/80 font-bold text-lg leading-tight">
+                        <CardDescription className="text-foreground/80 font-bold text-base md:text-lg leading-tight">
                             Ingresa tus credenciales para gestionar tu negocio.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-6">
+                    <CardContent className="p-5 md:p-8 space-y-6">
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div className="space-y-3">
-                                <Label htmlFor="email" className="font-black uppercase text-xs tracking-widest ml-1">Email Address</Label>
+                                <Label htmlFor="email" className="font-black uppercase text-[10px] md:text-xs tracking-widest ml-1">Email Address</Label>
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
                                         <Mail className="h-5 w-5 text-foreground" />
@@ -131,17 +132,17 @@ export default function LoginPage() {
                                         name="email"
                                         type="email"
                                         placeholder="admin@groomingpet.com"
-                                        className="pl-12 h-14 border-[3px] border-black bg-white rounded-2xl text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
+                                        className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                         required
                                     />
                                 </div>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center px-1">
-                                    <Label htmlFor="password" className="font-black uppercase text-xs tracking-widest">Password</Label>
+                                    <Label htmlFor="password" className="font-black uppercase text-[10px] md:text-xs tracking-widest">Password</Label>
                                     <Link
                                         href="/login-admin/forgot-password"
-                                        className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline decoration-2"
+                                        className="text-[9px] md:text-[10px] text-primary font-black uppercase tracking-widest hover:underline decoration-2"
                                     >
                                         ¿Olvidaste tu contraseña?
                                     </Link>
@@ -154,19 +155,19 @@ export default function LoginPage() {
                                         id="password"
                                         name="password"
                                         type="password"
-                                        className="pl-12 h-14 border-[3px] border-black bg-white rounded-2xl text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
+                                        className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                         required
                                     />
                                 </div>
                             </div>
                             <Button 
                                 type="submit" 
-                                className="w-full h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-2xl uppercase tracking-tighter" 
+                                className="w-full h-14 md:h-16 bg-primary hover:bg-primary border-4 border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] md:shadow-[8px_8px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] md:hover:shadow-[6px_6px_0px_0px_#000] transition-all text-white font-black text-xl md:text-2xl uppercase tracking-tighter" 
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                        <Loader2 className="mr-2 h-5 w-5 md:h-6 md:w-6 animate-spin" />
                                         CARGANDO...
                                     </>
                                 ) : (

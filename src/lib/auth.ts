@@ -44,15 +44,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         signIn: '/login-admin',
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, trigger, session }) {
             if (user) {
                 token.role = (user as { role?: string }).role;
+                token.id = (user as { id?: string }).id;
+                token.name = (user as { name?: string | null }).name;
+                token.image = (user as { image?: string | null }).image;
+            }
+            // Handle active update in session
+            if (trigger === "update" && session) {
+                if (session.name !== undefined) token.name = session.name;
+                if (session.image !== undefined) token.image = session.image;
+                if (session.email !== undefined) token.email = session.email;
             }
             return token
         },
         async session({ session, token }) {
             if (session.user) {
                 (session.user as { role?: string }).role = token.role as string;
+                (session.user as { id?: string }).id = token.id as string;
+                (session.user as { name?: string | null }).name = token.name as string | null;
+                (session.user as { image?: string | null }).image = token.image as string | null;
             }
             return session
         }

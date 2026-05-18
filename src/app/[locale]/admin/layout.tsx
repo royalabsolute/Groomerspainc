@@ -1,6 +1,8 @@
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminHeaderBar from "@/components/admin/AdminHeaderBar";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import db from "@/lib/db";
 
 export default async function AdminLayout({
     children,
@@ -17,12 +19,23 @@ export default async function AdminLayout({
         redirect(`/${locale}/login-admin`);
     }
 
+    const pendingInquiries = await db.inquiry.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        take: 5
+    });
+
+    const serializedInquiries = JSON.parse(JSON.stringify(pendingInquiries));
+
     return (
-        <div className="flex bg-[#FDFCF8] min-h-screen">
+        <div className="flex bg-[#121212] text-[#E0E0E0] min-h-screen w-full">
             <AdminSidebar />
-            <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
-                {children}
-            </main>
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <AdminHeaderBar user={session?.user} pendingInquiries={serializedInquiries} />
+                <main className="flex-1 overflow-y-auto pt-6 pb-24 lg:pt-8 lg:pb-8 px-4 md:px-8">
+                    {children}
+                </main>
+            </div>
         </div>
     );
 }

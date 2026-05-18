@@ -22,6 +22,7 @@ import {
 import { signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useLocale } from "next-intl";
 
 const menuItems = [
     { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
@@ -37,7 +38,17 @@ const menuItems = [
 
 export default function AdminSidebar() {
     const pathname = usePathname();
+    const locale = useLocale();
     const [mobileOpen, setMobileOpen] = useState(false);
+
+    const handleSignOut = async () => {
+        try {
+            await signOut({ redirect: false });
+        } catch (error) {
+            console.error("Logout error:", error);
+        }
+        window.location.href = `/${locale}/login-admin`;
+    };
 
     // Close on route change
     useEffect(() => {
@@ -114,7 +125,7 @@ export default function AdminSidebar() {
                     <span className="font-semibold text-sm tracking-tight">Ver Sitio Público</span>
                 </Link>
                 <button
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={handleSignOut}
                     className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
                 >
                     <LogOut className="h-4.5 w-4.5" />
@@ -127,7 +138,7 @@ export default function AdminSidebar() {
     return (
         <>
             {/* Desktop Sidebar — always visible on lg+ */}
-            <aside className="hidden lg:flex w-64 min-h-screen bg-white border-r border-border/50 flex-col sticky top-0">
+            <aside className="hidden lg:flex w-64 h-screen bg-white border-r border-border/50 flex-col sticky top-0">
                 <SidebarContent />
             </aside>
 

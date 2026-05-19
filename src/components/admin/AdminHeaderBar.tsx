@@ -284,6 +284,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                         src={activeUser.image}
                                         alt="User Avatar"
                                         fill
+                                        unoptimized
                                         className="object-cover"
                                     />
                                 ) : (
@@ -354,7 +355,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                             <div className="flex flex-col items-center justify-center space-y-3 pb-2">
                                 <div className="relative h-20 w-20 rounded-full border-2 border-[#7C3AED] bg-[#252525] overflow-hidden flex items-center justify-center text-xl font-black text-[#7C3AED] uppercase shadow-lg">
                                     {profileImage ? (
-                                        <Image src={profileImage} alt="Preview" fill className="object-cover" />
+                                        <Image src={profileImage} alt="Preview" fill unoptimized className="object-cover" />
                                     ) : (
                                         profileName ? profileName.substring(0, 2) : "AD"
                                     )}

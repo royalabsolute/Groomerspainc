@@ -69,16 +69,18 @@ model Inquiry {
   read            Boolean  @default(false)
   createdAt       DateTime @default(now())
   service         String?
-  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, UNPAID
   discountCode    String?  // Stored discount code used
   basePrice       Decimal? @default(0)
   discountApplied Decimal? @default(0)
   netGain         Decimal? @default(0)
+  deleted         Boolean  @default(false)
 
   @@index([name])
   @@index([email])
   @@index([status])
   @@index([createdAt])
+  @@index([deleted])
 }
 
 model ContactMessage {
@@ -136,7 +138,7 @@ model SiteConfig {
   tiktokActive              Boolean @default(true)
   instagramActive           Boolean @default(true)
   twitterActive             Boolean @default(true)
-  accentColor               String? @default("#00DDEB") // Hex accent color configuration
+  accentColor               String? @default("#7C3AED") // Hex accent color configuration
   primaryColor              String? @default("#121212") // Primary Hex color configuration
   heroSectionActive         Boolean @default(true)      // Section toggle states
   servicesSectionActive     Boolean @default(true)

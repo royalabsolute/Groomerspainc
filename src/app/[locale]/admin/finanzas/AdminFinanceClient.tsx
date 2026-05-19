@@ -225,7 +225,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                             placeholder="Buscar por descripción o monto..." 
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                            className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                         />
                     </div>
 
@@ -233,7 +233,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                     <div className="flex bg-[#252525] border border-[#3A3A3A] rounded-xl p-1 shrink-0 text-xs font-black uppercase tracking-wider">
                         <button 
                             onClick={() => setFilterType("ALL")}
-                            className={cn("px-4 py-2 rounded-lg transition-all cursor-pointer", filterType === "ALL" ? "bg-[#1A1A1A] text-[#00DDEB] shadow-md border border-[#3A3A3A]" : "text-slate-400 hover:text-white")}
+                            className={cn("px-4 py-2 rounded-lg transition-all cursor-pointer", filterType === "ALL" ? "bg-[#1A1A1A] text-[#7C3AED] shadow-md border border-[#3A3A3A]" : "text-slate-400 hover:text-white")}
                         >
                             Todos
                         </button>
@@ -255,7 +255,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                 {/* Add Transaction Dialog */}
                 <Dialog open={isOpen} onOpenChange={setIsOpen}>
                     <DialogTrigger asChild>
-                        <Button className="h-11 px-6 rounded-xl font-black bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 shadow-lg cursor-pointer uppercase tracking-wider text-xs shrink-0">
+                        <Button className="h-11 px-6 rounded-xl font-black bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 shadow-lg cursor-pointer uppercase tracking-wider text-xs shrink-0">
                             <Plus className="mr-2 h-4 w-4" /> Registrar Transacción
                         </Button>
                     </DialogTrigger>
@@ -303,7 +303,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                         placeholder="0.00"
                                         value={formData.amount}
                                         onChange={e => setFormData({ ...formData, amount: e.target.value })}
-                                        className="pl-8 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] font-black text-base"
+                                        className="pl-8 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] font-black text-base"
                                     />
                                 </div>
                             </div>
@@ -317,7 +317,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                     placeholder="Ej: Pago de champú, Insumos, etc."
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 />
                             </div>
 
@@ -329,14 +329,14 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                     required
                                     value={formData.date}
                                     onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 />
                             </div>
 
                             {/* Invoice attachment input */}
                             <div className="space-y-1.5 pt-2 border-t border-[#3A3A3A]/40">
                                 <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center">
-                                    <Paperclip className="h-3.5 w-3.5 mr-1 text-[#00DDEB]" /> Adjuntar Factura/Comprobante (Opcional)
+                                    <Paperclip className="h-3.5 w-3.5 mr-1 text-[#7C3AED]" /> Adjuntar Factura/Comprobante (Opcional)
                                 </Label>
                                 <div className="flex items-center gap-3">
                                     <input 
@@ -355,7 +355,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                         className="h-10 border-[#3A3A3A] bg-[#252525] rounded-xl hover:bg-[#2F2F2F] text-slate-300 font-bold"
                                     >
                                         {isUploading ? (
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#00DDEB]" />
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#7C3AED]" />
                                         ) : (
                                             <FileText className="mr-2 h-4 w-4 text-slate-500" />
                                         )}
@@ -376,7 +376,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                 <Button type="button" variant="outline" className="flex-1 rounded-xl border-[#3A3A3A] bg-[#252525] text-slate-300 font-bold hover:bg-[#2F2F2F] hover:text-white cursor-pointer uppercase tracking-wider text-xs" onClick={() => setIsOpen(false)}>
                                     Cancelar
                                 </Button>
-                                <Button type="submit" className="flex-1 rounded-xl bg-[#00DDEB] text-black font-black hover:bg-[#00DDEB]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isSubmitting || isUploading}>
+                                <Button type="submit" className="flex-1 rounded-xl bg-[#7C3AED] text-white font-black hover:bg-[#7C3AED]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isSubmitting || isUploading}>
                                     {isSubmitting ? "Registrando..." : "Guardar Registro"}
                                 </Button>
                             </div>
@@ -389,7 +389,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
             <Card className="border-[#3A3A3A] shadow-xl rounded-2xl bg-[#1A1A1A] overflow-hidden">
                 <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50 flex justify-between items-center">
                     <h3 className="font-black text-white text-xs uppercase tracking-wider">Historial de Transacciones</h3>
-                    <span className="text-[9px] bg-[#252525] text-[#00DDEB] font-black px-2.5 py-1 rounded-md border border-[#3A3A3A]">
+                    <span className="text-[9px] bg-[#252525] text-[#7C3AED] font-black px-2.5 py-1 rounded-md border border-[#3A3A3A]">
                         {filteredTransactions.length} registros
                     </span>
                 </div>
@@ -457,7 +457,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                                         href={tx.invoiceUrl} 
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center text-[9px] font-black uppercase tracking-widest text-[#00DDEB] bg-[#00DDEB]/10 hover:bg-[#00DDEB]/20 border border-[#00DDEB]/25 px-2.5 py-1 rounded-lg transition-all"
+                                                        className="inline-flex items-center text-[9px] font-black uppercase tracking-widest text-[#7C3AED] bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 px-2.5 py-1 rounded-lg transition-all"
                                                     >
                                                         <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Ver Factura
                                                     </a>
@@ -545,7 +545,7 @@ export default function AdminFinanceClient({ initialTransactions }: { initialTra
                                                     href={tx.invoiceUrl} 
                                                     target="_blank" 
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center text-[9px] font-black uppercase tracking-widest text-[#00DDEB] bg-[#00DDEB]/10 border border-[#00DDEB]/25 px-3 py-1.5 rounded-xl"
+                                                    className="inline-flex items-center text-[9px] font-black uppercase tracking-widest text-[#7C3AED] bg-[#7C3AED]/10 border border-[#7C3AED]/25 px-3 py-1.5 rounded-xl"
                                                 >
                                                     <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Factura
                                                 </a>

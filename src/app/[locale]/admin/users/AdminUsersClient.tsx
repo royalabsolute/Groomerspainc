@@ -181,7 +181,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                 <h2 className="text-base font-black uppercase tracking-wider text-slate-400">Personal de la Veterinaria</h2>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button className="h-11 px-6 rounded-xl font-black bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 shadow-lg cursor-pointer uppercase tracking-wider text-xs">
+                        <Button className="h-11 px-6 rounded-xl font-black bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 shadow-lg cursor-pointer uppercase tracking-wider text-xs">
                             <UserPlus className="mr-2 h-4 w-4" /> Nuevo Usuario
                         </Button>
                     </DialogTrigger>
@@ -192,7 +192,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                         <form onSubmit={handleCreate} className="p-6 space-y-4">
                             {/* Avatar selector */}
                             <div className="flex flex-col items-center justify-center space-y-3 pb-2">
-                                <div className="relative h-16 w-16 rounded-full border border-[#3A3A3A] bg-[#252525] overflow-hidden flex items-center justify-center text-lg font-black text-[#00DDEB] uppercase shadow-md">
+                                <div className="relative h-16 w-16 rounded-full border border-[#3A3A3A] bg-[#252525] overflow-hidden flex items-center justify-center text-lg font-black text-[#7C3AED] uppercase shadow-md">
                                     {createForm.image ? (
                                         <Image src={createForm.image} alt="Preview" fill className="object-cover" />
                                     ) : (
@@ -200,11 +200,11 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                     )}
                                     {creatingImageUpload && (
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <Loader2 className="h-5 w-5 text-[#00DDEB] animate-spin" />
+                                            <Loader2 className="h-5 w-5 text-[#7C3AED] animate-spin" />
                                         </div>
                                     )}
                                 </div>
-                                <label className="flex items-center gap-1.5 text-[9px] font-black text-[#00DDEB] uppercase tracking-widest px-2.5 py-1.5 bg-[#00DDEB]/10 hover:bg-[#00DDEB]/20 rounded-xl border border-[#00DDEB]/25 cursor-pointer transition-all">
+                                <label className="flex items-center gap-1.5 text-[9px] font-black text-[#7C3AED] uppercase tracking-widest px-2.5 py-1.5 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 rounded-xl border border-[#7C3AED]/25 cursor-pointer transition-all">
                                     <Upload className="h-3 w-3" />
                                     Subir Foto
                                     <input type="file" accept="image/*" onChange={handleCreateImageChange} className="hidden" />
@@ -217,7 +217,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                     required 
                                     value={createForm.name}
                                     onChange={e => setCreateForm({...createForm, name: e.target.value})}
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                     placeholder="Nombre de pila"
                                 />
                             </div>
@@ -231,7 +231,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                         required 
                                         value={createForm.email}
                                         onChange={e => setCreateForm({...createForm, email: e.target.value})}
-                                        className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                        className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                         placeholder="admin@ejemplo.com"
                                     />
                                 </div>
@@ -246,7 +246,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                         required 
                                         value={createForm.password}
                                         onChange={e => setCreateForm({...createForm, password: e.target.value})}
-                                        className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                        className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -259,7 +259,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                     title="Rol del Personal"
                                     value={createForm.role} 
                                     onChange={e => setCreateForm({...createForm, role: e.target.value})}
-                                    className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#00DDEB] focus:border-[#00DDEB] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
+                                    className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#7C3AED] focus:border-[#7C3AED] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
                                 >
                                     <option value="ADMIN">Administrador (Acceso Total)</option>
                                     <option value="MODIFIER">Modificador (Limitado)</option>
@@ -267,7 +267,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                             </div>
                             <div className="pt-4 flex gap-3 border-t border-[#3A3A3A]/40">
                                 <Button type="button" variant="outline" className="flex-1 rounded-xl border-[#3A3A3A] bg-[#252525] text-slate-300 font-bold hover:bg-[#2F2F2F] hover:text-white cursor-pointer uppercase tracking-wider text-xs" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
-                                <Button type="submit" className="flex-1 rounded-xl bg-[#00DDEB] text-black font-black hover:bg-[#00DDEB]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isCreating}>
+                                <Button type="submit" className="flex-1 rounded-xl bg-[#7C3AED] text-white font-black hover:bg-[#7C3AED]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isCreating}>
                                     {isCreating ? "Creando..." : "Crear Usuario"}
                                 </Button>
                             </div>
@@ -282,13 +282,13 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                     <Card 
                         key={user.id} 
                         onClick={() => openEditDialog(user)}
-                        className="border-[#3A3A3A] shadow-xl rounded-2xl overflow-hidden bg-[#1A1A1A] hover:border-[#00DDEB]/50 transition-all duration-300 group cursor-pointer"
+                        className="border-[#3A3A3A] shadow-xl rounded-2xl overflow-hidden bg-[#1A1A1A] hover:border-[#7C3AED]/50 transition-all duration-300 group cursor-pointer"
                     >
                         <CardContent className="p-6">
                             <div className="flex flex-col space-y-5">
                                 <div className="flex items-center gap-4">
                                     <div className={cn(
-                                        "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border relative overflow-hidden bg-[#252525] font-black text-sm uppercase tracking-wider text-[#00DDEB] border-[#3A3A3A] group-hover:border-[#00DDEB]/40 transition-colors"
+                                        "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border relative overflow-hidden bg-[#252525] font-black text-sm uppercase tracking-wider text-[#7C3AED] border-[#3A3A3A] group-hover:border-[#7C3AED]/40 transition-colors"
                                     )}>
                                         {user.image ? (
                                             <Image src={user.image} alt={user.name || "Avatar"} fill className="object-cover" />
@@ -297,14 +297,14 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                         )}
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="font-black text-white truncate text-sm tracking-tight group-hover:text-[#00DDEB] transition-colors" title={user.name || user.email}>
+                                        <h3 className="font-black text-white truncate text-sm tracking-tight group-hover:text-[#7C3AED] transition-colors" title={user.name || user.email}>
                                             {user.name || "Sin nombre"}
                                         </h3>
                                         <p className="text-[10px] text-slate-500 truncate font-bold mt-0.5" title={user.email}>{user.email}</p>
                                         <div className="flex items-center gap-1.5 mt-2">
                                             <span className={cn(
                                                 "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
-                                                user.role === 'ADMIN' ? "bg-[#00DDEB]/10 border-[#00DDEB]/25 text-[#00DDEB]" : "bg-slate-800 border-slate-700 text-slate-400"
+                                                user.role === 'ADMIN' ? "bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]" : "bg-slate-800 border-slate-700 text-slate-400"
                                             )}>
                                                 {user.role}
                                             </span>
@@ -353,11 +353,11 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                     <div 
                         key={user.id} 
                         onClick={() => openEditDialog(user)}
-                        className="bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3 cursor-pointer hover:border-[#00DDEB]/40 transition-colors"
+                        className="bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3 cursor-pointer hover:border-[#7C3AED]/40 transition-colors"
                     >
                         <div className="flex items-center gap-3 min-w-0">
                             <div className={cn(
-                                "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border relative overflow-hidden bg-[#252525] font-black text-xs uppercase tracking-wider text-[#00DDEB] border-[#3A3A3A]"
+                                "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border relative overflow-hidden bg-[#252525] font-black text-xs uppercase tracking-wider text-[#7C3AED] border-[#3A3A3A]"
                             )}>
                                 {user.image ? (
                                     <Image src={user.image} alt={user.name || "Avatar"} fill className="object-cover" />
@@ -373,7 +373,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className={cn(
                                         "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border",
-                                        user.role === 'ADMIN' ? "bg-[#00DDEB]/10 border-[#00DDEB]/25 text-[#00DDEB]" : "bg-slate-800 border-slate-700 text-slate-400"
+                                        user.role === 'ADMIN' ? "bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]" : "bg-slate-800 border-slate-700 text-slate-400"
                                     )}>
                                         {user.role}
                                     </span>
@@ -411,7 +411,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                     <form onSubmit={handleEdit} className="p-6 space-y-4">
                         {/* Avatar uploader */}
                         <div className="flex flex-col items-center justify-center space-y-3 pb-2">
-                            <div className="relative h-16 w-16 rounded-full border border-[#3A3A3A] bg-[#252525] overflow-hidden flex items-center justify-center text-lg font-black text-[#00DDEB] uppercase shadow-md">
+                            <div className="relative h-16 w-16 rounded-full border border-[#3A3A3A] bg-[#252525] overflow-hidden flex items-center justify-center text-lg font-black text-[#7C3AED] uppercase shadow-md">
                                 {editForm.image ? (
                                     <Image src={editForm.image} alt="Preview" fill className="object-cover" />
                                 ) : (
@@ -419,11 +419,11 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 )}
                                 {editingImageUpload && (
                                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                        <Loader2 className="h-5 w-5 text-[#00DDEB] animate-spin" />
+                                        <Loader2 className="h-5 w-5 text-[#7C3AED] animate-spin" />
                                     </div>
                                 )}
                             </div>
-                            <label className="flex items-center gap-1.5 text-[9px] font-black text-[#00DDEB] uppercase tracking-widest px-2.5 py-1.5 bg-[#00DDEB]/10 hover:bg-[#00DDEB]/20 rounded-xl border border-[#00DDEB]/25 cursor-pointer transition-all">
+                            <label className="flex items-center gap-1.5 text-[9px] font-black text-[#7C3AED] uppercase tracking-widest px-2.5 py-1.5 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 rounded-xl border border-[#7C3AED]/25 cursor-pointer transition-all">
                                 <Upload className="h-3 w-3" />
                                 Cambiar Foto
                                 <input type="file" accept="image/*" onChange={handleEditImageChange} className="hidden" />
@@ -436,7 +436,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 required 
                                 value={editForm.name}
                                 onChange={e => setEditForm({...editForm, name: e.target.value})}
-                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                             />
                         </div>
 
@@ -449,7 +449,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                     required 
                                     value={editForm.email}
                                     onChange={e => setEditForm({...editForm, email: e.target.value})}
-                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 />
                             </div>
                         </div>
@@ -465,7 +465,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                     type="password" 
                                     value={editForm.password}
                                     onChange={e => setEditForm({...editForm, password: e.target.value})}
-                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                     placeholder="•••••••• (dejar vacío si no cambia)"
                                 />
                             </div>
@@ -478,7 +478,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 title="Rol del Personal"
                                 value={editForm.role} 
                                 onChange={e => setEditForm({...editForm, role: e.target.value})}
-                                className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#00DDEB] focus:border-[#00DDEB] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
+                                className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#7C3AED] focus:border-[#7C3AED] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
                             >
                                 <option value="ADMIN">Administrador (Acceso Total)</option>
                                 <option value="MODIFIER">Modificador (Limitado)</option>
@@ -486,7 +486,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                         </div>
                         <div className="pt-4 flex gap-3 border-t border-[#3A3A3A]/40">
                             <Button type="button" variant="outline" className="flex-1 rounded-xl border-[#3A3A3A] bg-[#252525] text-slate-300 font-bold hover:bg-[#2F2F2F] hover:text-white cursor-pointer uppercase tracking-wider text-xs" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
-                            <Button type="submit" className="flex-1 rounded-xl bg-[#00DDEB] text-black font-black hover:bg-[#00DDEB]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isPending}>
+                            <Button type="submit" className="flex-1 rounded-xl bg-[#7C3AED] text-white font-black hover:bg-[#7C3AED]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isPending}>
                                 {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Guardar"}
                             </Button>
                         </div>

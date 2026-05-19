@@ -236,12 +236,29 @@ export async function submitInquiry(data: any) {
 
 export async function deleteInquiry(id: string) {
     try {
-        await db.inquiry.delete({ where: { id } });
+        await db.inquiry.update({
+            where: { id },
+            data: { deleted: true } as any
+        });
         revalidatePath("/admin/inquiries");
         return { success: true };
     } catch (error) {
-        console.error("Error deleting inquiry:", error);
+        console.error("Error soft deleting inquiry:", error);
         return { success: false, error: "Failed to delete inquiry" };
+    }
+}
+
+export async function restoreInquiry(id: string) {
+    try {
+        await db.inquiry.update({
+            where: { id },
+            data: { deleted: false } as any
+        });
+        revalidatePath("/admin/inquiries");
+        return { success: true };
+    } catch (error) {
+        console.error("Error restoring inquiry:", error);
+        return { success: false, error: "Failed to restore inquiry" };
     }
 }
 

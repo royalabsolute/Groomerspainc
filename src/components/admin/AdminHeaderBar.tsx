@@ -1,8 +1,8 @@
 "use client";
 
-import { Bell, Search, Mail, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key } from "lucide-react";
+import { Bell, Mail, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key } from "lucide-react";
 import Image from "next/image";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useTransition } from "react";
 import { Link } from "@/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -26,10 +26,8 @@ interface AdminHeaderBarProps {
 export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [] }: AdminHeaderBarProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const searchParams = useSearchParams();
     const { data: session, update: updateSession } = useSession();
     
-    const [searchTerm, setSearchTerm] = useState("");
     const [showNotifications, setShowNotifications] = useState(false);
     const [showEmails, setShowEmails] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -50,10 +48,6 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
     // Sync session data to state when modal opens
     const activeUser = session?.user || initialUser;
 
-    useEffect(() => {
-        setSearchTerm(searchParams.get("search") || "");
-    }, [searchParams]);
-
     // Handle clicking outside to close dropdowns
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -70,29 +64,6 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    const handleSearch = (val: string) => {
-        setSearchTerm(val);
-        const params = new URLSearchParams(searchParams.toString());
-        if (val) {
-            params.set("search", val);
-        } else {
-            params.delete("search");
-        }
-        router.push(`${pathname}?${params.toString()}`);
-    };
-
-    // Determine tailored placeholder based on dynamic pathname
-    const getSearchPlaceholder = () => {
-        if (pathname.includes("/cupones")) return "Buscar cupones por código o descripción...";
-        if (pathname.includes("/inquiries")) return "Buscar citas por cliente, correo o servicio...";
-        if (pathname.includes("/services")) return "Buscar servicios por título...";
-        if (pathname.includes("/transformaciones")) return "Buscar transformaciones Antes & Después...";
-        if (pathname.includes("/users")) return "Buscar personal o credenciales...";
-        if (pathname.includes("/gallery")) return "Buscar galería por categoría...";
-        if (pathname.includes("/testimonials")) return "Buscar testimonios...";
-        return "Buscar en esta sección...";
-    };
 
     // Open profile editor
     const openProfileModal = () => {
@@ -175,16 +146,9 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
     return (
         <>
             <header className="hidden lg:flex items-center justify-between h-16 px-8 border-b border-[#3A3A3A] bg-[#121212]/50 backdrop-blur-md sticky top-0 z-20 w-full transition-all">
-                {/* Search Bar - Apple Dynamic Context Style */}
-                <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder={getSearchPlaceholder()}
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-full bg-[#1A1A1A] border border-[#3A3A3A] text-[#E0E0E0] rounded-xl pl-10 pr-4 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#00DDEB] focus:ring-1 focus:ring-[#00DDEB] transition-all placeholder-slate-500"
-                    />
+                {/* Left side empty to let dynamic data occupy space or flex end */}
+                <div className="flex-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Panel Administrativo de Control</span>
                 </div>
 
                 {/* Right Action Icons & Profile Info */}
@@ -199,7 +163,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                         >
                             <Mail className="h-4.5 w-4.5" />
                             {pendingInquiries.length > 0 && (
-                                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-[#00DDEB]" />
+                                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
                             )}
                         </button>
 
@@ -207,9 +171,9 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                             <div className="absolute right-0 mt-3 w-80 bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl shadow-2xl p-4 space-y-3 z-30 animate-in fade-in slide-in-from-top-2 duration-250">
                                 <div className="flex justify-between items-center pb-2 border-b border-[#3A3A3A]">
                                     <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                                        <Mail className="h-3.5 w-3.5 text-[#00DDEB]" /> Mensajes Recibidos
+                                        <Mail className="h-3.5 w-3.5 text-[#7C3AED]" /> Mensajes Recibidos
                                     </h4>
-                                    <span className="text-[9px] font-black text-[#00DDEB] bg-[#00DDEB]/10 px-2 py-0.5 rounded border border-[#00DDEB]/25 uppercase tracking-widest">
+                                    <span className="text-[9px] font-black text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded border border-[#7C3AED]/25 uppercase tracking-widest">
                                         Inbox
                                     </span>
                                 </div>
@@ -230,7 +194,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                                         {new Date(inq.createdAt).toLocaleDateString()}
                                                     </span>
                                                 </div>
-                                                <p className="text-[10px] text-[#00DDEB] font-bold uppercase tracking-wider mt-0.5">{inq.service || "Consulta General"}</p>
+                                                <p className="text-[10px] text-[#7C3AED] font-bold uppercase tracking-wider mt-0.5">{inq.service || "Consulta General"}</p>
                                                 <p className="text-[10px] text-slate-400 truncate mt-1 italic">"{inq.message}"</p>
                                             </Link>
                                         ))
@@ -240,7 +204,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                     <Link 
                                         href="/admin/inquiries" 
                                         onClick={() => setShowEmails(false)}
-                                        className="block text-center text-[10px] font-black text-[#00DDEB] hover:underline uppercase tracking-widest"
+                                        className="block text-center text-[10px] font-black text-[#7C3AED] hover:underline uppercase tracking-widest"
                                     >
                                         Gestionar Citas
                                     </Link>
@@ -295,7 +259,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                     <Link 
                                         href="/admin/inquiries" 
                                         onClick={() => setShowNotifications(false)}
-                                        className="block text-center text-[10px] font-black text-[#00DDEB] hover:underline uppercase tracking-widest"
+                                        className="block text-center text-[10px] font-black text-[#7C3AED] hover:underline uppercase tracking-widest"
                                     >
                                         Ver todas las solicitudes
                                     </Link>
@@ -311,10 +275,10 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                             className="flex items-center space-x-3 pl-4 border-l border-[#3A3A3A] cursor-pointer group select-none"
                         >
                             <div className="text-right">
-                                <p className="text-xs font-bold text-white tracking-tight group-hover:text-[#00DDEB] transition-colors">{activeUser?.name || "Administrador"}</p>
+                                <p className="text-xs font-bold text-white tracking-tight group-hover:text-[#7C3AED] transition-colors">{activeUser?.name || "Administrador"}</p>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{(activeUser as any)?.role || "Staff"}</p>
                             </div>
-                            <div className="relative h-9 w-9 rounded-full overflow-hidden border border-[#3A3A3A] bg-[#252525] flex items-center justify-center text-xs font-black text-[#00DDEB] uppercase shadow-sm group-hover:border-[#00DDEB] transition-all">
+                            <div className="relative h-9 w-9 rounded-full overflow-hidden border border-[#3A3A3A] bg-[#252525] flex items-center justify-center text-xs font-black text-[#7C3AED] uppercase shadow-sm group-hover:border-[#7C3AED] transition-all">
                                 {activeUser?.image ? (
                                     <Image
                                         src={activeUser.image}
@@ -340,7 +304,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                         onClick={openProfileModal}
                                         className="w-full flex items-center space-x-2.5 p-2 rounded-xl text-slate-300 hover:text-white hover:bg-[#252525] transition-all text-xs font-semibold text-left cursor-pointer"
                                     >
-                                        <User className="h-4 w-4 text-[#00DDEB]" />
+                                        <User className="h-4 w-4 text-[#7C3AED]" />
                                         <span>Mi Perfil</span>
                                     </button>
                                     <Link 
@@ -348,7 +312,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                         onClick={() => setShowProfile(false)}
                                         className="flex items-center space-x-2.5 p-2 rounded-xl text-slate-300 hover:text-white hover:bg-[#252525] transition-all text-xs font-semibold"
                                     >
-                                        <SettingsIcon className="h-4 w-4 text-[#00DDEB]" />
+                                        <SettingsIcon className="h-4 w-4 text-[#7C3AED]" />
                                         <span>Configuración Global</span>
                                     </Link>
                                     <button 
@@ -372,7 +336,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-[#3A3A3A]/50">
                             <div className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-[#00DDEB]" />
+                                <User className="h-5 w-5 text-[#7C3AED]" />
                                 <h3 className="text-base font-black text-white uppercase tracking-wider">Mi Perfil Administrativo</h3>
                             </div>
                             <button 
@@ -388,7 +352,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                         <form onSubmit={handleSaveProfile} className="p-6 space-y-5">
                             {/* Profile Image upload visualizer */}
                             <div className="flex flex-col items-center justify-center space-y-3 pb-2">
-                                <div className="relative h-20 w-20 rounded-full border-2 border-[#00DDEB] bg-[#252525] overflow-hidden flex items-center justify-center text-xl font-black text-[#00DDEB] uppercase shadow-lg">
+                                <div className="relative h-20 w-20 rounded-full border-2 border-[#7C3AED] bg-[#252525] overflow-hidden flex items-center justify-center text-xl font-black text-[#7C3AED] uppercase shadow-lg">
                                     {profileImage ? (
                                         <Image src={profileImage} alt="Preview" fill className="object-cover" />
                                     ) : (
@@ -396,11 +360,11 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                     )}
                                     {uploadingImage && (
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                            <Loader2 className="h-6 w-6 text-[#00DDEB] animate-spin" />
+                                            <Loader2 className="h-6 w-6 text-[#7C3AED] animate-spin" />
                                         </div>
                                     )}
                                 </div>
-                                <label className="flex items-center gap-1.5 text-[10px] font-black text-[#00DDEB] uppercase tracking-widest px-3 py-1.5 bg-[#00DDEB]/10 hover:bg-[#00DDEB]/20 rounded-xl border border-[#00DDEB]/25 cursor-pointer transition-all">
+                                <label className="flex items-center gap-1.5 text-[10px] font-black text-[#7C3AED] uppercase tracking-widest px-3 py-1.5 bg-[#7C3AED]/10 hover:bg-[#7C3AED]/20 rounded-xl border border-[#7C3AED]/25 cursor-pointer transition-all">
                                     <Upload className="h-3.5 w-3.5" />
                                     {uploadingImage ? "Cargando..." : "Subir Foto"}
                                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -413,7 +377,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                 <Input 
                                     value={profileName} 
                                     onChange={(e) => setProfileName(e.target.value)} 
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                     required
                                 />
                             </div>
@@ -425,7 +389,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                     type="email" 
                                     value={profileEmail} 
                                     onChange={(e) => setProfileEmail(e.target.value)} 
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                     required
                                 />
                             </div>
@@ -443,7 +407,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                         value={profilePassword} 
                                         onChange={(e) => setProfilePassword(e.target.value)} 
                                         placeholder="Ej: •••••••••••"
-                                        className="h-11 pl-10 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] placeholder-slate-600"
+                                        className="h-11 pl-10 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] placeholder-slate-600"
                                     />
                                 </div>
                             </div>
@@ -461,7 +425,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                 <Button 
                                     type="submit" 
                                     disabled={isPending || uploadingImage}
-                                    className="flex-1 rounded-xl bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 font-black shadow-lg gap-2 cursor-pointer"
+                                    className="flex-1 rounded-xl bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 font-black shadow-lg gap-2 cursor-pointer"
                                 >
                                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                     {isPending ? "Guardando..." : "Actualizar"}
@@ -474,6 +438,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
         </>
     );
 }
+
 export function Save(props: any) {
     return (
         <svg

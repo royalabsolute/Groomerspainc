@@ -136,12 +136,12 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                     <CardContent className="p-6 space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="titleEs" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Título del Servicio</Label>
-                            <Input id="titleEs" {...form.register("titleEs")} placeholder="Ej: Corte Premium Spa" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]" />
+                            <Input id="titleEs" {...form.register("titleEs")} placeholder="Ej: Corte Premium Spa" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]" />
                             {form.formState.errors.titleEs && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.titleEs.message}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="descEs" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Descripción en Español</Label>
-                            <Textarea id="descEs" {...form.register("descEs")} placeholder="Describe detalladamente el servicio..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] leading-relaxed" />
+                            <Textarea id="descEs" {...form.register("descEs")} placeholder="Describe detalladamente el servicio..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] leading-relaxed" />
                             {form.formState.errors.descEs && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.descEs.message}</p>}
                         </div>
                     </CardContent>
@@ -158,7 +158,7 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                             type="button" 
                             size="sm" 
                             onClick={forceTranslateToEnglish}
-                            className="bg-[#00DDEB]/10 text-[#00DDEB] hover:bg-[#00DDEB]/20 border border-[#00DDEB]/25 rounded-xl h-8 text-[10px] font-black uppercase tracking-widest cursor-pointer"
+                            className="bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 rounded-xl h-8 text-[10px] font-black uppercase tracking-widest cursor-pointer"
                         >
                             <Wand2 className="w-3.5 h-3.5 mr-2" />
                             Traducir con IA
@@ -167,18 +167,18 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                     <CardContent className="p-6 space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="titleEn" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Service Title</Label>
-                            <Input id="titleEn" {...form.register("titleEn")} placeholder="Ex: Premium Grooming Session" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]" />
+                            <Input id="titleEn" {...form.register("titleEn")} placeholder="Ex: Premium Grooming Session" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]" />
                             {form.formState.errors.titleEn && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.titleEn.message}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="descEn" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Description in English</Label>
-                            <Textarea id="descEn" {...form.register("descEn")} placeholder="Detailed service description..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] leading-relaxed" />
+                            <Textarea id="descEn" {...form.register("descEn")} placeholder="Detailed service description..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] leading-relaxed" />
                             {form.formState.errors.descEn && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.descEn.message}</p>}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Vector Icon Selector Selector de Iconografia */}
+                {/* Vector Icon Selector */}
                 <Card className="border-[#3A3A3A] bg-[#1A1A1A] shadow-xl lg:col-span-2 overflow-hidden rounded-2xl">
                     <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50">
                         <h3 className="font-black text-xs uppercase tracking-wider text-white">Selector de Iconografía Vectorial</h3>
@@ -195,7 +195,7 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                                         className={cn(
                                             "flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer h-24 select-none",
                                             isSelected 
-                                                ? "bg-[#00DDEB]/15 border-[#00DDEB] text-[#00DDEB] shadow-[0_0_12px_rgba(0,221,235,0.15)]"
+                                                ? "bg-[#7C3AED]/15 border-[#7C3AED] text-[#7C3AED] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
                                                 : "bg-[#252525] border-[#3A3A3A] text-slate-400 hover:text-white hover:border-[#3A3A3A]*1.5 hover:bg-[#2A2A2A]"
                                         )}
                                     >
@@ -219,7 +219,7 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="price" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Precio base ($)</Label>
-                                <Input id="price" type="number" step="0.01" {...form.register("price")} className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] text-lg font-black" />
+                                <Input id="price" type="number" step="0.01" {...form.register("price")} className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] text-lg font-black" />
                                 {form.formState.errors.price && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.price.message}</p>}
                             </div>
                             <div className="space-y-2">
@@ -293,7 +293,7 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                 <Button
                     type="submit"
                     disabled={isLoading}
-                    className="rounded-xl h-11 px-10 shadow-lg bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 w-full sm:w-auto font-black cursor-pointer uppercase tracking-wider text-xs"
+                    className="rounded-xl h-11 px-10 shadow-lg bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 w-full sm:w-auto font-black cursor-pointer uppercase tracking-wider text-xs"
                 >
                     {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

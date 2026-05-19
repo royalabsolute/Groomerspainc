@@ -136,14 +136,14 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                                 value={titleEs}
                                 onChange={(e) => setTitleEs(e.target.value)}
                                 placeholder="Ej: Transformación de Luna"
-                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] placeholder-slate-500"
+                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] placeholder-slate-500"
                                 required
                             />
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="text-xs gap-1.5 text-[#00DDEB] hover:bg-[#252525] cursor-pointer"
+                                className="text-xs gap-1.5 text-[#7C3AED] hover:bg-[#252525] cursor-pointer"
                                 onClick={() => handleTranslate("esToEn")}
                                 disabled={translating || !titleEs}
                             >
@@ -157,14 +157,14 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                                 value={titleEn}
                                 onChange={(e) => setTitleEn(e.target.value)}
                                 placeholder="e.g.: Luna's Transformation"
-                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] placeholder-slate-500"
+                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] placeholder-slate-500"
                                 required
                             />
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="text-xs gap-1.5 text-[#00DDEB] hover:bg-[#252525] cursor-pointer"
+                                className="text-xs gap-1.5 text-[#7C3AED] hover:bg-[#252525] cursor-pointer"
                                 onClick={() => handleTranslate("enToEs")}
                                 disabled={translating || !titleEn}
                             >
@@ -182,7 +182,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                                 type="date" 
                                 value={date} 
                                 onChange={(e) => setDate(e.target.value)} 
-                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 required 
                             />
                         </div>
@@ -207,12 +207,12 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                         <div className="space-y-2">
                             <Label className="font-bold text-slate-300">📸 Foto ANTES</Label>
                             <label className="block cursor-pointer">
-                                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#00DDEB]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
+                                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#7C3AED]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
                                     {beforePreview ? (
                                         <Image src={beforePreview} alt="Antes" fill unoptimized className="object-cover" />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-500">
-                                            <Upload className="h-8 w-8 text-[#00DDEB]" />
+                                            <Upload className="h-8 w-8 text-[#7C3AED]" />
                                             <span className="text-sm font-bold">Subir imagen ANTES</span>
                                         </div>
                                     )}
@@ -235,17 +235,17 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                         <div className="space-y-2">
                             <Label className="font-bold text-slate-300">✨ Foto DESPUÉS</Label>
                             <label className="block cursor-pointer">
-                                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#00DDEB]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
+                                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#7C3AED]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
                                     {afterPreview ? (
                                         <Image src={afterPreview} alt="Después" fill unoptimized className="object-cover" />
                                     ) : (
                                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-500">
-                                            <ImageIcon className="h-8 w-8 text-[#00DDEB]" />
+                                            <ImageIcon className="h-8 w-8 text-[#7C3AED]" />
                                             <span className="text-sm font-bold">Subir imagen DESPUÉS</span>
                                         </div>
                                     )}
                                     {afterPreview && (
-                                        <div className="absolute bottom-2.5 right-2.5 bg-[#00DDEB]/85 backdrop-blur-md text-black text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
+                                        <div className="absolute bottom-2.5 right-2.5 bg-[#7C3AED]/85 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
                                             DESPUÉS
                                         </div>
                                     )}
@@ -273,7 +273,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                         <Button 
                             type="submit" 
                             disabled={isPending} 
-                            className="flex-1 rounded-xl bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 font-black shadow-lg gap-2 cursor-pointer"
+                            className="flex-1 rounded-xl bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 font-black shadow-lg gap-2 cursor-pointer"
                         >
                             <Save className="h-4 w-4" />
                             {isPending ? "Guardando..." : isEditing ? "Actualizar" : "Crear Transformación"}

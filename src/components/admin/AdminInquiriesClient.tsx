@@ -15,7 +15,7 @@ import {
     DollarSign,
     X
 } from "lucide-react";
-import { deleteInquiry, updateInquiryStatus, markInquiryAsRead, completeInquiryPayment } from "@/lib/actions/inquiries";
+import { deleteInquiry, updateInquiryStatus, markInquiryAsRead, completeInquiryPayment, restoreInquiry } from "@/lib/actions/inquiries";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -37,6 +37,7 @@ interface Inquiry {
     service: string | null;
     status: string;
     discountCode: string | null;
+    deleted: boolean;
 }
 
 interface DiscountCode {
@@ -58,6 +59,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
     const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
     const [dateFilter, setDateFilter] = useState("");
     const [activeLightboxUrl, setActiveLightboxUrl] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<"PENDING" | "ACCEPTED" | "COMPLETED" | "UNPAID" | "DELETED">("PENDING");
 
     useEffect(() => {
         setSearchTerm(searchParams.get("search") || "");
@@ -87,8 +89,20 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
     const handleDelete = async (id: string) => {
         const result = await deleteInquiry(id);
         if (result.success) {
-            setItems(items.filter(item => item.id !== id));
-            toast.success("Cita eliminada correctamente");
+            setItems(items.map(item => item.id === id ? { ...item, deleted: true } : item));
+            toast.success("Cita enviada a la papelera");
+        } else {
+            toast.error("Error al eliminar cita");
+        }
+    };
+
+    const handleRestore = async (id: string) => {
+        const result = await restoreInquiry(id);
+        if (result.success) {
+            setItems(items.map(item => item.id === id ? { ...item, deleted: false } : item));
+            toast.success("Cita restaurada correctamente");
+        } else {
+            toast.error("Error al restaurar cita");
         }
     };
 
@@ -111,7 +125,12 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
             (item.service?.toLowerCase() || "").includes(searchTerm.toLowerCase());
         
         const matchesDate = !dateFilter || new Date(item.createdAt).toISOString().split('T')[0] === dateFilter;
-        return matchesSearch && matchesDate;
+        
+        if (statusFilter === "DELETED") {
+            return matchesSearch && matchesDate && item.deleted;
+        } else {
+            return matchesSearch && matchesDate && !item.deleted && item.status === statusFilter;
+        }
     });
 
     const getStatusLabel = (status: string) => {
@@ -120,15 +139,17 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
             case 'ACCEPTED': return 'Aceptada (En curso)';
             case 'REJECTED': return 'Rechazada';
             case 'PENDING': return 'Pendiente';
+            case 'UNPAID': return 'No Pagada';
             default: return status;
         }
     };
 
     const getStatusStyles = (status: string) => {
         switch (status) {
-            case 'COMPLETED': return 'bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/20';
-            case 'ACCEPTED': return 'bg-[#F1C40F]/10 text-[#F1C40F] border-[#F1C40F]/20';
-            case 'REJECTED': return 'bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/20';
+            case 'COMPLETED': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+            case 'ACCEPTED': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+            case 'REJECTED': return 'bg-red-500/10 text-red-400 border-red-500/20';
+            case 'UNPAID': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
             default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
         }
     };
@@ -165,8 +186,8 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                     title="Gestión de Citas"
                     subtitle="Administra las solicitudes y mensajes entrantes"
                     action={
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#2ECC71]/10 text-[#2ECC71] rounded-xl border border-[#2ECC71]/20 text-[10px] font-bold uppercase tracking-wider">
-                            <div className="h-1.5 w-1.5 rounded-full bg-[#2ECC71] animate-pulse" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl border border-[#7C3AED]/20 text-[10px] font-bold uppercase tracking-wider">
+                            <div className="h-1.5 w-1.5 rounded-full bg-[#7C3AED] animate-pulse" />
                             Live
                         </div>
                     }
@@ -181,7 +202,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                                 <Input 
                                     placeholder="Nombre, email o servicio..." 
-                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="pl-10 h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     aria-label="Buscar Solicitud"
@@ -192,7 +213,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 ml-1">Filtrar por Fecha</label>
                             <Input 
                                 type="date" 
-                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 value={dateFilter}
                                 onChange={(e) => setDateFilter(e.target.value)}
                                 aria-label="Filtrar por Fecha"
@@ -208,13 +229,42 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                     </CardContent>
                 </Card>
 
+                {/* Stylized Tabs */}
+                <div className="flex flex-wrap gap-2 p-1.5 bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl">
+                    {[
+                        { id: "PENDING", label: "Pendientes", icon: Clock },
+                        { id: "ACCEPTED", label: "En Curso (Aceptadas)", icon: Calendar },
+                        { id: "COMPLETED", label: "Finalizadas (Listas)", icon: CheckCircle2 },
+                        { id: "UNPAID", label: "No Pagadas", icon: DollarSign },
+                        { id: "DELETED", label: "Eliminadas (Historial)", icon: Trash2 },
+                    ].map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive = statusFilter === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setStatusFilter(tab.id as any)}
+                                className={cn(
+                                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
+                                    isActive
+                                        ? "bg-[#7C3AED] text-white shadow-[0_0_12px_rgba(124,58,237,0.25)]"
+                                        : "text-slate-400 hover:text-white hover:bg-[#252525]"
+                                )}
+                            >
+                                <Icon className="h-4 w-4" />
+                                {tab.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 {/* Grid of Dark Widgets */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {filteredItems.length === 0 ? (
                         <div className="md:col-span-2 bg-[#1A1A1A] border border-[#3A3A3A] border-dashed py-24 flex flex-col items-center rounded-2xl shadow-xl">
                             <Mail className="h-12 w-12 text-[#3A3A3A] mb-4" />
                             <p className="font-bold text-white">No se encontraron registros</p>
-                            <p className="text-sm text-slate-500 mt-1">Prueba ajustando los filtros de búsqueda.</p>
+                            <p className="text-sm text-slate-500 mt-1">Prueba ajustando los filtros de búsqueda o cambia de pestaña.</p>
                         </div>
                     ) : (
                         filteredItems.map((item) => {
@@ -226,8 +276,8 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                 <div 
                                     key={item.id} 
                                     className={cn(
-                                        "group bg-[#1A1A1A] rounded-2xl border border-[#3A3A3A] hover:border-[#00DDEB]/40 shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden relative",
-                                        !item.read && "border-l-4 border-l-[#00DDEB] pl-1"
+                                        "group bg-[#1A1A1A] rounded-2xl border border-[#3A3A3A] hover:border-[#7C3AED]/40 shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden relative",
+                                        !item.read && "border-l-4 border-l-[#7C3AED] pl-1"
                                     )}
                                 >
                                     <div className="p-6 space-y-6">
@@ -235,7 +285,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                         <div className="flex justify-between items-start gap-4">
                                             <div className="space-y-1.5 flex-1 min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-[#00DDEB]/15 text-[#00DDEB] rounded-md border border-[#00DDEB]/25">
+                                                    <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-[#7C3AED]/15 text-[#7C3AED] rounded-md border border-[#7C3AED]/25">
                                                         {item.service || "General"}
                                                     </span>
                                                     <span className={cn(
@@ -245,7 +295,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                                         {getStatusLabel(item.status)}
                                                     </span>
                                                 </div>
-                                                <h3 className="font-black text-white text-lg tracking-tight truncate group-hover:text-[#00DDEB] transition-colors mt-2">{item.name}</h3>
+                                                <h3 className="font-black text-white text-lg tracking-tight truncate group-hover:text-[#7C3AED] transition-colors mt-2">{item.name}</h3>
                                             </div>
 
                                             {/* Pet Image or Thumbnail with Lightbox click trigger */}
@@ -273,18 +323,18 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                         {/* Contact Detail widgets */}
                                         <div className="bg-[#252525]/60 border border-[#3A3A3A] rounded-xl p-4 space-y-2">
                                             <div className="flex items-center space-x-3 text-xs">
-                                                <Mail className="h-3.5 w-3.5 text-[#00DDEB]/70" />
+                                                <Mail className="h-3.5 w-3.5 text-[#7C3AED]/70" />
                                                 <span className="text-slate-300 font-bold truncate">{item.email}</span>
                                             </div>
                                             {item.phone && (
                                                 <div className="flex items-center space-x-3 text-xs">
-                                                    <Phone className="h-3.5 w-3.5 text-[#00DDEB]/70" />
+                                                    <Phone className="h-3.5 w-3.5 text-[#7C3AED]/70" />
                                                     <span className="text-slate-300 font-bold">{item.phone}</span>
                                                 </div>
                                             )}
                                             {item.petDetails && (
                                                 <div className="flex items-center space-x-3 text-xs pt-1 border-t border-[#3A3A3A]/50">
-                                                    <User className="h-3.5 w-3.5 text-[#00DDEB]/70" />
+                                                    <User className="h-3.5 w-3.5 text-[#7C3AED]/70" />
                                                     <span className="text-slate-400 italic font-semibold truncate">Mascota: {item.petDetails}</span>
                                                 </div>
                                             )}
@@ -311,7 +361,7 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                                 </span>
                                             </div>
                                             <div>
-                                                <span className="block text-[8px] font-black text-[#00DDEB] uppercase tracking-widest">Ganancia</span>
+                                                <span className="block text-[8px] font-black text-[#7C3AED] uppercase tracking-widest">Ganancia</span>
                                                 <span className="text-xs font-black text-[#2ECC71]">${netEarnings.toFixed(2)}</span>
                                             </div>
                                         </div>
@@ -320,71 +370,85 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                     {/* Action Buttons Footer */}
                                     <div className="border-t border-[#3A3A3A] bg-[#1d1d1d] px-6 py-4 flex items-center justify-between gap-4 mt-auto">
                                         <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                                            <Clock className="h-3.5 w-3.5 text-[#00DDEB]" />
+                                            <Clock className="h-3.5 w-3.5 text-[#7C3AED]" />
                                             {new Date(item.createdAt).toLocaleDateString()}
                                         </span>
 
                                         <div className="flex items-center gap-2">
-                                            {item.status === 'PENDING' && (
+                                            {item.deleted ? (
+                                                <Button 
+                                                    variant="default"
+                                                    size="sm"
+                                                    onClick={() => handleRestore(item.id)}
+                                                    className="h-8.5 rounded-xl font-bold bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white text-xs cursor-pointer px-4 flex items-center gap-1.5"
+                                                >
+                                                    <RefreshCw className="h-3.5 w-3.5" />
+                                                    Restaurar Cita
+                                                </Button>
+                                            ) : (
                                                 <>
-                                                    <Button 
-                                                        variant="default"
-                                                        size="sm"
-                                                        onClick={() => handleStatusUpdate(item.id, 'ACCEPTED')}
-                                                        className="h-8.5 rounded-xl font-bold bg-[#F1C40F] hover:bg-[#F1C40F]/90 text-black text-xs cursor-pointer px-4"
-                                                    >
-                                                        Aceptar
-                                                    </Button>
-                                                    <Button 
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleStatusUpdate(item.id, 'REJECTED')}
-                                                        className="h-8.5 rounded-xl font-bold border-[#3A3A3A] text-slate-400 hover:bg-[#252525] hover:text-white text-xs cursor-pointer px-4"
-                                                    >
-                                                        Rechazar
-                                                    </Button>
+                                                    {item.status === 'PENDING' && (
+                                                        <>
+                                                            <Button 
+                                                                variant="default"
+                                                                size="sm"
+                                                                onClick={() => handleStatusUpdate(item.id, 'ACCEPTED')}
+                                                                className="h-8.5 rounded-xl font-bold bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white text-xs cursor-pointer px-4"
+                                                            >
+                                                                Aceptar
+                                                            </Button>
+                                                            <Button 
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => handleStatusUpdate(item.id, 'REJECTED')}
+                                                                className="h-8.5 rounded-xl font-bold bg-red-950/40 text-red-400 border border-red-800/60 hover:bg-red-900/30 text-xs cursor-pointer px-4"
+                                                            >
+                                                                Rechazar
+                                                            </Button>
+                                                        </>
+                                                    )}
+
+                                                    {item.status === 'ACCEPTED' && (
+                                                        <RegisterPaymentModal 
+                                                            onConfirm={(amount, notes) => handlePayment(item.id, amount, notes)}
+                                                            defaultNotes={`Servicio Pagado: ${item.service || "General"} — Cliente: ${item.name}${item.discountCode ? ` (Cupón: ${item.discountCode})` : ''}`}
+                                                            trigger={
+                                                                <Button 
+                                                                    variant="default"
+                                                                    size="sm"
+                                                                    className="h-8.5 rounded-xl font-bold bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 text-xs cursor-pointer px-4"
+                                                                >
+                                                                    Validar Pago
+                                                                </Button>
+                                                            }
+                                                        />
+                                                    )}
+
+                                                    {(item.status === 'COMPLETED' || item.status === 'REJECTED') && (
+                                                        <span className={cn(
+                                                            "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border",
+                                                            item.status === 'COMPLETED' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"
+                                                        )}>
+                                                            {item.status === 'COMPLETED' ? 'Finalizada' : 'Rechazada'}
+                                                        </span>
+                                                    )}
+
+                                                    <ConfirmDeleteModal 
+                                                        onConfirm={() => handleDelete(item.id)}
+                                                        trigger={
+                                                            <Button 
+                                                                title="Eliminar registro"
+                                                                aria-label="Eliminar registro"
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8.5 w-8.5 p-0 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-950/20 border border-[#3A3A3A] cursor-pointer flex items-center justify-center"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        }
+                                                    />
                                                 </>
                                             )}
-
-                                            {item.status === 'ACCEPTED' && (
-                                                <RegisterPaymentModal 
-                                                    onConfirm={(amount, notes) => handlePayment(item.id, amount, notes)}
-                                                    defaultNotes={`Servicio Pagado: ${item.service || "General"} — Cliente: ${item.name}${item.discountCode ? ` (Cupón: ${item.discountCode})` : ''}`}
-                                                    trigger={
-                                                        <Button 
-                                                            variant="default"
-                                                            size="sm"
-                                                            className="h-8.5 rounded-xl font-bold bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 text-xs cursor-pointer px-4"
-                                                        >
-                                                            Validar Pago
-                                                        </Button>
-                                                    }
-                                                />
-                                            )}
-
-                                            {(item.status === 'COMPLETED' || item.status === 'REJECTED') && (
-                                                <span className={cn(
-                                                    "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border",
-                                                    item.status === 'COMPLETED' ? "bg-[#2ECC71]/10 text-[#2ECC71] border-[#2ECC71]/20" : "bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/20"
-                                                )}>
-                                                    {item.status === 'COMPLETED' ? 'Finalizada' : 'Rechazada'}
-                                                </span>
-                                            )}
-
-                                            <ConfirmDeleteModal 
-                                                onConfirm={() => handleDelete(item.id)}
-                                                trigger={
-                                                    <Button 
-                                                        title="Eliminar registro"
-                                                        aria-label="Eliminar registro"
-                                                        variant="ghost" 
-                                                        size="sm" 
-                                                        className="h-8.5 w-8.5 p-0 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-950/20 border border-[#3A3A3A] cursor-pointer flex items-center justify-center"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                }
-                                            />
                                         </div>
                                     </div>
                                 </div>

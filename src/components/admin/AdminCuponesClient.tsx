@@ -87,7 +87,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                 title="Gestión de Cupones" 
                 subtitle="Administra códigos de descuento y promociones activas"
                 action={
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#00DDEB]/10 text-[#00DDEB] rounded-xl border border-[#00DDEB]/25 text-[10px] font-bold uppercase tracking-wider">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#7C3AED]/10 text-[#7C3AED] rounded-xl border border-[#7C3AED]/25 text-[10px] font-bold uppercase tracking-wider">
                         <Ticket className="h-3.5 w-3.5" />
                         {codes.length} Cupones
                     </div>
@@ -99,7 +99,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                 <Card className="border-[#3A3A3A] shadow-lg bg-[#1A1A1A] rounded-2xl h-fit sticky top-6 overflow-hidden">
                     <CardHeader className="bg-[#202020]/50 border-b border-[#3A3A3A]/50 p-6">
                         <CardTitle className="text-lg font-black text-white flex items-center gap-2">
-                            <Zap className="h-4 w-4 text-[#00DDEB]" /> Nuevo Cupón
+                            <Zap className="h-4 w-4 text-[#7C3AED]" /> Nuevo Cupón
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
@@ -111,7 +111,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                         value={newCode.code} 
                                         onChange={e => setNewCode({ ...newCode, code: e.target.value.toUpperCase().slice(0, 12) })}
                                         placeholder="EJ: VERANO24"
-                                        className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl font-bold uppercase tracking-wide focus:border-[#00DDEB] focus:ring-[#00DDEB] placeholder-slate-500"
+                                        className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl font-bold uppercase tracking-wide focus:border-[#7C3AED] focus:ring-[#7C3AED] placeholder-slate-500"
                                         required
                                     />
                                     <Button 
@@ -130,7 +130,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                     <select 
                                         value={discountType} 
                                         onChange={(e) => setDiscountType(e.target.value as any)}
-                                        className="h-11 px-3 rounded-xl border border-[#3A3A3A] bg-[#252525] text-white font-bold text-sm focus:outline-none focus:border-[#00DDEB] focus:ring-1 focus:ring-[#00DDEB] cursor-pointer"
+                                        className="h-11 px-3 rounded-xl border border-[#3A3A3A] bg-[#252525] text-white font-bold text-sm focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] cursor-pointer"
                                         title="Tipo de descuento"
                                     >
                                         <option value="USD">$ USD</option>
@@ -141,7 +141,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                         value={discountValue} 
                                         onChange={e => setDiscountValue(e.target.value)}
                                         placeholder="Valor"
-                                        className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl font-bold focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                        className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl font-bold focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                         required
                                     />
                                 </div>
@@ -152,7 +152,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                     type="number"
                                     value={newCode.maxUses} 
                                     onChange={e => setNewCode({ ...newCode, maxUses: e.target.value })}
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB]"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -161,13 +161,13 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                     value={newCode.description} 
                                     onChange={e => setNewCode({ ...newCode, description: e.target.value })}
                                     placeholder="EJ: Descuento de temporada"
-                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#00DDEB] focus:ring-[#00DDEB] placeholder-slate-500"
+                                    className="h-11 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] placeholder-slate-500"
                                 />
                             </div>
                             <Button 
                                 type="submit" 
                                 disabled={isCreating}
-                                className="w-full h-11 rounded-xl bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 font-black shadow-lg cursor-pointer"
+                                className="w-full h-11 rounded-xl bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 font-black shadow-lg cursor-pointer"
                             >
                                 {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Generar Cupón"}
                             </Button>
@@ -230,7 +230,7 @@ export default function AdminCuponesClient({ initialCodes }: { initialCodes: any
                                         <div className="grid grid-cols-3 gap-2 pt-4 border-t border-[#3A3A3A]/50 text-center">
                                             <div>
                                                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Beneficio</p>
-                                                <p className="font-black text-[#00DDEB] text-xs">{code.discount || "-"}</p>
+                                                <p className="font-black text-[#7C3AED] text-xs">{code.discount || "-"}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mb-1">Uso</p>

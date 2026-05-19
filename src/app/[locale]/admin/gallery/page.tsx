@@ -34,7 +34,7 @@ export default async function AdminGalleryPage() {
                         </div>
                     ) : (
                         galleryItems.map((item) => (
-                            <div key={item.id} className="group relative bg-[#1A1A1A] rounded-2xl border border-[#3A3A3A] overflow-hidden shadow-xl hover:border-[#00DDEB]/40 transition-all duration-300">
+                            <div key={item.id} className="group relative bg-[#1A1A1A] rounded-2xl border border-[#3A3A3A] overflow-hidden shadow-xl hover:border-[#7C3AED]/40 transition-all duration-300">
                                 <div className="relative aspect-square overflow-hidden bg-[#252525]">
                                     <Image
                                         src={item.url}
@@ -56,7 +56,7 @@ export default async function AdminGalleryPage() {
                                             <span className="text-xs font-semibold">{new Date(item.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <span className="text-[9px] font-black uppercase tracking-widest bg-[#252525] border border-[#3A3A3A] px-2 py-0.5 rounded-md text-[#00DDEB]">
+                                            <span className="text-[9px] font-black uppercase tracking-widest bg-[#252525] border border-[#3A3A3A] px-2 py-0.5 rounded-md text-[#7C3AED]">
                                                 {item.type}
                                             </span>
                                         </div>

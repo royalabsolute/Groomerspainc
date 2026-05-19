@@ -23,14 +23,14 @@ export default async function AdminTestimonialsPage() {
                     {testimonials.length === 0 ? (
                         <div className="border-2 border-dashed border-[#3A3A3A] bg-[#1A1A1A] py-24 flex flex-col items-center rounded-2xl shadow-xl">
                             <div className="h-16 w-16 bg-[#252525] border border-[#3A3A3A] rounded-full flex items-center justify-center mb-4">
-                                <Star className="h-8 w-8 text-[#00DDEB]" />
+                                <Star className="h-8 w-8 text-[#7C3AED]" />
                             </div>
                             <h3 className="text-lg font-bold text-white">No hay testimonios aún</h3>
                             <p className="text-sm text-slate-500 mt-1">Las reseñas de clientes aparecerán aquí para moderación.</p>
                         </div>
                     ) : (
                         testimonials.map((t) => (
-                            <Card key={t.id} className="bg-[#1A1A1A] border-[#3A3A3A] shadow-xl rounded-2xl overflow-hidden group hover:border-[#00DDEB]/40 transition-all duration-300">
+                            <Card key={t.id} className="bg-[#1A1A1A] border-[#3A3A3A] shadow-xl rounded-2xl overflow-hidden group hover:border-[#7C3AED]/40 transition-all duration-300">
                                 <CardContent className="p-6">
                                     <div className="flex flex-col md:flex-row justify-between gap-6">
                                         <div className="flex-1">
@@ -40,7 +40,7 @@ export default async function AdminTestimonialsPage() {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-black text-white text-sm uppercase tracking-wider leading-tight">{t.clientName}</h3>
-                                                    <div className="flex text-[#00DDEB] mt-0.5">
+                                                    <div className="flex text-[#7C3AED] mt-0.5">
                                                         {[...Array(5)].map((_, i) => (
                                                             <Star key={i} className={cn("h-3 w-3 fill-current", i >= t.rating && "text-slate-800 fill-none")} />
                                                         ))}

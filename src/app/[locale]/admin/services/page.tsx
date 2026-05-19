@@ -63,7 +63,7 @@ export default async function AdminServicesPage({ searchParams }: PageProps) {
                     subtitle="Administra los paquetes de grooming que ofreces"
                     action={
                         <Link href="/admin/services/new">
-                            <Button className="rounded-xl bg-[#00DDEB] text-black hover:bg-[#00DDEB]/90 font-black h-11 px-6 cursor-pointer">
+                            <Button className="rounded-xl bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 font-black h-11 px-6 cursor-pointer">
                                 <Plus className="mr-2 h-4 w-4" /> Nuevo Servicio
                             </Button>
                         </Link>
@@ -90,16 +90,16 @@ export default async function AdminServicesPage({ searchParams }: PageProps) {
                         services.map((service) => {
                             const Icon = getServiceIcon(service.titleEs, service.icon);
                             return (
-                                <Card key={service.id} className="group bg-[#1A1A1A] border-[#3A3A3A] hover:border-[#00DDEB]/40 transition-all duration-300 rounded-2xl overflow-hidden shadow-xl">
+                                <Card key={service.id} className="group bg-[#1A1A1A] border-[#3A3A3A] hover:border-[#7C3AED]/40 transition-all duration-300 rounded-2xl overflow-hidden shadow-xl">
                                     <CardContent className="p-6">
                                         <div className="flex justify-between items-start mb-6 gap-2">
-                                            <div className="h-10 w-10 bg-[#252525] border border-[#3A3A3A] rounded-xl flex items-center justify-center text-slate-400 group-hover:text-[#00DDEB] group-hover:scale-105 transition-all duration-300 shrink-0">
+                                            <div className="h-10 w-10 bg-[#252525] border border-[#3A3A3A] rounded-xl flex items-center justify-center text-slate-400 group-hover:text-[#7C3AED] group-hover:scale-105 transition-all duration-300 shrink-0">
                                                 <Icon className="h-5 w-5" />
                                             </div>
                                             <ServiceActions id={service.id} active={service.active} />
                                         </div>
                                         <div className="space-y-2">
-                                            <h3 className="text-base sm:text-lg font-black text-white truncate group-hover:text-[#00DDEB] transition-colors" title={service.titleEs}>
+                                            <h3 className="text-base sm:text-lg font-black text-white truncate group-hover:text-[#7C3AED] transition-colors" title={service.titleEs}>
                                                 {service.titleEs}
                                             </h3>
                                             <p className="text-xs sm:text-sm text-slate-400 line-clamp-2 h-10 font-medium leading-relaxed">

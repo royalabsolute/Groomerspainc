@@ -21,7 +21,7 @@ export default async function AdminLayout({
     }
 
     const pendingInquiries = await db.inquiry.findMany({
-        where: { status: 'PENDING' },
+        where: { status: 'PENDING', deleted: false } as any,
         orderBy: { createdAt: 'desc' },
         take: 5
     });

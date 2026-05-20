@@ -10,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { submitInquiry } from "@/lib/actions/inquiries";
+import { getAvailableHours } from "@/lib/actions/availability";
 import { useEffect, useState, useRef } from "react";
 import { Camera, X, Image as ImageIcon, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,9 @@ const formSchema = z.object({
     phone: z.string().optional(),
     service: z.string().optional(),
     message: z.string().min(10, { message: "Message must be at least 10 characters." }),
+    address: z.string().min(5, { message: "Address must be at least 5 characters." }),
+    appointmentDate: z.string().min(1, { message: "Date is required." }),
+    appointmentTime: z.string().min(1, { message: "Time is required." }),
     discountCode: z.string().optional(),
 });
 
@@ -40,6 +44,8 @@ export default function ContactForm({ locale, services, initialService, onSucces
     const [isCheckingCode, setIsCheckingCode] = useState(false);
     const [appliedDiscount, setAppliedDiscount] = useState<string | null>(null);
     const [showExhaustedDialog, setShowExhaustedDialog] = useState(false);
+    const [availableHours, setAvailableHours] = useState<string[]>([]);
+    const [isLoadingHours, setIsLoadingHours] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -60,9 +66,37 @@ export default function ContactForm({ locale, services, initialService, onSucces
             phone: "",
             service: initialService || "",
             message: "",
+            address: "",
+            appointmentDate: "",
+            appointmentTime: "",
             discountCode: "",
         },
     });
+
+    // Load available hours when date changes
+    const selectedDate = form.watch("appointmentDate");
+    useEffect(() => {
+        async function fetchHours() {
+            if (!selectedDate) {
+                setAvailableHours([]);
+                return;
+            }
+            setIsLoadingHours(true);
+            const res = await getAvailableHours(selectedDate);
+            if (res.success && res.availableHours) {
+                setAvailableHours(res.availableHours);
+                // Reset time if it's no longer available
+                const currentTime = form.getValues("appointmentTime");
+                if (currentTime && !res.availableHours.includes(currentTime)) {
+                    form.setValue("appointmentTime", "");
+                }
+            } else {
+                setAvailableHours([]);
+            }
+            setIsLoadingHours(false);
+        }
+        fetchHours();
+    }, [selectedDate, form]);
 
     const checkCode = async () => {
         const code = form.getValues("discountCode");
@@ -114,6 +148,9 @@ export default function ContactForm({ locale, services, initialService, onSucces
             if (values.phone) formData.append("phone", values.phone);
             if (values.service) formData.append("service", values.service);
             formData.append("message", values.message);
+            formData.append("address", values.address);
+            formData.append("appointmentDate", values.appointmentDate);
+            formData.append("appointmentTime", values.appointmentTime);
             if (values.discountCode) formData.append("discountCode", values.discountCode);
             if (petImage) formData.append("petImage", petImage);
 
@@ -151,6 +188,44 @@ export default function ContactForm({ locale, services, initialService, onSucces
                     {form.formState.errors.phone && <p className="text-sm text-destructive">{form.formState.errors.phone.message}</p>}
                 </div>
             </div>
+            
+            <div className="grid gap-1">
+                <Label htmlFor="address" className="font-bold text-sm">{locale === 'es' ? "Dirección de Domicilio" : "Home Address"}</Label>
+                <Input id="address" placeholder={locale === 'es' ? "Ej. 123 Main St, Apt 4B" : "E.g. 123 Main St, Apt 4B"} {...form.register("address")} className="border-2 sm:border-[3px] border-black rounded-xl focus-visible:ring-0 focus-visible:shadow-[2px_2px_0px_0px_#0F172A] sm:focus-visible:shadow-[4px_4px_0px_0px_#0F172A] transition-shadow text-base h-9 sm:h-11" />
+                {form.formState.errors.address && <p className="text-sm text-destructive">{form.formState.errors.address.message}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid gap-1">
+                    <Label htmlFor="appointmentDate" className="font-bold text-sm">{locale === 'es' ? "Fecha de Reserva" : "Booking Date"}</Label>
+                    <Input id="appointmentDate" type="date" min={new Date().toISOString().split('T')[0]} {...form.register("appointmentDate")} className="border-2 sm:border-[3px] border-black rounded-xl focus-visible:ring-0 focus-visible:shadow-[2px_2px_0px_0px_#0F172A] sm:focus-visible:shadow-[4px_4px_0px_0px_#0F172A] transition-shadow text-base h-9 sm:h-11 block w-full" />
+                    {form.formState.errors.appointmentDate && <p className="text-sm text-destructive">{form.formState.errors.appointmentDate.message}</p>}
+                </div>
+                <div className="grid gap-1">
+                    <Label htmlFor="appointmentTime" className="font-bold text-sm">{locale === 'es' ? "Hora de Reserva" : "Booking Time"}</Label>
+                    <select
+                        id="appointmentTime"
+                        className="flex h-9 sm:h-11 w-full rounded-xl border-2 sm:border-[3px] border-black bg-background px-3 py-1 sm:py-2 text-base focus-visible:outline-none focus-visible:shadow-[2px_2px_0px_0px_#0F172A] sm:focus-visible:shadow-[4px_4px_0px_0px_#0F172A] transition-shadow disabled:cursor-not-allowed disabled:opacity-50 appearance-none font-medium"
+                        {...form.register("appointmentTime")}
+                        disabled={!selectedDate || isLoadingHours || availableHours.length === 0}
+                    >
+                        <option value="">
+                            {!selectedDate 
+                                ? (locale === 'es' ? "Selecciona una fecha primero" : "Select a date first") 
+                                : isLoadingHours 
+                                    ? (locale === 'es' ? "Cargando horas..." : "Loading hours...") 
+                                    : availableHours.length === 0 
+                                        ? (locale === 'es' ? "No hay horas disponibles" : "No hours available") 
+                                        : (locale === 'es' ? "Selecciona una hora" : "Select a time")}
+                        </option>
+                        {availableHours.map((h) => (
+                            <option key={h} value={h}>{h}</option>
+                        ))}
+                    </select>
+                    {form.formState.errors.appointmentTime && <p className="text-sm text-destructive">{form.formState.errors.appointmentTime.message}</p>}
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <div className="grid gap-1">
                     <Label htmlFor="service" className="font-bold text-sm">{t('formService', { defaultMessage: "Servicio de Interés" })}</Label>

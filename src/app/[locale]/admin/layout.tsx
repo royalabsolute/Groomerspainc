@@ -30,7 +30,7 @@ export default async function AdminLayout({
 
     return (
         <SessionProviderWrapper>
-            <div className="flex bg-[#121212] text-[#E0E0E0] h-screen w-full overflow-hidden">
+            <div className="admin-scope flex bg-[#121212] text-[#E0E0E0] h-screen w-full overflow-hidden">
                 <AdminSidebar />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                     <AdminHeaderBar user={session?.user} pendingInquiries={serializedInquiries} />

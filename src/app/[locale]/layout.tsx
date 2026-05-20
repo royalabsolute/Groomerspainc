@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     creator: "Groomers, INC.",
     icons: {
         icon: [
-            { url: '/favicon.svg', type: 'image/svg+xml' }
+            { url: '/icon.svg', type: 'image/svg+xml' }
         ]
     },
     openGraph: {

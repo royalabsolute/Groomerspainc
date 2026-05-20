@@ -17,6 +17,7 @@ export async function createService(data: any) {
                 active: data.active,
                 imageUrl: data.imageUrl,
                 icon: data.icon,
+                recommendedProducts: data.recommendedProducts,
             },
             create: {
                 titleEs: data.titleEs,
@@ -27,11 +28,13 @@ export async function createService(data: any) {
                 active: data.active,
                 imageUrl: data.imageUrl,
                 icon: data.icon,
+                recommendedProducts: data.recommendedProducts,
             }
         });
         revalidatePath("/");
         revalidatePath("/[locale]", "layout");
         revalidatePath("/[locale]", "page");
+        revalidatePath("/[locale]/services", "page");
         revalidatePath("/admin/services");
         
         events.emit(EVENT_TOPICS.SERVICES_UPDATE);

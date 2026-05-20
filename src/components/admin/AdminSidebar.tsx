@@ -58,10 +58,10 @@ export default function AdminSidebar() {
                 <Link href="/" className="flex items-center">
                     <div className="relative h-10 w-40">
                         <Image 
-                            src="/favicon.svg" 
+                            src="/Logo_groomersinc.svg" 
                             alt="GroomingPet Logo" 
                             fill 
-                            className="object-contain object-left dark:brightness-125 dark:hue-rotate-180"
+                            className="object-contain object-left"
                         />
                     </div>
                 </Link>

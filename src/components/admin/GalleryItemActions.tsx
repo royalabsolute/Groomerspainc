@@ -50,7 +50,7 @@ export default function GalleryItemActions({ id, url }: GalleryItemActionsProps)
                 size="icon"
                 variant="secondary"
                 title="Ver imagen completa"
-                className="h-9 w-9 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 shadow-sm"
+                className="h-9 w-9 rounded-lg bg-[#252525] hover:bg-[#3A3A3A] text-slate-400 hover:text-white border border-[#3A3A3A] shadow-sm cursor-pointer"
             >
                 <ExternalLink className="h-4 w-4" />
             </Button>
@@ -61,7 +61,7 @@ export default function GalleryItemActions({ id, url }: GalleryItemActionsProps)
                 size="icon"
                 variant="secondary"
                 title="Copiar URL"
-                className="h-9 w-9 rounded-lg bg-white hover:bg-slate-100 text-slate-900 border border-slate-200 shadow-sm"
+                className="h-9 w-9 rounded-lg bg-[#252525] hover:bg-[#3A3A3A] text-slate-400 hover:text-white border border-[#3A3A3A] shadow-sm cursor-pointer"
             >
                 {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
             </Button>

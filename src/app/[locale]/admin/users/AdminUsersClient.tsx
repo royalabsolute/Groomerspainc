@@ -26,7 +26,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
         name: "", 
         email: "", 
         password: "", 
-        role: "MODIFIER", 
         image: "" 
     });
     const [creatingImageUpload, setCreatingImageUpload] = useState(false);
@@ -37,7 +36,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
         name: "", 
         email: "", 
         password: "", 
-        role: "MODIFIER", 
         image: "" 
     });
     const [editingImageUpload, setEditingImageUpload] = useState(false);
@@ -99,7 +97,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
             if (res.success) {
                 toast.success("Usuario creado con éxito");
                 setIsCreateOpen(false);
-                setCreateForm({ name: "", email: "", password: "", role: "MODIFIER", image: "" });
+                setCreateForm({ name: "", email: "", password: "", image: "" });
                 window.location.reload();
             } else {
                 toast.error(res.error || "Error al crear usuario");
@@ -118,7 +116,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
             name: user.name || "",
             email: user.email || "",
             password: "",
-            role: user.role || "MODIFIER",
             image: user.image || ""
         });
         setIsEditOpen(true);
@@ -138,7 +135,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                 const res = await updateUser(editingUserId, {
                     name: editForm.name,
                     email: editForm.email,
-                    role: editForm.role,
                     image: editForm.image || null,
                     password: editForm.password ? editForm.password : undefined
                 });
@@ -148,7 +144,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                     setIsEditOpen(false);
                     setUsers(users.map((u: any) => 
                         u.id === editingUserId 
-                            ? { ...u, name: editForm.name, email: editForm.email, role: editForm.role, image: editForm.image }
+                            ? { ...u, name: editForm.name, email: editForm.email, image: editForm.image }
                             : u
                     ));
                 } else {
@@ -252,19 +248,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <Label htmlFor="create-role" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Rol del Personal</Label>
-                                <select 
-                                    id="create-role"
-                                    title="Rol del Personal"
-                                    value={createForm.role} 
-                                    onChange={e => setCreateForm({...createForm, role: e.target.value})}
-                                    className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#7C3AED] focus:border-[#7C3AED] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
-                                >
-                                    <option value="ADMIN">Administrador (Acceso Total)</option>
-                                    <option value="MODIFIER">Modificador (Limitado)</option>
-                                </select>
-                            </div>
                             <div className="pt-4 flex gap-3 border-t border-[#3A3A3A]/40">
                                 <Button type="button" variant="outline" className="flex-1 rounded-xl border-[#3A3A3A] bg-[#252525] text-slate-300 font-bold hover:bg-[#2F2F2F] hover:text-white cursor-pointer uppercase tracking-wider text-xs" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
                                 <Button type="submit" className="flex-1 rounded-xl bg-[#7C3AED] text-white font-black hover:bg-[#7C3AED]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isCreating}>
@@ -302,11 +285,8 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                         </h3>
                                         <p className="text-[10px] text-slate-500 truncate font-bold mt-0.5" title={user.email}>{user.email}</p>
                                         <div className="flex items-center gap-1.5 mt-2">
-                                            <span className={cn(
-                                                "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border",
-                                                user.role === 'ADMIN' ? "bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]" : "bg-slate-800 border-slate-700 text-slate-400"
-                                            )}>
-                                                {user.role}
+                                            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]">
+                                                ADMIN
                                             </span>
                                         </div>
                                     </div>
@@ -371,11 +351,8 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                                 </h4>
                                 <p className="text-[9px] text-slate-500 truncate font-bold mt-0.5">{user.email}</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className={cn(
-                                        "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border",
-                                        user.role === 'ADMIN' ? "bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]" : "bg-slate-800 border-slate-700 text-slate-400"
-                                    )}>
-                                        {user.role}
+                                    <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border bg-[#7C3AED]/10 border-[#7C3AED]/25 text-[#7C3AED]">
+                                        ADMIN
                                     </span>
                                 </div>
                             </div>
@@ -471,19 +448,6 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: any[]
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                            <Label htmlFor="edit-role" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Rol del Personal</Label>
-                            <select 
-                                id="edit-role"
-                                title="Rol del Personal"
-                                value={editForm.role} 
-                                onChange={e => setEditForm({...editForm, role: e.target.value})}
-                                className="flex w-full border border-[#3A3A3A] rounded-xl h-11 font-black focus:outline-none focus:ring-1 focus:ring-[#7C3AED] focus:border-[#7C3AED] px-3 bg-[#252525] text-xs text-white uppercase tracking-wider"
-                            >
-                                <option value="ADMIN">Administrador (Acceso Total)</option>
-                                <option value="MODIFIER">Modificador (Limitado)</option>
-                            </select>
-                        </div>
                         <div className="pt-4 flex gap-3 border-t border-[#3A3A3A]/40">
                             <Button type="button" variant="outline" className="flex-1 rounded-xl border-[#3A3A3A] bg-[#252525] text-slate-300 font-bold hover:bg-[#2F2F2F] hover:text-white cursor-pointer uppercase tracking-wider text-xs" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
                             <Button type="submit" className="flex-1 rounded-xl bg-[#7C3AED] text-white font-black hover:bg-[#7C3AED]/90 cursor-pointer uppercase tracking-wider text-xs" disabled={isPending}>

@@ -27,6 +27,7 @@ interface ServiceFromDB {
     imageUrl: string | null;
     active: boolean;
     order: number;
+    recommendedProducts?: string | null;
 }
 
 interface GalleryItemFromDB {
@@ -632,24 +633,24 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
                                                 {activeLocale === "es" ? "INCLUYE EN SESIÓN:" : "INCLUDED IN SESSION:"}
                                             </h4>
-                                            <ul className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-slate-700">
-                                                <li className="flex items-center space-x-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                    <span>Shampoo Orgánico</span>
-                                                </li>
-                                                <li className="flex items-center space-x-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                    <span>Secado a Mano</span>
-                                                </li>
-                                                <li className="flex items-center space-x-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                    <span>Corte de Uñas</span>
-                                                </li>
-                                                <li className="flex items-center space-x-2">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                    <span>Limpieza de Oídos</span>
-                                                </li>
-                                            </ul>
+                                            {selectedService.recommendedProducts ? (
+                                                <ul className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-slate-700">
+                                                    {selectedService.recommendedProducts.split(',').filter((s: string) => s.trim() !== "").map((item: string, i: number) => {
+                                                        const key = item.trim();
+                                                        const translated = t(`inclusions.${key}`, { defaultMessage: key });
+                                                        return (
+                                                            <li key={i} className="flex items-start space-x-2">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />
+                                                                <span className="leading-tight">{translated}</span>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">
+                                                    {activeLocale === "es" ? "No especificado" : "Not specified"}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">

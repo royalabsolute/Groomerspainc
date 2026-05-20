@@ -110,7 +110,7 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-4xl md:rounded-[2.5rem]">
                     <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-5 md:p-8">
                         <CardTitle className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">
                             Bienvenido
@@ -174,6 +174,15 @@ export default function LoginPage() {
                                     "Entrar al Panel"
                                 )}
                             </Button>
+
+                            <div className="text-center pt-2">
+                                <Link 
+                                    href="/" 
+                                    className="inline-flex items-center text-xs md:text-sm font-black uppercase tracking-wider text-slate-600 hover:text-black transition-colors"
+                                >
+                                    &larr; Volver al Sitio Público
+                                </Link>
+                            </div>
                         </form>
                     </CardContent>
                 </Card>

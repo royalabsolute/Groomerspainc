@@ -34,26 +34,12 @@ const getServiceIcon = (title: string, iconKey?: string | null) => {
     return Heart;
 };
 
-export default async function AdminServicesPage({ searchParams }: PageProps) {
-    const resolvedParams = await searchParams;
-    const search = resolvedParams?.search || "";
-
+export default async function AdminServicesPage() {
     const servicesData = await db.service.findMany({
         orderBy: { order: 'asc' }
     });
 
-    const services = servicesData
-        .map(s => JSON.parse(JSON.stringify(s)))
-        .filter(s => {
-            if (!search) return true;
-            const term = search.toLowerCase();
-            return (
-                (s.titleEs?.toLowerCase() || "").includes(term) ||
-                (s.titleEn?.toLowerCase() || "").includes(term) ||
-                (s.descEs?.toLowerCase() || "").includes(term) ||
-                (s.descEn?.toLowerCase() || "").includes(term)
-            );
-        });
+    const services = servicesData.map(s => JSON.parse(JSON.stringify(s)));
 
     return (
         <div className="min-h-screen bg-transparent p-1 sm:p-4">
@@ -91,26 +77,26 @@ export default async function AdminServicesPage({ searchParams }: PageProps) {
                             const Icon = getServiceIcon(service.titleEs, service.icon);
                             return (
                                 <Card key={service.id} className="group bg-[#1A1A1A] border-[#3A3A3A] hover:border-[#7C3AED]/40 transition-all duration-300 rounded-2xl overflow-hidden shadow-xl">
-                                    <CardContent className="p-6">
-                                        <div className="flex justify-between items-start mb-6 gap-2">
-                                            <div className="h-10 w-10 bg-[#252525] border border-[#3A3A3A] rounded-xl flex items-center justify-center text-slate-400 group-hover:text-[#7C3AED] group-hover:scale-105 transition-all duration-300 shrink-0">
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between items-start mb-4 gap-2">
+                                            <div className="h-9 w-9 bg-white text-neutral-900 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-all duration-300 shrink-0">
                                                 <Icon className="h-5 w-5" />
                                             </div>
                                             <ServiceActions id={service.id} active={service.active} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <h3 className="text-base sm:text-lg font-black text-white truncate group-hover:text-[#7C3AED] transition-colors" title={service.titleEs}>
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm sm:text-base font-black text-white truncate group-hover:text-[#7C3AED] transition-colors" title={service.titleEs}>
                                                 {service.titleEs}
                                             </h3>
-                                            <p className="text-xs sm:text-sm text-slate-400 line-clamp-2 h-10 font-medium leading-relaxed">
+                                            <p className="text-[11px] sm:text-xs text-slate-400 line-clamp-2 h-8 font-medium leading-relaxed">
                                                 {service.descEs}
                                             </p>
                                         </div>
-                                        <div className="mt-6 pt-6 border-t border-[#3A3A3A] flex justify-between items-center gap-1">
-                                            <span className="text-xl sm:text-2xl font-black text-[#2ECC71] tracking-tight">
+                                        <div className="mt-4 pt-4 border-t border-[#3A3A3A] flex justify-between items-center gap-1">
+                                            <span className="text-lg sm:text-xl font-black text-[#2ECC71] tracking-tight">
                                                 ${Number(service.price || 0).toFixed(2)}
                                             </span>
-                                            <span className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest shrink-0">
+                                            <span className="text-[7px] sm:text-[8px] font-black text-slate-500 uppercase tracking-widest shrink-0">
                                                 PRECIO BASE
                                             </span>
                                         </div>

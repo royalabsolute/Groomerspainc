@@ -22,7 +22,7 @@ import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
-// Icon mapping dictionary for Lucide vector icons
+// El selector forzará foco nulo para evitar anillos residuales
 export const ICON_MAP: Record<string, React.ComponentType<any>> = {
     scissors: Scissors,
     sparkles: Sparkles,
@@ -34,15 +34,30 @@ export const ICON_MAP: Record<string, React.ComponentType<any>> = {
     shield: ShieldCheck,
 };
 
+// Las 10 Opciones Premium
+export const DEFAULT_INCLUSIONS = [
+    { key: "premium_bath", label: "Baño con Champú Premium (Premium Shampoo Bath)" },
+    { key: "blow_dry", label: "Secado a Mano Termorregulado (Blow Dry)" },
+    { key: "breed_haircut", label: "Corte de Pelo Estilizado según Raza (Breed-Specific Haircut)" },
+    { key: "ear_cleaning", label: "Limpieza e Higiene de Oídos (Ear Cleaning & Sanitization)" },
+    { key: "nail_trimming", label: "Corte y Limado de Uñas Táctil (Nail Trimming & Grinding)" },
+    { key: "teeth_brushing", label: "Cepillado de Dientes y Aliento Fresco (Teeth Brushing)" },
+    { key: "anal_glands", label: "Drenaje de Glándulas Analgésicas (Anal Gland Expression)" },
+    { key: "dematting", label: "Desenredado y Eliminación de Pelo Muerto (De-matting & De-shedding)" },
+    { key: "paw_balm", label: "Tratamiento de Hidratación de Almohadillas (Paw Balm Treatment)" },
+    { key: "pet_cologne", label: "Perfume o Colonia Hipoalergénica (Premium Pet Cologne)" }
+];
+
 const serviceSchema = z.object({
-    titleEs: z.string().min(3, "El título en español es requerido"),
-    titleEn: z.string().min(3, "English title is required"),
-    descEs: z.string().min(10, "La descripción es muy corta"),
-    descEn: z.string().min(10, "Description is too short"),
-    price: z.string().refine((val) => !isNaN(parseFloat(val)), "Precio inválido"),
+    titleEs: z.string().min(3, "Requerido"),
+    titleEn: z.string().min(3, "Required"),
+    descEs: z.string().min(10, "Muy corta"),
+    descEn: z.string().min(10, "Too short"),
+    price: z.string().refine((val) => !isNaN(parseFloat(val)), "Inválido"),
     active: z.boolean(),
     imageUrl: z.string().optional(),
     icon: z.string().optional(),
+    recommendedProducts: z.string().optional(),
 });
 
 type ServiceFormValues = z.infer<typeof serviceSchema>;
@@ -51,43 +66,45 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const [selectedIcon, setSelectedIcon] = useState<string>(initialData?.icon || "scissors");
+    
+    // Convertir string "a,b,c" de BD a Array para el UI
+    const [selectedInclusions, setSelectedInclusions] = useState<string[]>(
+        initialData?.recommendedProducts ? initialData.recommendedProducts.split(",").filter((s:string) => s.trim() !== "") : []
+    );
 
     const form = useForm<ServiceFormValues>({
         resolver: zodResolver(serviceSchema),
         defaultValues: initialData ? {
             ...initialData,
-            price: initialData.price.toString(),
-            icon: initialData.icon || "scissors"
-        } : {
-            titleEs: "",
-            titleEn: "",
-            descEs: "",
-            descEn: "",
-            price: "0",
-            active: true,
-            icon: "scissors",
-        },
+            price: initialData.price.toString()
+        } : { titleEs: "", titleEn: "", descEs: "", descEn: "", price: "0", active: true }
     });
+
+    const toggleInclusion = (key: string) => {
+        setSelectedInclusions(prev => 
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
 
     async function onSubmit(values: ServiceFormValues) {
         setIsLoading(true);
         try {
+            const finalInclusions = selectedInclusions.join(",");
             const res = await createService({
                 ...values,
                 id: initialData?.id,
                 price: parseFloat(values.price),
-                icon: selectedIcon
+                icon: selectedIcon,
+                recommendedProducts: finalInclusions // Guardado como keys
             });
 
             if (res.success) {
-                toast.success("Servicio guardado correctamente");
+                toast.success("Servicio guardado");
                 router.push("/es/admin/services");
                 router.refresh();
-            } else {
-                toast.error("Error: " + res.error);
-            }
+            } else throw new Error(res.error);
         } catch (error) {
-            toast.error("Error al guardar el servicio");
+            toast.error("Error al guardar");
         } finally {
             setIsLoading(false);
         }
@@ -125,84 +142,92 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
     };
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 bg-transparent text-white">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Spanish Section */}
-                <Card className="border-[#3A3A3A] bg-[#1A1A1A] shadow-xl overflow-hidden rounded-2xl">
-                    <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50 flex items-center space-x-2">
-                        <span className="text-xl">🇪🇸</span>
-                        <h3 className="font-black text-xs uppercase tracking-wider text-white">Contenido en Español</h3>
+        // Grid optimizado de 12 columnas para aprovechar mejor el espacio en escritorio
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-transparent text-white outline-none focus:ring-0 pb-10">
+            
+            {/* ⬅️ COLUMNA IZQUIERDA: Textos y Datos (Ocupa 7/12 en LG, 8/12 en 2XL) */}
+            <div className="space-y-6 lg:col-span-7 2xl:col-span-8">
+                <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-xl">
+                    <div className="bg-[#252525]/30 px-5 py-3 border-b border-[#3A3A3A]/50 flex justify-between items-center">
+                        <span className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-2"><span className="text-base">🇪🇸</span> Español</span>
                     </div>
-                    <CardContent className="p-6 space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="titleEs" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Título del Servicio</Label>
-                            <Input id="titleEs" {...form.register("titleEs")} placeholder="Ej: Corte Premium Spa" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]" />
-                            {form.formState.errors.titleEs && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.titleEs.message}</p>}
+                    <CardContent className="p-5 space-y-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Título</Label>
+                            <Input {...form.register("titleEs")} className="h-11 text-sm bg-[#252525] border-[#3A3A3A] focus-visible:ring-[#7C3AED] focus-visible:border-[#7C3AED] outline-none rounded-xl" />
+                            {form.formState.errors.titleEs && <p className="text-xs text-rose-500 font-bold mt-1">{form.formState.errors.titleEs.message}</p>}
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="descEs" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Descripción en Español</Label>
-                            <Textarea id="descEs" {...form.register("descEs")} placeholder="Describe detalladamente el servicio..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] leading-relaxed" />
-                            {form.formState.errors.descEs && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.descEs.message}</p>}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Descripción</Label>
+                            <Textarea {...form.register("descEs")} className="h-24 text-sm resize-none bg-[#252525] border-[#3A3A3A] focus-visible:ring-[#7C3AED] focus-visible:border-[#7C3AED] outline-none rounded-xl" />
+                            {form.formState.errors.descEs && <p className="text-xs text-rose-500 font-bold mt-1">{form.formState.errors.descEs.message}</p>}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* English Section */}
-                <Card className="border-[#3A3A3A] bg-[#1A1A1A] shadow-xl overflow-hidden rounded-2xl">
-                    <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50 flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                            <span className="text-xl">🇺🇸</span>
-                            <h3 className="font-black text-xs uppercase tracking-wider text-white">English Content</h3>
-                        </div>
+                <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-xl">
+                    <div className="bg-[#252525]/30 px-5 py-3 border-b border-[#3A3A3A]/50 flex justify-between items-center">
+                        <span className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-2"><span className="text-base">🇺🇸</span> English</span>
                         <Button 
                             type="button" 
                             size="sm" 
                             onClick={forceTranslateToEnglish}
-                            className="bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 rounded-xl h-8 text-[10px] font-black uppercase tracking-widest cursor-pointer"
+                            className="bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 rounded-xl h-8 text-[10px] font-black uppercase tracking-widest cursor-pointer px-4 outline-none"
                         >
                             <Wand2 className="w-3.5 h-3.5 mr-2" />
-                            Traducir con IA
+                            Traducir
                         </Button>
                     </div>
-                    <CardContent className="p-6 space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="titleEn" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Service Title</Label>
-                            <Input id="titleEn" {...form.register("titleEn")} placeholder="Ex: Premium Grooming Session" className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED]" />
-                            {form.formState.errors.titleEn && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.titleEn.message}</p>}
+                    <CardContent className="p-5 space-y-4">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Title</Label>
+                            <Input {...form.register("titleEn")} className="h-11 text-sm bg-[#252525] border-[#3A3A3A] focus-visible:ring-[#7C3AED] focus-visible:border-[#7C3AED] outline-none rounded-xl" />
+                            {form.formState.errors.titleEn && <p className="text-xs text-rose-500 font-bold mt-1">{form.formState.errors.titleEn.message}</p>}
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="descEn" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Description in English</Label>
-                            <Textarea id="descEn" {...form.register("descEn")} placeholder="Detailed service description..." className="min-h-[150px] resize-none bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] leading-relaxed" />
-                            {form.formState.errors.descEn && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.descEn.message}</p>}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Description</Label>
+                            <Textarea {...form.register("descEn")} className="h-24 text-sm resize-none bg-[#252525] border-[#3A3A3A] focus-visible:ring-[#7C3AED] focus-visible:border-[#7C3AED] outline-none rounded-xl" />
+                            {form.formState.errors.descEn && <p className="text-xs text-rose-500 font-bold mt-1">{form.formState.errors.descEn.message}</p>}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Vector Icon Selector */}
-                <Card className="border-[#3A3A3A] bg-[#1A1A1A] shadow-xl lg:col-span-2 overflow-hidden rounded-2xl">
-                    <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50">
-                        <h3 className="font-black text-xs uppercase tracking-wider text-white">Selector de Iconografía Vectorial</h3>
+                <div className="flex flex-col sm:flex-row gap-6">
+                    <Card className="flex-1 border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl p-5 shadow-xl">
+                        <Label className="text-xs font-semibold text-slate-400 mb-2 block uppercase tracking-wider">Precio Base</Label>
+                        <Input type="number" step="0.01" {...form.register("price")} className="h-12 text-xl font-black text-[#2ECC71] bg-[#252525] border-[#3A3A3A] focus-visible:ring-[#7C3AED] outline-none rounded-xl" />
+                        {form.formState.errors.price && <p className="text-xs text-rose-500 font-bold mt-1">{form.formState.errors.price.message}</p>}
+                    </Card>
+                    <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl p-5 flex flex-col justify-center items-center shadow-xl w-full sm:w-1/3">
+                        <Label className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">Activo</Label>
+                        <Switch checked={form.watch("active")} onCheckedChange={(val) => form.setValue("active", val)} className="data-[state=checked]:bg-[#7C3AED] outline-none scale-110" />
+                    </Card>
+                </div>
+            </div>
+
+            {/* ➡️ COLUMNA DERECHA: Tags Premium e Imagen (Ocupa 5/12 en LG, 4/12 en 2XL) */}
+            <div className="space-y-6 flex flex-col lg:col-span-5 2xl:col-span-4">
+                <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl overflow-hidden shadow-xl">
+                    <div className="bg-[#252525]/30 px-5 py-3 border-b border-[#3A3A3A]/50">
+                        <h3 className="font-black text-xs uppercase tracking-widest text-white">Incluye en sesión (Selección Interactiva)</h3>
                     </div>
-                    <CardContent className="p-6">
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4">
-                            {Object.entries(ICON_MAP).map(([key, IconComp]) => {
-                                const isSelected = selectedIcon === key;
+                    <CardContent className="p-5">
+                        <div className="flex flex-wrap gap-2">
+                            {DEFAULT_INCLUSIONS.map(inc => {
+                                const isSelected = selectedInclusions.includes(inc.key);
                                 return (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        onClick={() => setSelectedIcon(key)}
+                                    <button 
+                                        type="button" 
+                                        key={inc.key} 
+                                        onClick={() => toggleInclusion(inc.key)}
                                         className={cn(
-                                            "flex flex-col items-center justify-center p-4 rounded-xl border transition-all cursor-pointer h-24 select-none",
+                                            "px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer outline-none focus:ring-0 select-none",
                                             isSelected 
-                                                ? "bg-[#7C3AED]/15 border-[#7C3AED] text-[#7C3AED] shadow-[0_0_12px_rgba(124,58,237,0.15)]"
-                                                : "bg-[#252525] border-[#3A3A3A] text-slate-400 hover:text-white hover:border-[#3A3A3A]*1.5 hover:bg-[#2A2A2A]"
+                                            ? "bg-[#7C3AED]/20 border-[#7C3AED] text-[#7C3AED] shadow-sm" 
+                                            : "bg-[#252525] border-[#3A3A3A] text-slate-400 hover:border-slate-500"
                                         )}
                                     >
-                                        <IconComp className="h-7 w-7 mb-2" />
-                                        <span className="text-[9px] font-black uppercase tracking-wider truncate max-w-full">
-                                            {key}
-                                        </span>
+                                        {inc.label.split("(")[0].trim()}
                                     </button>
                                 );
                             })}
@@ -210,98 +235,40 @@ export default function ServiceForm({ initialData }: { initialData?: any }) {
                     </CardContent>
                 </Card>
 
-                {/* General Settings */}
-                <Card className="border-[#3A3A3A] bg-[#1A1A1A] shadow-xl lg:col-span-2 overflow-hidden rounded-2xl">
-                    <div className="bg-[#252525]/30 px-6 py-4 border-b border-[#3A3A3A]/50">
-                        <h3 className="font-black text-xs uppercase tracking-wider text-white">Configuración General</h3>
+                <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl p-5 shadow-xl">
+                    <Label className="text-xs font-semibold text-slate-400 mb-3 block uppercase tracking-wider">Icono Vectorial (Fondo Blanco Limpio)</Label>
+                    <div className="flex flex-wrap gap-3">
+                        {Object.entries(ICON_MAP).map(([key, IconComp]) => (
+                            <button
+                                key={key} type="button" onClick={() => setSelectedIcon(key)}
+                                title={`Seleccionar icono ${key}`}
+                                aria-label={`Seleccionar icono ${key}`}
+                                className={cn(
+                                    "p-3 rounded-2xl transition-all cursor-pointer outline-none focus:ring-0",
+                                    selectedIcon === key ? "bg-white text-neutral-950 scale-110 shadow-[0_0_15px_rgba(124,58,237,0.4)]" : "bg-[#252525] text-slate-500 hover:bg-[#3A3A3A]"
+                                )}
+                            >
+                                <IconComp className={cn("h-5 w-5 transition-transform duration-200", selectedIcon === key ? "text-neutral-950 scale-110" : "text-slate-500")} />
+                            </button>
+                        ))}
                     </div>
-                    <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="price" className="text-[10px] font-black uppercase tracking-wider text-slate-400">Precio base ($)</Label>
-                                <Input id="price" type="number" step="0.01" {...form.register("price")} className="h-12 bg-[#252525] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] text-lg font-black" />
-                                {form.formState.errors.price && <p className="text-xs text-rose-500 font-bold">{form.formState.errors.price.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Visibilidad del Servicio</Label>
-                                <div className="flex items-center justify-between p-4 rounded-xl border border-[#3A3A3A] bg-[#252525]/60">
-                                    <div>
-                                        <p className="font-black text-xs uppercase tracking-wider">
-                                            {form.watch("active") ? (
-                                                <span className="text-[#2ECC71]">Visible en la Landing ✔</span>
-                                            ) : (
-                                                <span className="text-slate-500">Oculto ●</span>
-                                            )}
-                                        </p>
-                                        <p className="text-[10px] text-slate-500 font-bold mt-1">
-                                            {form.watch("active") ? "Los clientes pueden reservar este servicio." : "El servicio no se mostrará para reservar."}
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        id="active"
-                                        checked={form.watch("active")}
-                                        onCheckedChange={(val) => form.setValue("active", val, { shouldDirty: true })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-4">
-                            <Label className="text-[10px] font-black uppercase tracking-wider text-slate-400">Imagen de Portada del Servicio</Label>
-                            {form.watch("imageUrl") ? (
-                                <div className="relative aspect-video rounded-xl overflow-hidden border border-[#3A3A3A] group">
-                                    <Image
-                                        src={form.getValues("imageUrl")!}
-                                        alt="Preview"
-                                        fill
-                                        unoptimized
-                                        className="object-cover"
-                                        sizes="(max-width: 768px) 100vw, 50vw"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => form.setValue("imageUrl", "")}
-                                        title="Eliminar imagen"
-                                        aria-label="Eliminar imagen"
-                                        className="absolute top-2 right-2 bg-rose-600 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center border border-rose-500"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="h-36 border-2 border-dashed border-[#3A3A3A] rounded-xl flex items-center justify-center bg-[#252525]/30">
-                                    <LocalImageUpload
-                                        onSuccess={(url: string) => form.setValue("imageUrl", url)}
-                                        label="Subir Imagen del Servicio"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </CardContent>
                 </Card>
-            </div>
 
-            <div className="flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-3 sm:space-x-4 pt-8 pb-16 md:pb-0 border-t border-[#3A3A3A]/50">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.back()}
-                    className="rounded-xl h-11 px-8 w-full sm:w-auto border-[#3A3A3A] text-slate-300 bg-[#1A1A1A] hover:bg-[#252525] hover:text-white font-bold cursor-pointer uppercase tracking-wider text-xs"
-                >
-                    <X className="mr-2 h-4 w-4" /> Cancelar
-                </Button>
-                <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="rounded-xl h-11 px-10 shadow-lg bg-[#7C3AED] text-white hover:bg-[#7C3AED]/90 w-full sm:w-auto font-black cursor-pointer uppercase tracking-wider text-xs"
-                >
-                    {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                        <>
-                            <Save className="mr-2 h-4 w-4" /> {initialData ? "Actualizar" : "Crear"} Servicio
-                        </>
-                    )}
+                <Card className="border-[#3A3A3A] bg-[#1A1A1A] rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                    <Label className="text-xs font-semibold text-slate-400 mb-3 block uppercase tracking-wider">Imagen de Portada</Label>
+                    <div className="flex-1 min-h-[160px] flex flex-col">
+                        <LocalImageUpload onSuccess={(url) => form.setValue("imageUrl", url)} />
+                        {form.watch("imageUrl") && (
+                            <div className="relative flex-1 w-full mt-4 rounded-xl overflow-hidden border border-[#3A3A3A] min-h-[140px]">
+                                <Image src={form.watch("imageUrl")!} alt="Preview" fill unoptimized className="object-cover" />
+                            </div>
+                        )}
+                    </div>
+                </Card>
+
+                {/* Footer Fijo Sin Outline Azul */}
+                <Button type="submit" disabled={isLoading} className="w-full h-14 rounded-xl bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white font-black text-sm uppercase tracking-widest shadow-xl focus-visible:ring-0 focus-visible:outline-none focus:outline-none cursor-pointer mt-4 shrink-0">
+                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Save className="h-5 w-5 mr-2" />} Guardar Servicio
                 </Button>
             </div>
         </form>

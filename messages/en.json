@@ -26,6 +26,18 @@
                 "feature5": "Relaxing Massage"
             }
         },
+        "inclusions": {
+            "premium_bath": "Premium Shampoo Bath",
+            "blow_dry": "Blow Dry",
+            "breed_haircut": "Breed-Specific Haircut",
+            "ear_cleaning": "Ear Cleaning & Sanitization",
+            "nail_trimming": "Nail Trimming & Grinding",
+            "teeth_brushing": "Teeth Brushing",
+            "anal_glands": "Anal Gland Expression",
+            "dematting": "De-matting & De-shedding",
+            "paw_balm": "Paw Balm Treatment",
+            "pet_cologne": "Premium Pet Cologne"
+        },
         "galleryTitle": "Gallery of",
         "galleryTitleHighlight": "Happiness",
         "gallerySubtitle": "Real results from our furry clients",

@@ -26,6 +26,18 @@
         "feature5": "Masaje relajante"
       }
     },
+    "inclusions": {
+      "premium_bath": "Baño con Champú Premium",
+      "blow_dry": "Secado a Mano Termorregulado",
+      "breed_haircut": "Corte de Pelo Estilizado según Raza",
+      "ear_cleaning": "Limpieza e Higiene de Oídos",
+      "nail_trimming": "Corte y Limado de Uñas Táctil",
+      "teeth_brushing": "Cepillado de Dientes y Aliento Fresco",
+      "anal_glands": "Drenaje de Glándulas Analgésicas",
+      "dematting": "Desenredado y Eliminación de Pelo Muerto",
+      "paw_balm": "Tratamiento de Hidratación de Almohadillas",
+      "pet_cologne": "Perfume o Colonia Hipoalergénica"
+    },
     "galleryTitle": "Galería de",
     "galleryTitleHighlight": "Felicidad",
     "gallerySubtitle": "Resultados reales de nuestros peludos clientes",

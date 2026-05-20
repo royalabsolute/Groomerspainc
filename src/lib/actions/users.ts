@@ -12,7 +12,6 @@ export async function getUsers() {
                 name: true,
                 email: true, 
                 image: true,
-                role: true, 
                 createdAt: true 
             },
             orderBy: { createdAt: "desc" }
@@ -36,8 +35,7 @@ export async function createUser(data: any) {
                 name: data.name || null,
                 email: data.email,
                 password: hashedPassword,
-                image: data.image || null,
-                role: data.role || "MODIFIER"
+                image: data.image || null
             }
         });
         revalidatePath("/admin/users");
@@ -55,7 +53,6 @@ export async function updateUser(id: string, data: any) {
         const updateData: any = {
             name: data.name,
             email: data.email,
-            role: data.role,
             image: data.image
         };
 

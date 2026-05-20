@@ -37,6 +37,10 @@ export async function updateSiteConfig(data: any) {
                 tiktokActive: data.tiktokActive,
                 instagramActive: data.instagramActive,
                 twitterActive: data.twitterActive,
+                workingHoursStart: data.workingHoursStart,
+                workingHoursEnd: data.workingHoursEnd,
+                workingDays: data.workingDays,
+                blockedDates: data.blockedDates,
             },
             create: {
                 id: "config",
@@ -68,6 +72,10 @@ export async function updateSiteConfig(data: any) {
                 tiktokActive: data.tiktokActive,
                 instagramActive: data.instagramActive,
                 twitterActive: data.twitterActive,
+                workingHoursStart: data.workingHoursStart,
+                workingHoursEnd: data.workingHoursEnd,
+                workingDays: data.workingDays,
+                blockedDates: data.blockedDates,
             }
         });
 

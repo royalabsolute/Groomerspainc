@@ -65,7 +65,7 @@ export default function LocalImageUpload({ onSuccess, label }: LocalImageUploadP
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="rounded-lg shadow-sm h-10 px-6 font-semibold"
+                className="rounded-xl bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20 border border-[#7C3AED]/25 hover:border-[#7C3AED]/40 h-10 px-5 text-xs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer"
             >
                 {isUploading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

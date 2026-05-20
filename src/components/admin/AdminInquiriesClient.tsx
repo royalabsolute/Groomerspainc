@@ -277,7 +277,6 @@ export default function AdminInquiriesClient({ initialItems, initialCodes }: Adm
                                     key={item.id} 
                                     className={cn(
                                         "group bg-[#1A1A1A] rounded-2xl border border-[#3A3A3A] hover:border-[#7C3AED]/40 shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden relative",
-                                        !item.read && "border-l-4 border-l-[#7C3AED] pl-1"
                                     )}
                                 >
                                     <div className="p-6 space-y-6">

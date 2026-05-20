@@ -19,8 +19,8 @@ export default async function EditServicePage({
     }
 
     return (
-        <div className="min-h-screen bg-muted/20 p-8">
-            <div className="max-w-5xl mx-auto">
+        <div className="h-full bg-transparent p-4 md:p-8">
+            <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto">
                 <AdminHeader
                     title="Editar Servicio"
                     subtitle={`Modificando: ${service.titleEs}`}

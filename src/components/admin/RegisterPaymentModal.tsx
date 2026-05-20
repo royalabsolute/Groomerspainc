@@ -46,13 +46,13 @@ export function RegisterPaymentModal({
             <DialogTrigger asChild>
                 {trigger}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] border border-slate-200 shadow-lg rounded-2xl p-6">
+            <DialogContent className="sm:max-w-[425px] border border-[#3A3A3A] bg-[#1A1A1A] shadow-2xl shadow-black/50 rounded-2xl p-6">
                 <DialogHeader className="space-y-3">
-                    <div className="mx-auto w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center">
-                        <CreditCard className="h-6 w-6 text-emerald-600" />
+                    <div className="mx-auto w-12 h-12 bg-emerald-950/30 border border-emerald-900/50 rounded-full flex items-center justify-center">
+                        <CreditCard className="h-6 w-6 text-emerald-500" />
                     </div>
-                    <DialogTitle className="text-xl font-bold text-center text-slate-900">Validar Pago y Finalizar</DialogTitle>
-                    <DialogDescription className="text-center text-sm text-slate-500 font-medium">
+                    <DialogTitle className="text-xl font-bold text-center text-white">Validar Pago y Finalizar</DialogTitle>
+                    <DialogDescription className="text-center text-sm text-slate-400 font-medium">
                         Ingresa el monto final recibido y las notas del servicio. Esto quedará registrado en finanzas.
                     </DialogDescription>
                 </DialogHeader>
@@ -71,7 +71,7 @@ export function RegisterPaymentModal({
                                 min="0"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className="pl-9 h-11 border-slate-200 rounded-lg focus:ring-emerald-500/20"
+                                className="pl-9 h-11 border-[#3A3A3A] bg-[#121212] text-white rounded-lg focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
                                 placeholder="Ej: 50.00"
                             />
                         </div>
@@ -85,7 +85,7 @@ export function RegisterPaymentModal({
                             id="notes"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            className="h-11 border-slate-200 rounded-lg focus:ring-emerald-500/20"
+                            className="h-11 border-[#3A3A3A] bg-[#121212] text-white rounded-lg focus:ring-[#7C3AED]/20 focus:border-[#7C3AED]"
                             placeholder="Ej: Servicio + extra, se aplicó cupón..."
                         />
                     </div>
@@ -96,7 +96,7 @@ export function RegisterPaymentModal({
                         type="button"
                         variant="outline"
                         onClick={() => setIsOpen(false)}
-                        className="flex-1 rounded-lg border-slate-200 font-semibold h-11 hover:bg-slate-50 transition-all"
+                        className="flex-1 rounded-lg border-[#3A3A3A] bg-[#252525] text-slate-300 font-semibold h-11 hover:bg-[#3A3A3A] hover:text-white transition-all cursor-pointer"
                     >
                         Cancelar
                     </Button>

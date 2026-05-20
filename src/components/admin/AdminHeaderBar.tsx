@@ -123,8 +123,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                 name: profileName,
                 email: profileEmail,
                 password: profilePassword ? profilePassword : undefined,
-                image: profileImage || null,
-                role: (activeUser as any)?.role || "MODIFIER"
+                image: profileImage || null
             });
 
             if (res.success) {
@@ -276,7 +275,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                         >
                             <div className="text-right">
                                 <p className="text-xs font-bold text-white tracking-tight group-hover:text-[#7C3AED] transition-colors">{activeUser?.name || "Administrador"}</p>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{(activeUser as any)?.role || "Staff"}</p>
+                                <p className="text-[9px] font-bold text-[#7C3AED] uppercase tracking-widest mt-0.5">ADMIN</p>
                             </div>
                             <div className="relative h-9 w-9 rounded-full overflow-hidden border border-[#3A3A3A] bg-[#252525] flex items-center justify-center text-xs font-black text-[#7C3AED] uppercase shadow-sm group-hover:border-[#7C3AED] transition-all">
                                 {activeUser?.image ? (

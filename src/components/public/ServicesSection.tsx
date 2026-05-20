@@ -13,6 +13,19 @@ import ContactForm from "./ContactForm";
 import { CloudDoodle, StripedCloudDoodle, ZigzagYellowDoodle, CyanPlusDoodle, OrangeBlobDoodle } from "./Doodles";
 import { DogCollage } from "./DogCollage";
 
+import { Droplets, Heart, Award, Gift, Clock, ShieldCheck } from "lucide-react";
+
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+    scissors: Scissors,
+    sparkles: Sparkles,
+    droplets: Droplets,
+    heart: Heart,
+    award: Award,
+    gift: Gift,
+    clock: Clock,
+    shield: ShieldCheck,
+};
+
 interface ServiceFromDB {
     id: string;
     titleEs: string;
@@ -23,6 +36,8 @@ interface ServiceFromDB {
     imageUrl: string | null;
     active: boolean;
     order: number;
+    icon?: string | null;
+    recommendedProducts?: string | null;
 }
 
 interface ServicesSectionProps {
@@ -40,9 +55,10 @@ export default function ServicesSection({ initialServices, locale }: ServicesSec
         setIsOpen(true);
     };
 
-    const getIcon = (id: string) => {
-        if (id.toLowerCase().includes("baño") || id.toLowerCase().includes("bath")) return Bath;
-        if (id.toLowerCase().includes("corte") || id.toLowerCase().includes("grooming")) return Scissors;
+    const getIcon = (iconName: string | null | undefined, title: string) => {
+        if (iconName && ICON_MAP[iconName]) return ICON_MAP[iconName];
+        if (title.toLowerCase().includes("baño") || title.toLowerCase().includes("bath")) return Bath;
+        if (title.toLowerCase().includes("corte") || title.toLowerCase().includes("grooming")) return Scissors;
         return Sparkles;
     };
 
@@ -117,20 +133,20 @@ export default function ServicesSection({ initialServices, locale }: ServicesSec
                             <Card className={cn(
                                 "relative flex flex-col h-full bg-white border-[3px] border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_#0F172A] transition-all duration-300 hover:translate-x-[-8px] hover:translate-y-[-8px] hover:shadow-[16px_16px_0px_0px_#0F172A]",
                             )}>
-                                <div className="relative aspect-square w-full overflow-hidden border-b-[3px] border-black bg-accent/20">
+                                <div className="relative aspect-4/3 w-full overflow-hidden border-b-[3px] border-black bg-accent/20">
                                     {service.imageUrl ? (
                                         <Image
                                             src={service.imageUrl}
                                             alt={service.titleEs}
                                             fill
                                             unoptimized={service.imageUrl?.includes('uploads')}
-                                            className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                                             sizes="(max-width: 768px) 100vw, 33vw"
                                         />
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center">
                                             {(() => {
-                                                const Icon = getIcon(service.titleEs);
+                                                const Icon = getIcon(service.icon, service.titleEs);
                                                 return <Icon className="h-16 w-16 text-primary/30" />;
                                             })()}
                                         </div>
@@ -141,36 +157,52 @@ export default function ServicesSection({ initialServices, locale }: ServicesSec
                                     </div>
                                 </div>
                                 
-                                <CardHeader className="p-8 pb-4 relative z-10 bg-white flex-1">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className={cn(
-                                            "p-3 border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_#0F172A]",
-                                            idx % 3 === 0 ? "bg-accent" : idx % 3 === 1 ? "bg-secondary" : "bg-info"
-                                        )}>
+                                <CardHeader className="p-5 pb-3 relative z-10 bg-white grow flex flex-col">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="p-2.5 bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_#0F172A] text-neutral-900">
                                             {(() => {
-                                                const Icon = getIcon(service.titleEs);
-                                                return <Icon className="h-6 w-6 text-foreground" />;
+                                                const Icon = getIcon(service.icon, service.titleEs);
+                                                return <Icon className="h-5 w-5" />;
                                             })()}
                                         </div>
-                                        <div className="px-4 py-1.5 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_0px_#0F172A]">
-                                            <span className="text-2xl font-black text-foreground">
+                                        <div className="px-3 py-1 bg-white border-2 border-black rounded-full shadow-[3px_3px_0px_0px_#0F172A]">
+                                            <span className="text-xl font-black text-foreground">
                                                 ${service.price?.toString() || "0"}
                                             </span>
                                         </div>
                                     </div>
-                                    <CardTitle className="text-3xl font-black tracking-tight text-foreground mb-3 group-hover:text-primary transition-colors">
+                                    <CardTitle className="text-xl font-black tracking-tight text-foreground mb-2 group-hover:text-primary transition-colors">
                                         {locale === 'es' ? service.titleEs : service.titleEn}
                                     </CardTitle>
-                                    <p className="text-foreground/70 text-base font-bold leading-relaxed line-clamp-3">
+                                    <p className="text-foreground/70 text-sm font-bold leading-relaxed line-clamp-2 mb-4">
                                         {locale === 'es' ? service.descEs : service.descEn}
                                     </p>
+                                    {service.recommendedProducts ? (
+                                        <div className="mt-auto pt-4 border-t-2 border-black/10">
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Incluye en sesión:</span>
+                                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 text-[8.5px] font-black uppercase text-slate-700">
+                                                {service.recommendedProducts.split(',').filter((s: string) => s.trim() !== "").map((item: string, i: number) => {
+                                                    const key = item.trim();
+                                                    const translated = t(`inclusions.${key}`, { defaultMessage: key });
+                                                    return (
+                                                        <li key={i} className="flex items-start space-x-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />
+                                                            <span className="leading-tight">{translated}</span>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-auto" />
+                                    )}
                                 </CardHeader>
                                 
-                                <CardFooter className="p-8 pt-4 relative z-10 bg-white">
+                                <CardFooter className="p-5 pt-3 relative z-10 bg-white">
                                     <Button
                                         onClick={() => openBooking(locale === 'es' ? service.titleEs : service.titleEn)}
                                         className={cn(
-                                            "w-full h-14 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_#0F172A] hover:shadow-[2px_2px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black text-lg tracking-tight group/btn",
+                                            "w-full h-11 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_#0F172A] hover:shadow-[2px_2px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] transition-all font-black text-sm tracking-tight group/btn",
                                             idx % 2 === 0 ? "bg-primary text-white" : "bg-white text-foreground"
                                         )}
                                     >

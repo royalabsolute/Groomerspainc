@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -14,7 +14,6 @@ model User {
   password  String
   image     String?
   avatarUrl String?  // Optional column for Supabase avatar storage
-  role      String   @default("MODIFIER")
   createdAt DateTime @default(now())
 }
 
@@ -75,6 +74,9 @@ model Inquiry {
   discountApplied Decimal? @default(0)
   netGain         Decimal? @default(0)
   deleted         Boolean  @default(false)
+  address         String?
+  appointmentDate DateTime?
+  appointmentTime String?
 
   @@index([name])
   @@index([email])
@@ -144,6 +146,10 @@ model SiteConfig {
   servicesSectionActive     Boolean @default(true)
   testimonialsSectionActive Boolean @default(true)
   gallerySectionActive      Boolean @default(true)
+  workingHoursStart         String? @default("09:00")
+  workingHoursEnd           String? @default("18:00")
+  workingDays               String? @default("1,2,3,4,5")
+  blockedDates              String?
 }
 
 model Transformation {

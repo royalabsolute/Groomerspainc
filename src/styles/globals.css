@@ -149,3 +149,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix double scrollbar on admin pages */
+html:has(.admin-scope),
+body:has(.admin-scope) {
+  overflow: hidden !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+/* ==========================================
+   SISTEMA DE SCROLLBAR GLOBAL PREMIUM (DARK)
+   ========================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #121212; /* Fondo oscuro puro uniforme */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15); /* Gris claro semi-transparente que se adapta */
+  border-radius: 9999px;
+  border: 1.5px solid #121212; /* Margen elegante de separación */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3); /* Resalte refinado al pasar el ratón */
+}
+
+/* Compatibilidad estándar para navegadores modernos (Firefox, etc.) */
+html,
+body,
+.admin-scope,
+.admin-scope * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) #121212;
+}

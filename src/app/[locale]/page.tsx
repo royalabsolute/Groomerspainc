@@ -22,7 +22,7 @@ const Footer = dynamic(() => import('@/components/public/Footer'), {
 
 import { getConfig } from '@/lib/config';
 
-export const revalidate = 60; // Cache for 1 minute
+export const revalidate = 0;
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -59,6 +59,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
     imageUrl: s.imageUrl,
     active: s.active,
     order: s.order,
+    icon: s.icon,
+    recommendedProducts: s.recommendedProducts,
   })) as any[];
 
   const transformations = transformationsRaw.map(t => ({

@@ -23,6 +23,10 @@ interface SettingsFormProps {
         tiktokActive?: boolean;
         instagramActive?: boolean;
         twitterActive?: boolean;
+        workingHoursStart?: string | null;
+        workingHoursEnd?: string | null;
+        workingDays?: string | null;
+        blockedDates?: string | null;
     } | null;
 }
 
@@ -33,9 +37,10 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
         tiktokActive?: boolean;
         instagramActive?: boolean;
         twitterActive?: boolean;
-    }>(initialData || {});
+    }>(initialData || { workingDays: "1,2,3,4,5", workingHoursStart: "09:00", workingHoursEnd: "18:00" });
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({
         contact: true,
+        booking: true,
         hero: false,
         footer: false,
         social: false,
@@ -215,6 +220,56 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                             <Input id="hoursEs" value={formData.hoursEs || ""} onChange={handleChange} placeholder="Lun - Sab: 9:00 AM - 6:00 PM" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
                                         </div>
                                     </div>
+                                </div>
+                            </CardContent>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </Card>
+
+            {/* Booking Settings */}
+            <Card className="border-[#3A3A3A] shadow-sm overflow-hidden rounded-2xl bg-[#1A1A1A] hover:border-[#7C3AED]/20 transition-all">
+                <div 
+                    onClick={() => toggleSection("booking")}
+                    className="bg-[#151515] px-6 py-4 border-b border-[#3A3A3A] flex items-center justify-between cursor-pointer select-none"
+                >
+                    <div className="flex items-center space-x-2">
+                        <Layout className="h-4 w-4 text-slate-400" />
+                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Logística de Citas y Reservas</h3>
+                    </div>
+                    <span className="text-slate-400 font-bold text-xs">
+                        {openSections.booking ? "▲" : "▼"}
+                    </span>
+                </div>
+                <AnimatePresence initial={false}>
+                    {openSections.booking && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="overflow-hidden border-t border-[#3A3A3A]"
+                        >
+                            <CardContent className="p-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="workingHoursStart" className="text-xs font-semibold text-slate-400">Hora de Inicio (Laboral)</Label>
+                                        <Input id="workingHoursStart" type="time" value={formData.workingHoursStart || "09:00"} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="workingHoursEnd" className="text-xs font-semibold text-slate-400">Hora de Cierre (Laboral)</Label>
+                                        <Input id="workingHoursEnd" type="time" value={formData.workingHoursEnd || "18:00"} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="workingDays" className="text-xs font-semibold text-slate-400">Días Laborables (0=Dom, 1=Lun... 6=Sab)</Label>
+                                    <Input id="workingDays" value={formData.workingDays || "1,2,3,4,5"} onChange={handleChange} placeholder="Ej: 1,2,3,4,5" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    <p className="text-[10px] text-slate-500 font-medium mt-1">Por defecto: Lunes a Viernes (1,2,3,4,5). Separa los números con comas.</p>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="blockedDates" className="text-xs font-semibold text-slate-400">Fechas Bloqueadas Manualmente</Label>
+                                    <Input id="blockedDates" value={formData.blockedDates || ""} onChange={handleChange} placeholder="Ej: 2024-12-25, 2024-12-31" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    <p className="text-[10px] text-slate-500 font-medium mt-1">Bloquea días específicos de mantenimiento o vacaciones. Formato: YYYY-MM-DD, separados por comas.</p>
                                 </div>
                             </CardContent>
                         </motion.div>

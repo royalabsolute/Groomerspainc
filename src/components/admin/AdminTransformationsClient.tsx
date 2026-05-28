@@ -110,7 +110,7 @@ export default function AdminTransformationsClient({ initialItems, pageEnabled }
                                             <h3 className="font-black text-white leading-tight truncate text-sm sm:text-base group-hover:text-[#7C3AED] transition-colors" title={item.titleEs}>{item.titleEs}</h3>
                                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400">
                                                 <Calendar className="h-3.5 w-3.5 text-[#7C3AED]" />
-                                                {new Date(item.date).toLocaleDateString()}
+                                                {String(item.date).split('T')[0]}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1.5 self-end sm:self-auto shrink-0">

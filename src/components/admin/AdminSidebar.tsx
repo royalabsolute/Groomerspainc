@@ -55,7 +55,7 @@ export default function AdminSidebar() {
     const SidebarContent = () => (
         <div className="flex flex-col h-full bg-[#1A1A1A] border-r border-[#3A3A3A] transition-colors duration-200 select-none">
             <div className="p-6 border-b border-[#3A3A3A] flex items-center justify-between">
-                <Link href="/" className="flex items-center">
+                <Link href="/admin/dashboard" className="flex items-center">
                     <div className="relative h-10 w-40">
                         <Image 
                             src="/Logo_groomersinc.svg" 

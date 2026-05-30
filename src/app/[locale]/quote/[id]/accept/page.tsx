@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Calendar, MapPin, DollarSign, ShieldCheck } from "lucide-react";
 import { Link } from "@/navigation";
 import { Button } from "@/components/ui/button";
+import { ensureTransactionForQuote } from "@/lib/actions/inquiries";
 
 interface PageProps {
     params: Promise<{
@@ -31,6 +32,7 @@ export default async function QuoteAcceptPage({ params }: PageProps) {
             where: { id },
             data: { status: "CONFIRMED" }
         });
+        await ensureTransactionForQuote(id);
     }
 
     const price = Number(quote.finalAdminPrice || quote.systemEstimatedPrice);

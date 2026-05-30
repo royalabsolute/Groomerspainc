@@ -217,3 +217,20 @@ body::-webkit-scrollbar-thumb,
   background-color: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }
+
+/* Custom scrollbar hiding utilities for Tailwind v4 */
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -24,16 +24,32 @@ export default async function AdminLayout({
         where: { status: 'PENDING_REVIEW' },
         orderBy: { createdAt: 'desc' },
         take: 5,
-        include: { pets: true }
+        include: {
+            pets: {
+                include: {
+                    services: true
+                }
+            }
+        }
     });
 
-    const serializedInquiries = rawPending.map((q: any) => ({
-        id: q.id,
-        name: q.ownerName,
-        petName: (q.pets || []).map((p: any) => p.name).join(", ") || "N/A",
-        createdAt: q.createdAt.toISOString(),
-        status: q.status
-    }));
+    const serializedInquiries = rawPending.map((q: any) => {
+        const petNames = (q.pets || []).map((p: any) => p.name).join(", ") || "N/A";
+        const serviceNames = (q.pets || [])
+            .flatMap((p: any) => (p.services || []).map((s: any) => s.nameEs))
+            .filter(Boolean)
+            .join(", ") || "Grooming";
+
+        return {
+            id: q.id,
+            name: q.ownerName,
+            petName: petNames,
+            service: serviceNames,
+            message: q.message || "",
+            createdAt: q.createdAt.toISOString(),
+            status: q.status
+        };
+    });
 
     return (
         <SessionProviderWrapper>

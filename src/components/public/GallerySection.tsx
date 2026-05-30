@@ -98,7 +98,27 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                     </motion.p>
                 </div>
 
-                <div className="relative h-[450px] md:h-[600px] flex items-center justify-center w-full max-w-5xl mx-auto mt-10">
+                {/* Mobile Swipable Horizontal Carousel */}
+                <div className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-6 pb-8 scrollbar-none px-4 -mx-4">
+                    {images.map((imgSrc, idx) => (
+                        <div 
+                            key={idx}
+                            onClick={() => setSelectedImage(imgSrc)}
+                            className="snap-center shrink-0 w-[80vw] max-w-[280px] aspect-square relative border-3 border-black rounded-2xl overflow-hidden bg-white shadow-[6px_6px_0px_0px_#1A1A1A] cursor-zoom-in active:scale-95 transition-all"
+                        >
+                            <Image
+                                src={imgSrc}
+                                alt="Gallery Mobile"
+                                fill
+                                className="object-cover"
+                                sizes="280px"
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Desktop Interactive Stack Carousel */}
+                <div className="hidden md:flex relative h-[600px] items-center justify-center w-full max-w-5xl mx-auto mt-10">
                     <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
                         <PopArtDots className="w-full h-[80%] rounded-[3rem]" />
                     </div>
@@ -106,7 +126,7 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                     <button 
                         onClick={() => paginate(-1)}
                         title="Anterior"
-                        className="absolute left-[-10px] md:left-[-40px] z-40 p-4 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] hover:bg-accent hover:text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_#000] transition-all"
+                        className="absolute left-[-40px] z-40 p-4 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] hover:bg-accent hover:text-white hover:translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_#000] transition-all"
                     >
                         <ChevronLeft className="w-8 h-8" />
                     </button>
@@ -114,7 +134,7 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                     <button 
                         onClick={() => paginate(1)}
                         title="Siguiente"
-                        className="absolute right-[-10px] md:right-[-40px] z-40 p-4 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] hover:bg-info hover:text-white hover:-translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_#000] transition-all"
+                        className="absolute right-[-40px] z-40 p-4 bg-white border-[3px] border-black rounded-2xl shadow-[4px_4px_0px_0px_#000] hover:bg-info hover:text-white hover:-translate-x-1 hover:translate-y-1 hover:shadow-[1px_1px_0px_0px_#000] transition-all"
                     >
                         <ChevronRight className="w-8 h-8" />
                     </button>
@@ -184,7 +204,7 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                     </div>
                 </div>
 
-                <div className="mt-12 flex justify-center gap-3">
+                <div className="mt-12 hidden md:flex justify-center gap-3">
                     {images.map((_, idx) => (
                         <button
                             key={idx}

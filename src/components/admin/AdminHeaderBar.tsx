@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Mail, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key } from "lucide-react";
+import { Bell, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key } from "lucide-react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useTransition } from "react";
@@ -29,7 +29,6 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
     const { data: session, update: updateSession } = useSession();
     
     const [showNotifications, setShowNotifications] = useState(false);
-    const [showEmails, setShowEmails] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     
     // Profile Modal State
@@ -42,20 +41,60 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
     const [uploadingImage, setUploadingImage] = useState(false);
 
     const notificationsRef = useRef<HTMLDivElement>(null);
-    const emailsRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
 
     // Sync session data to state when modal opens
     const activeUser = session?.user || initialUser;
+
+    const notifiedIdsRef = useRef<string[]>([]);
+
+    // Initialize notified IDs on mount
+    useEffect(() => {
+        if (pendingInquiries.length > 0 && notifiedIdsRef.current.length === 0) {
+            notifiedIdsRef.current = pendingInquiries.map((q: any) => q.id);
+        }
+    }, [pendingInquiries]);
+
+    // Request Notification permission
+    useEffect(() => {
+        if (typeof window !== "undefined" && "Notification" in window) {
+            if (Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+    }, []);
+
+    // Listen for new inquiries to trigger OS notifications
+    useEffect(() => {
+        if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
+            return;
+        }
+
+        pendingInquiries.forEach((inq: any) => {
+            if (!notifiedIdsRef.current.includes(inq.id)) {
+                notifiedIdsRef.current.push(inq.id);
+                
+                new Notification("GroomingPet: Nueva Solicitud 🐾", {
+                    body: `Cliente: ${inq.name} - Mascota(s): ${inq.petName || "N/A"}`,
+                    icon: "/favicon.svg"
+                });
+            }
+        });
+    }, [pendingInquiries]);
+
+    // Live global queue auto-refresh every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.refresh();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [router]);
 
     // Handle clicking outside to close dropdowns
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
                 setShowNotifications(false);
-            }
-            if (emailsRef.current && !emailsRef.current.contains(event.target as Node)) {
-                setShowEmails(false);
             }
             if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
                 setShowProfile(false);
@@ -152,70 +191,10 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
 
                 {/* Right Action Icons & Profile Info */}
                 <div className="flex items-center space-x-6">
-                    {/* Business Inbox Popover */}
-                    <div className="relative" ref={emailsRef}>
-                        <button 
-                            onClick={() => { setShowEmails(!showEmails); setShowNotifications(false); }}
-                            title="Bandeja de Entrada"
-                            aria-label="Bandeja de Entrada"
-                            className="relative p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#252525] transition-all cursor-pointer"
-                        >
-                            <Mail className="h-4.5 w-4.5" />
-                            {pendingInquiries.length > 0 && (
-                                <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-[#7C3AED]" />
-                            )}
-                        </button>
-
-                        {showEmails && (
-                            <div className="absolute right-0 mt-3 w-80 bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl shadow-2xl p-4 space-y-3 z-30 animate-in fade-in slide-in-from-top-2 duration-250">
-                                <div className="flex justify-between items-center pb-2 border-b border-[#3A3A3A]">
-                                    <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                                        <Mail className="h-3.5 w-3.5 text-[#7C3AED]" /> Mensajes Recibidos
-                                    </h4>
-                                    <span className="text-[9px] font-black text-[#7C3AED] bg-[#7C3AED]/10 px-2 py-0.5 rounded border border-[#7C3AED]/25 uppercase tracking-widest">
-                                        Inbox
-                                    </span>
-                                </div>
-                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                                    {pendingInquiries.length === 0 ? (
-                                        <p className="text-xs text-slate-500 py-6 text-center font-bold">No hay consultas de clientes nuevas.</p>
-                                    ) : (
-                                        pendingInquiries.map((inq: any) => (
-                                            <Link 
-                                                key={inq.id} 
-                                                href="/admin/inquiries"
-                                                onClick={() => setShowEmails(false)}
-                                                className="block p-2.5 rounded-xl hover:bg-[#252525] border border-transparent hover:border-[#3A3A3A] transition-all"
-                                            >
-                                                <div className="flex justify-between items-start gap-1">
-                                                    <span className="text-xs font-black text-white truncate">{inq.name}</span>
-                                                    <span className="text-[8px] font-bold text-slate-500 shrink-0">
-                                                        {new Date(inq.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[10px] text-[#7C3AED] font-bold uppercase tracking-wider mt-0.5">{inq.service || "Consulta General"}</p>
-                                                <p className="text-[10px] text-slate-400 truncate mt-1 italic">"{inq.message}"</p>
-                                            </Link>
-                                        ))
-                                    )}
-                                </div>
-                                <div className="pt-2 border-t border-[#3A3A3A]">
-                                    <Link 
-                                        href="/admin/inquiries" 
-                                        onClick={() => setShowEmails(false)}
-                                        className="block text-center text-[10px] font-black text-[#7C3AED] hover:underline uppercase tracking-widest"
-                                    >
-                                        Gestionar Citas
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
                     {/* Notifications Bell Dropdown */}
                     <div className="relative" ref={notificationsRef}>
                         <button 
-                            onClick={() => { setShowNotifications(!showNotifications); setShowEmails(false); }}
+                            onClick={() => setShowNotifications(!showNotifications)}
                             title="Notificaciones de Alerta"
                             aria-label="Notificaciones de Alerta"
                             className="relative p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#252525] transition-all cursor-pointer"
@@ -229,7 +208,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                         {showNotifications && (
                             <div className="absolute right-0 mt-3 w-80 bg-[#1A1A1A] border border-[#3A3A3A] rounded-2xl shadow-2xl p-4 space-y-3 z-30 animate-in fade-in slide-in-from-top-2 duration-250">
                                 <div className="flex justify-between items-center pb-2 border-b border-[#3A3A3A]">
-                                    <h4 className="text-xs font-black text-white uppercase tracking-wider">Alertas del Sistema</h4>
+                                    <h4 className="text-xs font-black text-white uppercase tracking-wider">Alertas y Solicitudes</h4>
                                     <span className="text-[9px] font-black text-rose-400 bg-rose-950/30 px-2 py-0.5 rounded border border-rose-900/30 uppercase tracking-widest">
                                         {pendingInquiries.length} Nuevas
                                     </span>
@@ -245,11 +224,23 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
                                                 onClick={() => setShowNotifications(false)}
                                                 className="block p-2.5 rounded-xl hover:bg-[#252525] border border-transparent hover:border-[#3A3A3A] transition-all"
                                             >
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                                                    <span className="text-xs font-black text-white truncate">Nueva cita de {inq.name}</span>
+                                                <div className="flex justify-between items-start gap-1">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                        <div className="h-1.5 w-1.5 rounded-full bg-[#7C3AED] shrink-0 animate-pulse" />
+                                                        <span className="text-xs font-black text-white truncate">Solicitud: {inq.name}</span>
+                                                    </div>
+                                                    <span className="text-[8px] font-bold text-slate-500 shrink-0">
+                                                        {new Date(inq.createdAt).toLocaleDateString()}
+                                                    </span>
                                                 </div>
-                                                <p className="text-[10px] text-slate-400 mt-1 truncate">Servicio solicitado: {inq.service || "General"}</p>
+                                                <p className="text-[10px] text-[#7C3AED] font-bold uppercase tracking-wider mt-0.5 ml-3">
+                                                    {inq.service || "Servicio General"}
+                                                </p>
+                                                {inq.message && (
+                                                    <p className="text-[10px] text-slate-400 truncate mt-1 italic ml-3">
+                                                        "{inq.message}"
+                                                    </p>
+                                                )}
                                             </Link>
                                         ))
                                     )}

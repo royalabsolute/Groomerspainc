@@ -234,13 +234,67 @@ export async function permanentDeleteInquiry(id: string) {
     return deleteInquiry(id);
 }
 
+export async function ensureTransactionForQuote(id: string) {
+    try {
+        const quote = await (db as any).quoteRequest.findUnique({
+            where: { id },
+            include: {
+                pets: true
+            }
+        });
+        if (!quote) return;
+
+        // Check if an INCOME transaction already exists for this inquiryId
+        const existingTx = await (db as any).transaction.findFirst({
+            where: {
+                inquiryId: id,
+                type: "INCOME"
+            }
+        });
+
+        const amount = Number(quote.finalAdminPrice || quote.systemEstimatedPrice || 0);
+        const petNames = quote.pets?.map((p: any) => p.name).join(", ") || "mascota";
+        const description = `Servicio de Estética para ${quote.ownerName} (${petNames})`;
+
+        if (existingTx) {
+            // Update the amount if it has changed
+            if (Number(existingTx.amount) !== amount) {
+                await (db as any).transaction.update({
+                    where: { id: existingTx.id },
+                    data: { amount }
+                });
+            }
+        } else {
+            // Create a new income transaction
+            await (db as any).transaction.create({
+                data: {
+                    type: "INCOME",
+                    amount,
+                    description,
+                    inquiryId: id,
+                    date: new Date()
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Error in ensureTransactionForQuote:", err);
+    }
+}
+
 export async function updateInquiryStatus(id: string, status: any) {
     try {
         await (db as any).quoteRequest.update({
             where: { id },
             data: { status }
         });
+
+        if (status === "CONFIRMED" || status === "COMPLETED") {
+            await ensureTransactionForQuote(id);
+        }
+
         revalidatePath("/admin/inquiries");
+        revalidatePath("/admin/finanzas");
+        revalidatePath("/admin/dashboard");
         return { success: true };
     } catch (error) {
         console.error("Error updating quote status:", error);
@@ -380,7 +434,12 @@ export async function completeInquiryPayment(id: string, amount: number, descrip
             where: { id },
             data: { status: "COMPLETED" }
         });
+
+        await ensureTransactionForQuote(id);
+
         revalidatePath("/admin/inquiries");
+        revalidatePath("/admin/finanzas");
+        revalidatePath("/admin/dashboard");
         return { success: true };
     } catch (error) {
         console.error("Error completing payment:", error);

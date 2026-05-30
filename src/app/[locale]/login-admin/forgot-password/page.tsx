@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
                     </div>
                 </div>
 
-                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
+                <Card className="border-4 border-black shadow-[8px_8px_0px_0px_#000] md:shadow-[16px_16px_0px_0px_#000] bg-white overflow-hidden rounded-4xl md:rounded-[2.5rem]">
                     <CardHeader className="space-y-2 bg-secondary/10 border-b-4 border-black p-5 md:p-8">
                         <CardTitle className="text-3xl md:text-4xl font-black uppercase tracking-tight text-foreground">
                             Recuperar Acceso
@@ -141,7 +141,6 @@ export default function ForgotPasswordPage() {
                                             id="email"
                                             name="email"
                                             type="email"
-                                            placeholder="admin@groomingpet.com"
                                             className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                             required
                                         />

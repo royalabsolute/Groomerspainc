@@ -18,6 +18,8 @@ export async function submitInquiry(data: any) {
         let termsAccepted = false;
         let discountCode = "";
         let message = "";
+        let appointmentDate = "";
+        let appointmentTime = "";
         let systemEstimatedPrice = 0;
         let petsData: any[] = [];
 
@@ -32,6 +34,8 @@ export async function submitInquiry(data: any) {
             termsAccepted = data.get("termsAccepted") === "true" || data.get("legalAccepted") === "true";
             discountCode = (data.get("discountCode") as string || "").trim().toUpperCase();
             message = (data.get("message") as string || "").trim();
+            appointmentDate = (data.get("appointmentDate") as string || "").trim();
+            appointmentTime = (data.get("appointmentTime") as string || "").trim();
             
             const estPriceVal = parseFloat(data.get("systemEstimatedPrice") as string || "0");
             systemEstimatedPrice = isNaN(estPriceVal) ? 0 : estPriceVal;
@@ -55,6 +59,8 @@ export async function submitInquiry(data: any) {
             termsAccepted = !!(data.termsAccepted || data.legalAccepted);
             discountCode = (data.discountCode || "").trim().toUpperCase();
             message = (data.message || "").trim();
+            appointmentDate = (data.appointmentDate || "").trim();
+            appointmentTime = (data.appointmentTime || "").trim();
             
             const estPriceVal = parseFloat(data.systemEstimatedPrice || "0");
             systemEstimatedPrice = isNaN(estPriceVal) ? 0 : estPriceVal;
@@ -133,6 +139,8 @@ export async function submitInquiry(data: any) {
                 discountCode: discountCode || null,
                 status: "PENDING_REVIEW",
                 read: false,
+                appointmentDate: appointmentDate ? new Date(appointmentDate) : null,
+                appointmentTime: appointmentTime || null,
                 pets: {
                     create: uploadedPets
                 }
@@ -160,36 +168,44 @@ export async function submitInquiry(data: any) {
             `;
         });
 
-        // 5. Send Admin Notification Email
-        const targetEmail = process.env.SMTP_USER || "groomersincpetspa@gmail.com";
-        const { sendEmail } = await import('@/lib/email');
-        const loginUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/es/login-admin`;
-        
-        await sendEmail({
-            to: targetEmail,
-            subject: `🐾 NUEVA SOLICITUD DE COTIZACIÓN MÓVIL de ${ownerName}`,
-            html: `
-            <div style="font-family: 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background: #1A1A1A; color: #FFF; border: 4px solid #000; border-radius: 20px; box-shadow: 8px 8px 0 #7C3AED;">
-                <h2 style="text-transform: uppercase; font-size: 24px; font-weight: 900; border-bottom: 3px solid #7C3AED; padding-bottom: 12px; margin-top: 0; color: #7C3AED;">
-                    🐾 GroomingPet Quote Request
-                </h2>
-                <p><strong>Cliente:</strong> ${ownerName}</p>
-                <p><strong>Email:</strong> ${ownerEmail}</p>
-                <p><strong>Teléfono:</strong> ${ownerPhone}</p>
-                <p><strong>Dirección:</strong> ${address}, ${city} (ZIP: ${zipCode})</p>
-                <hr style="border: 1px dashed #333;" />
-                <h3 style="color: #7C3AED; text-transform: uppercase; font-size: 16px; margin-top: 16px; margin-bottom: 8px;">Mascotas y Servicios:</h3>
-                ${petsInfoHtml}
-                <p><strong>Estimado Inicial Calculado:</strong> <span style="color: #2ECC71; font-weight: 900; font-size: 18px;">$${Number(systemEstimatedPrice).toFixed(2)}</span></p>
-                ${message ? `<p><strong>Instrucciones:</strong> <i>"${message}"</i></p>` : ''}
-                <div style="margin-top: 24px; text-align: center;">
-                    <a href="${loginUrl}" style="display: inline-block; padding: 12px 24px; background: #7C3AED; color: #FFF; font-weight: bold; text-decoration: none; border-radius: 12px; border: 2px solid #000; box-shadow: 3px 3px 0 #000;">
-                        REVISAR EN PANEL ADMIN
-                    </a>
+        // 5. Send Admin Notification Email (asynchronous, in try/catch to avoid blocking user flow)
+        try {
+            let adminEmail = process.env.SMTP_USER || "groomersincpetspa@gmail.com";
+            if (process.env.SMTP_FROM && process.env.SMTP_FROM.includes("<")) {
+                const match = process.env.SMTP_FROM.match(/<([^>]+)>/);
+                if (match) {
+                    adminEmail = match[1];
+                }
+            }
+            const { sendEmail } = await import('@/lib/email');
+            
+            let formattedDate = "N/A";
+            if (appointmentDate) {
+                try {
+                    const d = new Date(appointmentDate);
+                    formattedDate = d.toISOString().split('T')[0];
+                } catch {
+                    formattedDate = appointmentDate;
+                }
+            }
+
+            sendEmail({
+                to: adminEmail,
+                subject: `¡Nueva Solicitud de Cita! ${ownerName}`,
+                html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #7C3AED; border-radius: 10px; background: #FFF; color: #111;">
+                    <h2 style="color: #7C3AED; text-transform: uppercase;">¡Nueva Solicitud de Cita!</h2>
+                    <p><strong>${ownerName}</strong> ha solicitado un servicio para <strong>${quote.pets.length}</strong> ${quote.pets.length === 1 ? 'perro' : 'perros'} el <strong>${formattedDate}</strong> a las <strong>${appointmentTime || "N/A"}</strong>.</p>
+                    <hr style="border: 1px dashed #DDD;" />
+                    <p style="font-size: 12px; color: #666;">Por favor, inicia sesión en el panel de administración para ver la información completa.</p>
                 </div>
-            </div>
-            `
-        });
+                `
+            }).catch(emailError => {
+                console.error("Error sending admin email inside catch:", emailError);
+            });
+        } catch (emailError) {
+            console.error("Error sending admin notification email:", emailError);
+        }
 
         revalidatePath("/admin/inquiries");
         return { success: true, quoteId: quote.id };

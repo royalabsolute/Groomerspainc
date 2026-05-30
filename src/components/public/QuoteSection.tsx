@@ -23,6 +23,8 @@ const formSchema = z.object({
     phone: z.string().min(10, { message: "Phone number is required (min 10 digits)." }),
     address: z.string().min(5, { message: "Address must be at least 5 characters." }),
     zipCode: z.string().regex(/^\d{5}$/, { message: "ZIP Code must be exactly 5 digits." }),
+    appointmentDate: z.string().min(1, { message: "Appointment date is required." }),
+    appointmentTime: z.string().min(1, { message: "Appointment time is required." }),
     
     // Pet Specs
     petName: z.string().min(1, { message: "Pet name is required." }),
@@ -83,6 +85,8 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
             phone: "",
             address: "",
             zipCode: "",
+            appointmentDate: "",
+            appointmentTime: "",
             petName: "",
             breed: "",
             petWeight: undefined as any,
@@ -189,7 +193,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     };
 
     const handleNextStep1 = async () => {
-        const isValid = await form.trigger(["name", "email", "phone", "address", "zipCode"]);
+        const isValid = await form.trigger(["name", "email", "phone", "address", "zipCode", "appointmentDate", "appointmentTime"]);
         if (isValid) {
             if (!isZipValid) {
                 toast.error(t("zipCodeNoCoverage"));
@@ -233,6 +237,8 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                 fd.append("phone", values.phone);
                 fd.append("address", values.address);
                 fd.append("zipCode", values.zipCode);
+                fd.append("appointmentDate", values.appointmentDate);
+                fd.append("appointmentTime", values.appointmentTime);
                 fd.append("legalAccepted", String(values.legalAccepted));
                 fd.append("termsAccepted", String(values.legalAccepted));
                 if (values.discountCode) fd.append("discountCode", values.discountCode);
@@ -483,6 +489,34 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                     {watchedZip && !isZipValid && (
                                                         <p className="text-[10px] font-black text-amber-600 uppercase mt-0.5">⚠️ {locale === "es" ? "Fuera de cobertura" : "No coverage area"}</p>
                                                     )}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div className="grid gap-1.5">
+                                                    <Label htmlFor="appointmentDate" className="font-black text-xs uppercase tracking-wider text-slate-700">📅 {t("bookingDate")}</Label>
+                                                    <Input 
+                                                        id="appointmentDate" 
+                                                        type="date" 
+                                                        min={new Date().toISOString().split('T')[0]}
+                                                        {...form.register("appointmentDate")} 
+                                                        className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900" 
+                                                    />
+                                                    {form.formState.errors.appointmentDate && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.appointmentDate.message}</p>}
+                                                </div>
+                                                <div className="grid gap-1.5">
+                                                    <Label htmlFor="appointmentTime" className="font-black text-xs uppercase tracking-wider text-slate-700">⏰ {t("bookingTime")}</Label>
+                                                    <select
+                                                        id="appointmentTime"
+                                                        {...form.register("appointmentTime")}
+                                                        className="flex h-11 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-slate-800"
+                                                    >
+                                                        <option value="">{locale === "es" ? "Seleccione un horario" : "Select a time slot"}</option>
+                                                        <option value="09:00 - 12:00">09:00 AM - 12:00 PM ({locale === "es" ? "Mañana" : "Morning"})</option>
+                                                        <option value="12:00 - 15:00">12:00 PM - 03:00 PM ({locale === "es" ? "Mediodía" : "Midday"})</option>
+                                                        <option value="15:00 - 18:00">03:00 PM - 06:00 PM ({locale === "es" ? "Tarde" : "Afternoon"})</option>
+                                                    </select>
+                                                    {form.formState.errors.appointmentTime && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.appointmentTime.message}</p>}
                                                 </div>
                                             </div>
                                         </div>

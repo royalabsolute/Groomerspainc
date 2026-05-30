@@ -131,7 +131,6 @@ export default function LoginPage() {
                                         id="email"
                                         name="email"
                                         type="email"
-                                        placeholder="admin@groomingpet.com"
                                         className="pl-12 h-12 md:h-14 border-[3px] border-black bg-white rounded-2xl text-base md:text-lg font-bold shadow-[4px_4px_0px_0px_#000] focus-visible:ring-0 focus-visible:translate-x-[2px] focus-visible:translate-y-[2px] focus-visible:shadow-[2px_2px_0px_0px_#000] transition-all"
                                         required
                                     />

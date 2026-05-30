@@ -2,12 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { DogCollage } from "./DogCollage";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Sparkles, Bone } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getRandomDecoration, PopArtDots } from "./PopArtDecorations";
 
 interface GalleryItemFromDB {
@@ -165,7 +164,7 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                                     </div>
 
                                     <motion.div 
-                                        className="relative w-full h-full border-4 border-black rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-white group shadow-[15px_15px_0px_0px_#1A1A1A]"
+                                        className="relative w-full h-full border-4 border-black rounded-4xl md:rounded-[3rem] overflow-hidden bg-white group shadow-[15px_15px_0px_0px_#1A1A1A]"
                                         animate={{ boxShadow: style.boxShadow }}
                                     >
                                         <Image
@@ -203,22 +202,47 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                 </div>
             </div>
 
-            <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-                <DialogContent className="max-w-[90vw] md:max-w-5xl p-4 overflow-hidden bg-white/80 glass border-0 shadow-2xl rounded-3xl flex items-center justify-center">
-                    <DialogTitle className="sr-only">Imagen de la galería</DialogTitle>
-                    {selectedImage && (
-                        <div className="relative w-full h-[75vh] rounded-[2rem] overflow-hidden apple-shadow">
+            <AnimatePresence>
+                {selectedImage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSelectedImage(null)}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6 cursor-zoom-out"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-4xl aspect-video md:aspect-4/3 rounded-4xl border-4 border-black bg-white overflow-hidden shadow-[12px_12px_0px_0px_#000] cursor-default"
+                        >
                             <Image
                                 src={selectedImage}
                                 alt="Zoomed gallery"
                                 fill
                                 sizes="100vw"
                                 className="object-cover"
+                                priority
                             />
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+                            
+                            {/* Premium Close Button */}
+                            <button
+                                onClick={() => setSelectedImage(null)}
+                                className="absolute top-4 right-4 z-10 p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-full border-3 border-black shadow-[3px_3px_0px_0px_#000] active:translate-y-0.5 active:translate-x-0.5 active:shadow-none hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0px_0px_#000] cursor-pointer transition-all flex items-center justify-center"
+                                title="Cerrar"
+                            >
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 stroke-white stroke-[3.5]" fill="none">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     );
 }

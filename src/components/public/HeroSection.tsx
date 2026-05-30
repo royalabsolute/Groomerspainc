@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Bone } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { DogCollage } from "./DogCollage";
 

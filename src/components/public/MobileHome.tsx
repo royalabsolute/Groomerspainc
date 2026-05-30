@@ -669,26 +669,35 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-200 bg-black/95 flex flex-col items-center justify-center p-6 md:hidden"
+                        onClick={() => setActivePhoto(null)}
+                        className="fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6 cursor-zoom-out"
                     >
-                        <button
-                            onClick={() => setActivePhoto(null)}
-                            className="absolute top-6 right-6 h-12 w-12 rounded-full bg-white/10 text-white flex items-center justify-center"
-                            aria-label="Cerrar foto"
-                            title="Cerrar foto"
+                        <m.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 220 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-sm aspect-square rounded-4xl border-4 border-black bg-white overflow-hidden shadow-[8px_8px_0px_0px_#000] cursor-default"
                         >
-                            <X className="h-6 w-6" />
-                        </button>
-                        
-                        <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden border-[3px] border-white shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
                             <Image
                                 src={activePhoto}
                                 alt={t("galleryItemAlt")}
                                 fill
-                                sizes="(max-width: 768px) 100vw, 50vw"
+                                sizes="100vw"
                                 className="object-cover"
+                                priority
                             />
-                        </div>
+                            
+                            {/* Premium Close Button */}
+                            <button
+                                onClick={() => setActivePhoto(null)}
+                                className="absolute top-4 right-4 z-10 p-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full border-3 border-black shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:translate-x-0.5 active:shadow-none hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[3px_3px_0px_0px_#000] cursor-pointer transition-all flex items-center justify-center"
+                                title="Cerrar"
+                            >
+                                <X className="w-4 h-4 text-white stroke-[3.5]" />
+                            </button>
+                        </m.div>
                     </m.div>
                 )}
             </AnimatePresence>

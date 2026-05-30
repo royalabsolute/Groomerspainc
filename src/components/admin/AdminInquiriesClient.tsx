@@ -430,36 +430,36 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                     const shampooTreats = chosenServices.filter(s => s.category === "SPECIAL_SHAMPOO");
 
                     return (
-                        <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[90vh] overflow-y-auto rounded-3xl border-4 border-black bg-[#161616] text-white p-6 shadow-[12px_12px_0px_0px_#000] z-50">
-                            <DialogHeader className="border-b border-[#3A3A3A] pb-4">
-                                <DialogTitle className="text-2xl font-black uppercase text-white tracking-tight flex items-center gap-2">
+                        <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[90vh] overflow-y-auto rounded-3xl border-4 border-black bg-amber-50 text-neutral-900 p-6 shadow-[12px_12px_0px_0px_#000] z-50">
+                            <DialogHeader className="border-b-3 border-black pb-4">
+                                <DialogTitle className="text-2xl font-black uppercase text-neutral-950 tracking-tight flex items-center gap-2">
                                     🔎 {selectedItem.status === "PENDING_REVIEW" ? "Revisión de Cotización" : "Detalles de Solicitud"}
                                 </DialogTitle>
-                                <DialogDescription className="text-slate-400 font-bold uppercase text-[10px] tracking-wider">
+                                <DialogDescription className="text-neutral-700 font-bold uppercase text-[10px] tracking-wider">
                                     ID: {selectedItem.id}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-6 pt-4 text-sm text-slate-350">
+                            <div className="space-y-6 pt-4 text-sm text-slate-800 font-medium">
                                 
                                 {/* 1. Owner & Address Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="bg-[#202020] border border-[#3A3A3A] rounded-xl p-4 space-y-1.5">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5 mb-2">👤 Cliente</h4>
-                                        <p className="font-bold text-white">{selectedItem.name}</p>
-                                        <p className="text-xs">✉️ {selectedItem.email}</p>
-                                        <p className="text-xs">📞 {selectedItem.phone}</p>
+                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-1.5 shadow-[4px_4px_0_0_#000]">
+                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2">👤 Cliente</h4>
+                                        <p className="font-black text-black">{selectedItem.name}</p>
+                                        <p className="text-xs font-bold text-slate-600">✉️ {selectedItem.email}</p>
+                                        <p className="text-xs font-bold text-slate-600">📞 {selectedItem.phone}</p>
                                     </div>
-                                    <div className="bg-[#202020] border border-[#3A3A3A] rounded-xl p-4 space-y-1.5">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5 mb-2">📍 Destino</h4>
-                                        <p className="font-bold text-white">{selectedItem.address}</p>
-                                        <p className="text-xs">Florida (ZIP: {selectedItem.zipCode})</p>
+                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-1.5 shadow-[4px_4px_0_0_#000]">
+                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2">📍 Destino</h4>
+                                        <p className="font-black text-black">{selectedItem.address}</p>
+                                        <p className="text-xs font-bold text-slate-600">Florida (ZIP: {selectedItem.zipCode})</p>
                                     </div>
                                 </div>
 
                                 {/* 2 & 3 & 4. Loop over each Pet in the list */}
                                 <div className="space-y-4">
-                                    <h4 className="text-[11px] font-black text-[#7C3AED] uppercase tracking-widest border-b border-[#2A2A2A] pb-1.5 flex items-center gap-2">
+                                    <h4 className="text-[11px] font-black text-[#7C3AED] uppercase tracking-widest border-b-3 border-black pb-1.5 flex items-center gap-2">
                                         🐶 Mascotas y Servicios Solicitados ({selectedItem.pets?.length || 0})
                                     </h4>
                                     {(selectedItem.pets && selectedItem.pets.length > 0 ? selectedItem.pets : [
@@ -483,35 +483,35 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         const shampooTreats = petServices.filter(s => s.category === "SPECIAL_SHAMPOO");
 
                                         return (
-                                            <div key={pet.id} className="bg-[#202020] border border-[#3A3A3A] rounded-xl p-4 space-y-4">
-                                                <div className="flex justify-between items-center border-b border-[#2A2A2A] pb-2">
+                                            <div key={pet.id} className="bg-white border-3 border-black rounded-xl p-4 space-y-4 shadow-[4px_4px_0_0_#000]">
+                                                <div className="flex justify-between items-center border-b-2 border-black/10 pb-2">
                                                     <span className="font-black text-xs uppercase tracking-widest text-[#7C3AED]">
                                                         🐕 Perro #{idx + 1}: {pet.name}
                                                     </span>
                                                     <span className={cn(
-                                                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border",
+                                                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border-2 border-black shadow-[1px_1px_0_0_#000]",
                                                         pet.rabiesVaccinated 
-                                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                                                            : "bg-red-500/10 text-red-400 border-red-500/20"
+                                                            ? "bg-emerald-200 text-emerald-900" 
+                                                            : "bg-red-200 text-red-900"
                                                     )}>
                                                         Rabia: {pet.rabiesVaccinated ? `Vigente (#${pet.rabiesRegistry || 'N/A'})` : 'Vencida/Faltante'}
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
                                                     {/* Specs */}
                                                     <div className="space-y-2">
-                                                        <div>🏷️ <span className="text-slate-500">Raza:</span> <strong className="text-white">{pet.breed}</strong></div>
+                                                        <div>🏷️ <span className="text-slate-500">Raza:</span> <strong className="text-black">{pet.breed}</strong></div>
                                                         <div>⚖️ <span className="text-slate-500">Peso:</span> <strong className="text-[#F53F85]">{pet.weight} lbs</strong></div>
-                                                        <div>🎂 <span className="text-slate-500">Edad:</span> <strong className="text-white">{pet.age}</strong></div>
+                                                        <div>🎂 <span className="text-slate-500">Edad:</span> <strong className="text-black">{pet.age}</strong></div>
                                                         
                                                         {/* Pet services list */}
-                                                        <div className="pt-2 border-t border-[#2A2A2A]/40 space-y-2 mt-2">
+                                                        <div className="pt-2 border-t-2 border-black/10 space-y-2 mt-2">
                                                             {mainGroom.length > 0 && (
                                                                 <div>
                                                                     <span className="text-[#7C3AED] font-black uppercase text-[8px] tracking-wider block">Servicio Principal:</span>
                                                                     {mainGroom.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-white font-bold pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -520,9 +520,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                             )}
                                                             {addonTreats.length > 0 && (
                                                                 <div>
-                                                                    <span className="text-amber-500 font-black uppercase text-[8px] tracking-wider block">Add-ons:</span>
+                                                                    <span className="text-amber-600 font-black uppercase text-[8px] tracking-wider block">Add-ons:</span>
                                                                     {addonTreats.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-white font-bold pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>+${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -531,9 +531,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                             )}
                                                             {shampooTreats.length > 0 && (
                                                                 <div>
-                                                                    <span className="text-sky-500 font-black uppercase text-[8px] tracking-wider block">Champú Especial:</span>
+                                                                    <span className="text-sky-600 font-black uppercase text-[8px] tracking-wider block">Champú Especial:</span>
                                                                     {shampooTreats.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-white font-bold pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>+${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -549,7 +549,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                             <span className="text-[8px] text-slate-500 uppercase tracking-widest block mb-1">Foto Mascota</span>
                                                             <div 
                                                                 onClick={() => pet.petImageUrl && setActiveLightboxUrl(pet.petImageUrl)}
-                                                                className="relative h-28 w-full rounded-xl overflow-hidden border border-[#3A3A3A] bg-[#252525] cursor-pointer hover:border-[#7C3AED]/40 transition-colors"
+                                                                className="relative h-28 w-full rounded-xl overflow-hidden border-2 border-black bg-slate-100 cursor-pointer hover:border-[#7C3AED] transition-colors shadow-[2px_2px_0_0_#000]"
                                                             >
                                                                 <Image 
                                                                     src={pet.petImageUrl} 
@@ -571,22 +571,22 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                 {selectedItem.message && (
                                     <div className="space-y-1">
                                         <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anotaciones del Dueño</h4>
-                                        <p className="bg-[#202020] border border-[#3A3A3A] rounded-xl p-3 text-xs italic text-slate-350 font-bold leading-relaxed">
+                                        <p className="bg-white border-3 border-black rounded-xl p-3 text-xs italic text-slate-800 font-black leading-relaxed shadow-[2px_2px_0_0_#000]">
                                             "{selectedItem.message}"
                                         </p>
                                     </div>
                                 )}
 
                                 {/* 6. Estimation & Pricing Adjuster Form */}
-                                <div className="border-3 border-black bg-black p-5 rounded-2xl shadow-lg space-y-4">
-                                    <div className="flex justify-between items-center text-xs text-slate-400">
+                                <div className="border-4 border-black bg-white p-5 rounded-2xl shadow-[6px_6px_0px_0px_#000] space-y-4">
+                                    <div className="flex justify-between items-center text-xs text-slate-650 font-black uppercase">
                                         <span>Estimado calculado por Sistema:</span>
-                                        <span className="font-black text-white text-base">${selectedItem.systemEstimatedPrice.toFixed(2)}</span>
+                                        <span className="font-black text-black text-lg bg-yellow-200 border-2 border-black px-2 py-0.5 shadow-[1.5px_1.5px_0_0_#000]">${selectedItem.systemEstimatedPrice.toFixed(2)}</span>
                                     </div>
 
                                     {/* Adjust Price form */}
-                                    <form onSubmit={handleSavePrice} className="space-y-3 pt-2 border-t border-[#2A2A2A]">
-                                        <Label htmlFor="finalPrice" className="text-xs font-black uppercase tracking-wider text-[#2ECC71]">
+                                    <form onSubmit={handleSavePrice} className="space-y-3 pt-4 border-t-3 border-black border-dashed">
+                                        <Label htmlFor="finalPrice" className="text-xs font-black uppercase tracking-wider text-neutral-800 block">
                                             💰 Corregir Tarifa Oficial Final ($)
                                         </Label>
                                         <div className="flex gap-2">
@@ -597,18 +597,18 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                 placeholder="Ej. 110.00"
                                                 value={finalPriceInput}
                                                 onChange={(e) => setFinalPriceInput(e.target.value)}
-                                                className="bg-[#161616] border-[#3A3A3A] text-white text-lg font-black h-11 focus-visible:ring-[#2ECC71] focus-visible:border-[#2ECC71] rounded-xl"
+                                                className="bg-cyan-50 border-3 border-black text-black text-lg font-black h-11 focus-visible:ring-cyan-400 focus-visible:border-black rounded-xl shadow-[2px_2px_0_0_#000]"
                                                 required
                                             />
                                             <Button
                                                 type="submit"
                                                 disabled={isSavingPrice}
-                                                className="bg-[#2ECC71] hover:bg-[#2ECC71]/90 text-black font-black uppercase text-xs tracking-wider px-6 rounded-xl border border-black shadow-[2px_2px_0_0_#000] cursor-pointer shrink-0"
+                                                className="bg-[#2ECC71] hover:bg-[#27AE60] text-black font-black uppercase text-xs tracking-wider px-6 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer shrink-0 transition-all"
                                             >
                                                 {isSavingPrice ? "..." : "Guardar"}
                                             </Button>
                                         </div>
-                                        <p className="text-[9px] font-bold text-slate-500 uppercase">
+                                        <p className="text-[9px] font-black text-slate-500 uppercase leading-normal">
                                             * Al guardar la tarifa final oficial, el estado de la cita cambiará a "Cotizada" (PRICED) y se habilitarán los despachos en un clic.
                                         </p>
                                     </form>
@@ -616,7 +616,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
 
                                 {/* 7. Close Operations Quick Action buttons */}
                                 {selectedItem.status !== "PENDING_REVIEW" && selectedItem.finalAdminPrice !== null && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[#3A3A3A]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t-3 border-black border-dashed">
                                         
                                         {/* WhatsApp Quick Dispatch */}
                                         <a 
@@ -627,7 +627,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         >
                                             <Button 
                                                 type="button"
-                                                className="w-full h-12 bg-[#25D366] hover:bg-[#20ba5a] text-black font-black uppercase text-xs tracking-widest rounded-xl border border-black shadow-[3px_3px_0_0_#000] cursor-pointer flex items-center justify-center gap-1.5"
+                                                className="w-full h-12 bg-[#25D366] hover:bg-[#20ba5a] text-black font-black uppercase text-xs tracking-widest rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                                             >
                                                 <MessageSquare className="h-4.5 w-4.5" />
                                                 Enviar WhatsApp
@@ -639,7 +639,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                             type="button"
                                             onClick={handleDispatchEmail}
                                             disabled={isSendingEmail}
-                                            className="w-full h-12 bg-[#7C3AED] hover:bg-[#7C3AED]/90 text-white font-black uppercase text-xs tracking-widest rounded-xl border border-black shadow-[3px_3px_0_0_#000] cursor-pointer flex items-center justify-center gap-1.5"
+                                            className="w-full h-12 bg-cyan-450 bg-cyan-400 hover:bg-cyan-500 text-black font-black uppercase text-xs tracking-widest rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer flex items-center justify-center gap-1.5 transition-all"
                                         >
                                             {isSendingEmail ? (
                                                 <span className="flex items-center gap-1"><span className="animate-spin text-xs">...</span> Enviando</span>

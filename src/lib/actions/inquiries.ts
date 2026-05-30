@@ -170,9 +170,9 @@ export async function submitInquiry(data: any) {
 
         // 5. Send Admin Notification Email (asynchronous, in try/catch to avoid blocking user flow)
         try {
-            let adminEmail = process.env.SMTP_USER || "groomersincpetspa@gmail.com";
-            if (process.env.SMTP_FROM && process.env.SMTP_FROM.includes("<")) {
-                const match = process.env.SMTP_FROM.match(/<([^>]+)>/);
+            let adminEmail = process.env.SMTP_FROM || process.env.SMTP_USER || "groomersincpetspa@gmail.com";
+            if (adminEmail.includes("<")) {
+                const match = adminEmail.match(/<([^>]+)>/);
                 if (match) {
                     adminEmail = match[1];
                 }
@@ -189,15 +189,16 @@ export async function submitInquiry(data: any) {
                 }
             }
 
+            const emailContent = `Nueva Solicitud: ${ownerName} - ${quote.pets.length} Perros para el ${formattedDate} a las ${appointmentTime || "N/A"}`;
+
             sendEmail({
                 to: adminEmail,
-                subject: `¡Nueva Solicitud de Cita! ${ownerName}`,
+                subject: emailContent,
                 html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #7C3AED; border-radius: 10px; background: #FFF; color: #111;">
-                    <h2 style="color: #7C3AED; text-transform: uppercase;">¡Nueva Solicitud de Cita!</h2>
-                    <p><strong>${ownerName}</strong> ha solicitado un servicio para <strong>${quote.pets.length}</strong> ${quote.pets.length === 1 ? 'perro' : 'perros'} el <strong>${formattedDate}</strong> a las <strong>${appointmentTime || "N/A"}</strong>.</p>
+                    <p style="font-size: 16px; font-weight: bold; margin: 0 0 10px 0;">${emailContent}</p>
                     <hr style="border: 1px dashed #DDD;" />
-                    <p style="font-size: 12px; color: #666;">Por favor, inicia sesión en el panel de administración para ver la información completa.</p>
+                    <p style="font-size: 12px; color: #666; margin: 10px 0 0 0;">Por favor, inicia sesión en el panel de administración para ver la información completa.</p>
                 </div>
                 `
             }).catch(emailError => {

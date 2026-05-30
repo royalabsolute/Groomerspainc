@@ -5,15 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { submitInquiry } from "@/lib/actions/inquiries";
 import { validateDiscountCode } from "@/lib/actions/discounts";
 import { isZipCodeSupported, getTravelPremium } from "@/lib/pricing";
-import { useEffect, useState, useRef, useTransition } from "react";
-import { Camera, Image as ImageIcon, AlertTriangle, ShieldCheck, DollarSign, Info } from "lucide-react";
+import { useEffect, useState, useRef, useTransition, useId } from "react";
+import { Camera, Image as ImageIcon, AlertTriangle, ShieldCheck, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -27,14 +27,16 @@ const formSchema = z.object({
     appointmentTime: z.string().min(1, { message: "Appointment time is required." }),
     
     // Pet Specs
-    petName: z.string().min(1, { message: "Pet name is required." }),
-    breed: z.string().min(1, { message: "Breed is required." }),
-    petWeight: z.coerce.number().min(1, { message: "Weight must be at least 1 lb." }).max(200, { message: "Weight must be under 200 lbs." }),
-    petAge: z.string().min(1, { message: "Age is required." }),
-    rabiesVaccinated: z.boolean().refine((val) => val === true, {
-        message: "Florida health standards require rabies vaccination.",
-    }),
-    rabiesRegistry: z.string().optional(),
+    pets: z.array(z.object({
+        name: z.string().min(1, { message: "Pet name is required." }),
+        breed: z.string().min(1, { message: "Breed is required." }),
+        weight: z.coerce.number().min(1, { message: "Weight must be at least 1 lb." }).max(200, { message: "Weight must be under 200 lbs." }),
+        age: z.string().min(1, { message: "Age is required." }),
+        rabiesVaccinated: z.boolean().refine((val) => val === true, {
+            message: "Florida health standards require rabies vaccination.",
+        }),
+        rabiesRegistry: z.string().optional(),
+    })).min(1, { message: "Must add at least one pet." }),
 
     // Services selection state will be handled dynamically outside hook form
     discountCode: z.string().optional(),
@@ -57,25 +59,30 @@ interface QuoteSectionProps {
     locale: string;
     initialServices: ServiceItem[];
 }
-
 export default function QuoteSection({ locale, initialServices }: QuoteSectionProps) {
     const t = useTranslations("QuoteForm");
     const tIndex = useTranslations("Index");
     const activeLocale = useLocale();
 
+    const uniqueId = useId();
     const [step, setStep] = useState(1);
     const [isPending, startTransition] = useTransition();
-    const [petImage, setPetImage] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isCheckingCode, setIsCheckingCode] = useState(false);
     const [appliedDiscount, setAppliedDiscount] = useState<string | null>(null);
 
-    // Selected services states
-    const [selectedMainGrooming, setSelectedMainGrooming] = useState<string>("");
-    const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
-    const [selectedShampoo, setSelectedShampoo] = useState<string>("");
+    // Selected services states per pet index
+    const [petServices, setPetServices] = useState<{
+        [index: number]: {
+            mainGrooming: string;
+            addons: string[];
+            shampoo: string;
+        }
+    }>({
+        0: { mainGrooming: "", addons: [], shampoo: "" }
+    });
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [petImages, setPetImages] = useState<{ [index: number]: File }>({});
+    const [petPreviewUrls, setPetPreviewUrls] = useState<{ [index: number]: string }>({});
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema) as any,
@@ -87,12 +94,16 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
             zipCode: "",
             appointmentDate: "",
             appointmentTime: "",
-            petName: "",
-            breed: "",
-            petWeight: undefined as any,
-            petAge: "",
-            rabiesVaccinated: false,
-            rabiesRegistry: "",
+            pets: [
+                {
+                    name: "",
+                    breed: "",
+                    weight: undefined as any,
+                    age: "",
+                    rabiesVaccinated: false,
+                    rabiesRegistry: ""
+                }
+            ],
             discountCode: "",
             message: "",
             legalAccepted: false
@@ -100,58 +111,96 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
         mode: "onChange"
     });
 
+    const { fields, append, remove } = useFieldArray({
+        control: form.control,
+        name: "pets"
+    });
+
+    const handleFileChange = (index: number, file: File) => {
+        setPetImages(prev => ({ ...prev, [index]: file }));
+        const url = URL.createObjectURL(file);
+        setPetPreviewUrls(prev => {
+            if (prev[index]) URL.revokeObjectURL(prev[index]);
+            return { ...prev, [index]: url };
+        });
+    };
+
     // Image preview cleanup
     useEffect(() => {
-        if (!petImage) {
-            setPreviewUrl(null);
-            return;
-        }
-        const url = URL.createObjectURL(petImage);
-        setPreviewUrl(url);
-        return () => URL.revokeObjectURL(url);
-    }, [petImage]);
+        return () => {
+            Object.values(petPreviewUrls).forEach(url => URL.revokeObjectURL(url));
+        };
+    }, [petPreviewUrls]);
 
     // Group initial active services
     const mainGroomings = initialServices.filter(s => s.isActive && s.category === "MAIN_GROOMING");
     const addons = initialServices.filter(s => s.isActive && s.category === "ADDON_TREATMENT");
     const shampoos = initialServices.filter(s => s.isActive && s.category === "SPECIAL_SHAMPOO");
 
-    // Select first main grooming by default if available
+    // Select first main grooming by default if available for newly added pets
     useEffect(() => {
-        if (mainGroomings.length > 0 && !selectedMainGrooming) {
-            setSelectedMainGrooming(mainGroomings[0].id);
+        if (mainGroomings.length > 0) {
+            const watchedPets = form.watch("pets") || [];
+            let updated = false;
+            const newServices = { ...petServices };
+            watchedPets.forEach((_, idx) => {
+                if (!newServices[idx]) {
+                    newServices[idx] = { mainGrooming: mainGroomings[0].id, addons: [], shampoo: "" };
+                    updated = true;
+                } else if (!newServices[idx].mainGrooming) {
+                    newServices[idx].mainGrooming = mainGroomings[0].id;
+                    updated = true;
+                }
+            });
+            if (updated) {
+                setPetServices(newServices);
+            }
         }
-    }, [mainGroomings, selectedMainGrooming]);
+    }, [mainGroomings, form.watch("pets")]);
 
     // Live calculations
-    const watchedWeight = form.watch("petWeight") || 0;
     const watchedZip = form.watch("zipCode") || "";
+    const petsList = form.watch("pets") || [];
 
-    // 1. Base por peso
-    let weightBasePrice = 45;
-    if (watchedWeight >= 15 && watchedWeight < 30) {
-        weightBasePrice = 60;
-    } else if (watchedWeight >= 30 && watchedWeight < 60) {
-        weightBasePrice = 75;
-    } else if (watchedWeight >= 60) {
-        weightBasePrice = 95;
-    }
+    // Calculate dynamic pricing breakdown for each pet
+    const petsCalculated = petsList.map((pet, index) => {
+        let petWeightBasePrice = 45;
+        const w = Number(pet.weight) || 0;
+        if (w >= 15 && w < 30) {
+            petWeightBasePrice = 60;
+        } else if (w >= 30 && w < 60) {
+            petWeightBasePrice = 75;
+        } else if (w >= 60) {
+            petWeightBasePrice = 95;
+        }
 
-    // 2. Travel Surcharge
+        const servicesForPet = petServices[index] || { mainGrooming: "", addons: [], shampoo: "" };
+        const petMainServicePrice = Number(mainGroomings.find(s => s.id === servicesForPet.mainGrooming)?.basePrice || 0);
+        const petAddonsPrice = (servicesForPet.addons || []).reduce((sum, id) => {
+            const ad = addons.find(a => a.id === id);
+            return sum + Number(ad ? ad.basePrice : 0);
+        }, 0);
+        const petShampooPrice = Number(shampoos.find(s => s.id === servicesForPet.shampoo)?.basePrice || 0);
+
+        const subtotal = petWeightBasePrice + petMainServicePrice + petAddonsPrice + petShampooPrice;
+        
+        return {
+            name: pet.name || `Perro #${index + 1}`,
+            weightBasePrice: petWeightBasePrice,
+            mainPrice: petMainServicePrice,
+            addonsPrice: petAddonsPrice,
+            shampooPrice: petShampooPrice,
+            subtotal
+        };
+    });
+
+    const totalPetsSubtotal = petsCalculated.reduce((sum, p) => sum + p.subtotal, 0);
     const isZipValid = isZipCodeSupported(watchedZip);
     const travelSurcharge = isZipValid ? getTravelPremium(watchedZip) : 0;
+    
+    const originalPrice = totalPetsSubtotal + travelSurcharge;
 
-    // 3. Suma de Servicios elegidos
-    const mainServicePrice = Number(mainGroomings.find(s => s.id === selectedMainGrooming)?.basePrice || 0);
-    const addonsPrice = selectedAddons.reduce((sum, id) => {
-        const ad = addons.find(a => a.id === id);
-        return sum + Number(ad ? ad.basePrice : 0);
-    }, 0);
-    const shampooPrice = Number(shampoos.find(s => s.id === selectedShampoo)?.basePrice || 0);
-
-    const originalPrice = weightBasePrice + mainServicePrice + addonsPrice + shampooPrice + travelSurcharge;
-
-    // 4. Coupon discount
+    // Coupon discount calculation
     let discountedPrice = originalPrice;
     let discountAmount = 0;
     if (appliedDiscount && originalPrice > 0) {
@@ -186,12 +235,6 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
         }
     };
 
-    const toggleAddon = (id: string) => {
-        setSelectedAddons(prev => 
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
-    };
-
     const handleNextStep1 = async () => {
         const isValid = await form.trigger(["name", "email", "phone", "address", "zipCode", "appointmentDate", "appointmentTime"]);
         if (isValid) {
@@ -206,7 +249,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     };
 
     const handleNextStep2 = async () => {
-        const isValid = await form.trigger(["petName", "breed", "petWeight", "petAge", "rabiesVaccinated"]);
+        const isValid = await form.trigger(["pets"]);
         if (isValid) {
             setStep(3);
         } else {
@@ -220,15 +263,9 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
             return;
         }
 
-        // Selected service IDs compilation
-        const allSelectedIds = [selectedMainGrooming];
-        selectedAddons.forEach(id => allSelectedIds.push(id));
-        if (selectedShampoo) allSelectedIds.push(selectedShampoo);
-
         startTransition(async () => {
             try {
                 const fd = new FormData();
-                // Owner fields (mapped to server-side expected names)
                 fd.append("ownerName", values.name);
                 fd.append("name", values.name);
                 fd.append("ownerEmail", values.email);
@@ -245,37 +282,47 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                 if (values.message) fd.append("message", values.message);
                 fd.append("systemEstimatedPrice", String(discountedPrice));
 
-                // Build pet as a JSON array for the server action
-                const petsPayload = [
-                    {
-                        name: values.petName,
-                        breed: values.breed,
-                        weight: String(values.petWeight),
-                        weightLbs: values.petWeight,
-                        age: values.petAge,
-                        rabiesVaccinated: values.rabiesVaccinated,
-                        rabiesRegistry: values.rabiesRegistry || null,
-                        shampooId: selectedShampoo || null,
+                // Map pets into payload JSON
+                const petsPayload = values.pets.map((pet, index) => {
+                    const servicesForPet = petServices[index] || { mainGrooming: "", addons: [], shampoo: "" };
+                    const allSelectedIds = [servicesForPet.mainGrooming];
+                    (servicesForPet.addons || []).forEach(id => allSelectedIds.push(id));
+                    if (servicesForPet.shampoo) allSelectedIds.push(servicesForPet.shampoo);
+
+                    return {
+                        name: pet.name,
+                        breed: pet.breed,
+                        weight: String(pet.weight),
+                        weightLbs: pet.weight,
+                        age: pet.age,
+                        rabiesVaccinated: pet.rabiesVaccinated,
+                        rabiesRegistry: pet.rabiesRegistry || null,
+                        shampooId: servicesForPet.shampoo || null,
                         selectedServiceIds: allSelectedIds,
-                    }
-                ];
+                    };
+                });
                 fd.append("pets", JSON.stringify(petsPayload));
 
-                // Attach pet image as petImage_0 (index-based for the server loop)
-                if (petImage) fd.append("petImage_0", petImage);
+                // Attach images for pets
+                Object.keys(petImages).forEach(key => {
+                    const idx = Number(key);
+                    const file = petImages[idx];
+                    if (file) {
+                        fd.append(`petImage_${idx}`, file);
+                    }
+                });
 
                 const result = await submitInquiry(fd);
                 if (result.success) {
                     toast.success(t("success"));
                     form.reset();
-                    setPetImage(null);
+                    setPetImages({});
+                    setPetPreviewUrls({});
                     setAppliedDiscount(null);
-                    setSelectedAddons([]);
-                    setSelectedShampoo("");
+                    setPetServices({
+                        0: { mainGrooming: mainGroomings[0]?.id || "", addons: [], shampoo: "" }
+                    });
                     setStep(1);
-                    if (mainGroomings.length > 0) {
-                        setSelectedMainGrooming(mainGroomings[0].id);
-                    }
                 } else {
                     if (result.error === "no_coverage") {
                         toast.error(t("zipCodeNoCoverage"));
@@ -307,58 +354,14 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                     📊 {t("estimation")}
                 </h4>
 
-                {/* Foto de la Mascota */}
-                <div className="grid gap-2 border-b border-black/10 pb-4">
-                    <Label htmlFor="pet-photo" className="font-black text-xs uppercase tracking-wider text-slate-700 cursor-pointer">
-                        📸 {t("uploadPhoto")}
-                    </Label>
-                    <div 
-                        onClick={() => fileInputRef.current?.click()}
-                        className={cn(
-                            "relative h-16 w-full rounded-xl border-3 border-dashed border-black/20 transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer overflow-hidden hover:bg-black/5 bg-[#FAFAFA]"
-                        )}
-                    >
-                        {previewUrl ? (
-                            <>
-                                <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-40" />
-                                <div className="relative z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg border-2 border-black shadow-md">
-                                    <ImageIcon className="h-3.5 w-3.5 text-[#06B6D4]" />
-                                    <span className="text-[9px] font-black uppercase truncate max-w-[150px]">
-                                        {petImage?.name}
-                                    </span>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <Camera className="h-4 w-4 text-slate-400" />
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                    {locale === "es" ? "Seleccionar Imagen" : "Choose Image"}
-                                </span>
-                            </>
-                        )}
-                    </div>
-                    <input
-                        id="pet-photo"
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        title={locale === "es" ? "Subir foto de la mascota" : "Upload pet photo"}
-                        className="sr-only"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setPetImage(file);
-                        }}
-                    />
-                </div>
-
                 {/* Promo Discount Input */}
                 <div className="grid gap-1.5 border-b border-black/10 pb-4">
-                    <Label htmlFor="discountCode" className="font-black text-xs uppercase tracking-wider text-slate-700">
+                    <Label htmlFor={`${uniqueId}-discountCode`} className="font-black text-xs uppercase tracking-wider text-slate-700">
                         🎟️ {t("coupon")}
                         {appliedDiscount && <span className="ml-2 text-emerald-600 font-black">✓ {appliedDiscount}</span>}
                     </Label>
                     <div className="flex gap-2">
-                        <Input id="discountCode" placeholder="CUPON123" {...form.register("discountCode")} className="border-3 border-black bg-[#FAFAFA] text-neutral-900 rounded-xl text-sm h-10 focus-visible:ring-0 uppercase placeholder-slate-400 font-black tracking-wider" />
+                        <Input id={`${uniqueId}-discountCode`} placeholder="CUPON123" {...form.register("discountCode")} className="border-3 border-black bg-[#FAFAFA] text-neutral-900 rounded-xl text-sm h-10 focus-visible:ring-0 uppercase placeholder-slate-400 font-black tracking-wider" />
                         <Button 
                             type="button" 
                             onClick={checkCode}
@@ -370,16 +373,61 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                     </div>
                 </div>
 
-                {/* Calculation Breakdown */}
+                {/* Dynamic Dogs Breakdown */}
+                <div className="space-y-4 border-b border-black/10 pb-4">
+                    <h5 className="font-black text-[10px] uppercase tracking-wider text-slate-400">
+                        🐶 {locale === "es" ? "Desglose por Perro" : "Dog Breakdown"}
+                    </h5>
+                    <div className="space-y-3">
+                        {petsCalculated.map((p, idx) => {
+                            return (
+                                <div key={idx} className="bg-[#FAFAFA] border-2 border-black rounded-xl p-3 text-xs space-y-1">
+                                    <div className="flex justify-between items-center border-b border-black/5 pb-1">
+                                        <span className="font-black text-neutral-900 uppercase">
+                                            🐕 {p.name}
+                                        </span>
+                                        <span className="font-black text-[#06B6D4]">
+                                            ${p.subtotal.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div className="space-y-0.5 text-[10px] text-slate-500 font-bold leading-normal">
+                                        <div className="flex justify-between">
+                                            <span>Base Peso:</span>
+                                            <span>${p.weightBasePrice.toFixed(2)}</span>
+                                        </div>
+                                        {p.mainPrice > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>Grooming:</span>
+                                                <span>${p.mainPrice.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {p.addonsPrice > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>Add-ons:</span>
+                                                <span>+${p.addonsPrice.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {p.shampooPrice > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>Champú:</span>
+                                                <span>+${p.shampooPrice.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Surcharges and discounts */}
                 <div className="space-y-2 text-[11px] font-bold text-slate-500">
-                    <div className="flex justify-between">
-                        <span className="uppercase">📦 {locale === "es" ? "Base Peso + Zona" : "Weight base + Surcharge"}:</span>
-                        <span className="font-black text-neutral-800">${(weightBasePrice + travelSurcharge).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="uppercase">✂️ {locale === "es" ? "Grooming & Adicionales" : "Grooming & Addons"}:</span>
-                        <span className="font-black text-neutral-800">${(mainServicePrice + addonsPrice + shampooPrice).toFixed(2)}</span>
-                    </div>
+                    {travelSurcharge > 0 && (
+                        <div className="flex justify-between">
+                            <span className="uppercase">🚗 {locale === "es" ? "Traslado / Zona" : "Travel surcharge"}:</span>
+                            <span className="font-black text-neutral-800">${travelSurcharge.toFixed(2)}</span>
+                        </div>
+                    )}
                     {discountAmount > 0 && (
                         <div className="flex justify-between text-rose-600">
                             <span className="uppercase">🎟️ {t("discount")}:</span>
@@ -410,7 +458,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                     <div className="inline-block bg-[#06B6D4] text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 border-3 border-black shadow-[3px_3px_0px_0px_#000] -rotate-1">
                         {locale === "es" ? "PRESUPUESTO AL INSTANTE" : "INSTANT ESTIMATION"}
                     </div>
-                    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight text-neutral-900 leading-none">
+                    <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight text-neutral-900 leading-none">
                         {locale === "es" ? "Cotiza tu Servicio" : "Quote Your Service"}
                     </h2>
                     <p className="text-sm sm:text-base font-bold text-slate-500 uppercase tracking-wider">
@@ -429,8 +477,10 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                         {/* Barra de Progreso Neo-Brutalista */}
                         <div className="w-full bg-[#E5E7EB] border-4 border-black h-8 rounded-xl overflow-hidden relative shadow-[4px_4px_0_0_#000] mb-2 select-none">
                             <div 
-                                className="bg-[#06B6D4] h-full border-r-4 border-black transition-all duration-300 flex items-center justify-end pr-3"
-                                style={{ width: step === 1 ? "33%" : step === 2 ? "66%" : "100%" }}
+                                className={cn(
+                                    "bg-[#06B6D4] h-full border-r-4 border-black transition-all duration-300 flex items-center justify-end pr-3",
+                                    step === 1 ? "w-1/3" : step === 2 ? "w-2/3" : "w-full"
+                                )}
                             >
                                 <span className="text-[10px] font-black text-white uppercase tracking-widest">
                                     {step}/3
@@ -439,7 +489,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                         </div>
 
                         {/* Contenedor del paso actual */}
-                        <div className="bg-white border-4 border-black rounded-3xl p-6 sm:p-8 shadow-[8px_8px_0px_0px_#000] min-h-[380px] flex flex-col justify-between">
+                        <div className="bg-white border-4 border-black rounded-3xl p-4 sm:p-8 shadow-[8px_8px_0px_0px_#000] min-h-[380px] flex flex-col justify-between">
                             <AnimatePresence mode="wait">
                                 {step === 1 && (
                                     <motion.div
@@ -458,33 +508,33 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                                         <div className="space-y-4">
                                             <div className="grid gap-1.5">
-                                                <Label htmlFor="name" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("ownerName")}</Label>
-                                                <Input id="name" placeholder={t("ownerNamePlaceholder")} {...form.register("name")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                <Label htmlFor={`${uniqueId}-name`} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("ownerName")}</Label>
+                                                <Input id={`${uniqueId}-name`} placeholder={t("ownerNamePlaceholder")} {...form.register("name")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
                                                 {form.formState.errors.name && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.name.message}</p>}
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor="email" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("email")}</Label>
-                                                    <Input id="email" type="email" placeholder={t("emailPlaceholder")} {...form.register("email")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                    <Label htmlFor={`${uniqueId}-email`} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("email")}</Label>
+                                                    <Input id={`${uniqueId}-email`} type="email" placeholder={t("emailPlaceholder")} {...form.register("email")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
                                                     {form.formState.errors.email && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.email.message}</p>}
                                                 </div>
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor="phone" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("phone")}</Label>
-                                                    <Input id="phone" type="tel" placeholder={t("phonePlaceholder")} {...form.register("phone")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                    <Label htmlFor={`${uniqueId}-phone`} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("phone")}</Label>
+                                                    <Input id={`${uniqueId}-phone`} type="tel" placeholder={t("phonePlaceholder")} {...form.register("phone")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
                                                     {form.formState.errors.phone && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.phone.message}</p>}
                                                 </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                 <div className="sm:col-span-2 grid gap-1.5">
-                                                    <Label htmlFor="address" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("address")}</Label>
-                                                    <Input id="address" placeholder={t("addressPlaceholder")} {...form.register("address")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                    <Label htmlFor={`${uniqueId}-address`} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("address")}</Label>
+                                                    <Input id={`${uniqueId}-address`} placeholder={t("addressPlaceholder")} {...form.register("address")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
                                                     {form.formState.errors.address && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.address.message}</p>}
                                                 </div>
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor="zipCode" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("zipCode")}</Label>
-                                                    <Input id="zipCode" maxLength={5} placeholder={t("zipCodePlaceholder")} {...form.register("zipCode")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] uppercase placeholder-slate-400 font-black tracking-widest text-neutral-900" />
+                                                    <Label htmlFor={`${uniqueId}-zipCode`} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("zipCode")}</Label>
+                                                    <Input id={`${uniqueId}-zipCode`} maxLength={5} placeholder={t("zipCodePlaceholder")} {...form.register("zipCode")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] uppercase placeholder-slate-400 font-black tracking-widest text-neutral-900" />
                                                     {form.formState.errors.zipCode && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.zipCode.message}</p>}
                                                     {watchedZip && !isZipValid && (
                                                         <p className="text-[10px] font-black text-amber-600 uppercase mt-0.5">⚠️ {locale === "es" ? "Fuera de cobertura" : "No coverage area"}</p>
@@ -494,9 +544,9 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor="appointmentDate" className="font-black text-xs uppercase tracking-wider text-slate-700">📅 {t("bookingDate")}</Label>
+                                                    <Label htmlFor={`${uniqueId}-appointmentDate`} className="font-black text-xs uppercase tracking-wider text-slate-700">📅 {t("bookingDate")}</Label>
                                                     <Input 
-                                                        id="appointmentDate" 
+                                                        id={`${uniqueId}-appointmentDate`} 
                                                         type="date" 
                                                         min={new Date().toISOString().split('T')[0]}
                                                         {...form.register("appointmentDate")} 
@@ -505,9 +555,9 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                     {form.formState.errors.appointmentDate && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.appointmentDate.message}</p>}
                                                 </div>
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor="appointmentTime" className="font-black text-xs uppercase tracking-wider text-slate-700">⏰ {t("bookingTime")}</Label>
+                                                    <Label htmlFor={`${uniqueId}-appointmentTime`} className="font-black text-xs uppercase tracking-wider text-slate-700">⏰ {t("bookingTime")}</Label>
                                                     <select
-                                                        id="appointmentTime"
+                                                        id={`${uniqueId}-appointmentTime`}
                                                         {...form.register("appointmentTime")}
                                                         className="flex h-11 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-slate-800"
                                                     >
@@ -525,7 +575,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                             <Button
                                                 type="button"
                                                 onClick={handleNextStep1}
-                                                className="bg-[#06B6D4] hover:bg-[#06B6D4]/90 text-white font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer flex items-center gap-2"
+                                                className="w-full sm:w-auto bg-[#06B6D4] hover:bg-[#06B6D4]/90 text-white font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-2"
                                             >
                                                 {locale === "es" ? "Siguiente" : "Next"} ➔
                                             </Button>
@@ -542,89 +592,180 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                         transition={{ duration: 0.2 }}
                                         className="space-y-6"
                                     >
-                                        <div className="border-b-3 border-black pb-3">
+                                        <div className="border-b-3 border-black pb-3 flex justify-between items-center">
                                             <h3 className="font-black text-lg uppercase tracking-tight text-neutral-900 flex items-center gap-2">
                                                 🐾 {locale === "es" ? "2. Ficha y Salud de la Mascota" : "2. Pet Profiler & Health"}
                                             </h3>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="grid gap-1.5">
-                                                    <Label htmlFor="petName" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petName")}</Label>
-                                                    <Input id="petName" placeholder={t("petNamePlaceholder")} {...form.register("petName")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
-                                                    {form.formState.errors.petName && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.petName.message}</p>}
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label htmlFor="breed" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petBreed")}</Label>
-                                                    <Input id="breed" placeholder={t("petBreedPlaceholder")} {...form.register("breed")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
-                                                    {form.formState.errors.breed && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.breed.message}</p>}
-                                                </div>
-                                            </div>
+                                        <div className="space-y-6">
+                                            {fields.map((field, index) => {
+                                                const errors = form.formState.errors.pets?.[index];
+                                                const isVaccinated = form.watch(`pets.${index}.rabiesVaccinated`);
+                                                const previewUrl = petPreviewUrls[index];
 
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="grid gap-1.5">
-                                                    <Label htmlFor="petWeight" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petWeight")}</Label>
-                                                    <div className="relative">
-                                                        <Input id="petWeight" type="number" placeholder={t("petWeightPlaceholder")} {...form.register("petWeight")} className="border-3 border-black bg-white rounded-xl text-sm h-11 pr-12 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
-                                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">LBS</span>
-                                                    </div>
-                                                    {form.formState.errors.petWeight && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.petWeight.message}</p>}
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label htmlFor="petAge" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petAge")}</Label>
-                                                    <Input id="petAge" placeholder={t("petAgePlaceholder")} {...form.register("petAge")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
-                                                    {form.formState.errors.petAge && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.petAge.message}</p>}
-                                                </div>
-                                            </div>
+                                                return (
+                                                    <div key={field.id} className="border-4 border-black p-5 rounded-2xl bg-[#FAFAFA] space-y-4 shadow-[4px_4px_0_0_#000] relative">
+                                                        <div className="flex justify-between items-center border-b-2 border-black/10 pb-2">
+                                                            <span className="font-black text-xs uppercase tracking-widest text-[#06B6D4]">
+                                                                🐕 Perro #{index + 1}
+                                                            </span>
+                                                            {fields.length > 1 && (
+                                                                <Button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        remove(index);
+                                                                        setPetImages(prev => {
+                                                                            const copy = { ...prev };
+                                                                            delete copy[index];
+                                                                            return copy;
+                                                                        });
+                                                                        setPetPreviewUrls(prev => {
+                                                                            const copy = { ...prev };
+                                                                            if (copy[index]) URL.revokeObjectURL(copy[index]);
+                                                                            delete copy[index];
+                                                                            return copy;
+                                                                        });
+                                                                    }}
+                                                                    className="bg-rose-500 hover:bg-rose-600 text-white font-black text-[10px] uppercase h-7 px-3 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] cursor-pointer"
+                                                                >
+                                                                    {locale === "es" ? "Eliminar" : "Remove"}
+                                                                </Button>
+                                                            )}
+                                                        </div>
 
-                                            {/* Florida Rabies mandated Protection */}
-                                            <div className="border-3 border-black rounded-2xl p-4 bg-[#FAFAFA] shadow-[3px_3px_0_0_#000] space-y-4">
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
-                                                        <Label htmlFor="rabiesVaccinated" className="font-black text-xs sm:text-sm text-slate-800 uppercase tracking-tight leading-tight cursor-pointer">
-                                                            🛡️ {t("rabiesVaccination")}
-                                                        </Label>
-                                                    </div>
-                                                    <input
-                                                        id="rabiesVaccinated"
-                                                        type="checkbox"
-                                                        className="h-6 w-6 accent-[#06B6D4] border-3 border-black rounded-lg cursor-pointer shrink-0"
-                                                        {...form.register("rabiesVaccinated")}
-                                                    />
-                                                </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                            <div className="grid gap-1.5">
+                                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petName")}</Label>
+                                                                <Input placeholder={t("petNamePlaceholder")} {...form.register(`pets.${index}.name`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                {errors?.name && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.name.message}</p>}
+                                                            </div>
+                                                            <div className="grid gap-1.5">
+                                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petBreed")}</Label>
+                                                                <Input placeholder={t("petBreedPlaceholder")} {...form.register(`pets.${index}.breed`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                {errors?.breed && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.breed.message}</p>}
+                                                            </div>
+                                                        </div>
 
-                                                <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase">
-                                                    ℹ️ {t("rabiesVaccinationPlaceholder")}
-                                                </p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                            <div className="grid gap-1.5">
+                                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petWeight")}</Label>
+                                                                <div className="relative">
+                                                                    <Input type="number" placeholder={t("petWeightPlaceholder")} {...form.register(`pets.${index}.weight`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 pr-12 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">LBS</span>
+                                                                </div>
+                                                                {errors?.weight && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.weight.message}</p>}
+                                                            </div>
+                                                            <div className="grid gap-1.5">
+                                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petAge")}</Label>
+                                                                <Input placeholder={t("petAgePlaceholder")} {...form.register(`pets.${index}.age`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                {errors?.age && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.age.message}</p>}
+                                                            </div>
+                                                        </div>
 
-                                                {form.watch("rabiesVaccinated") ? (
-                                                    <div className="grid gap-1.5 pt-2 border-t-2 border-black/5">
-                                                        <Label htmlFor="rabiesRegistry" className="font-black text-xs text-slate-600 uppercase tracking-wider">{t("rabiesNumber")}</Label>
-                                                        <Input id="rabiesRegistry" placeholder={t("rabiesNumberPlaceholder")} {...form.register("rabiesRegistry")} className="border-3 border-black bg-white rounded-xl text-sm h-10 focus-visible:ring-0 placeholder-slate-400 font-bold tracking-widest uppercase text-neutral-900" />
+                                                        {/* Photo Upload inside Card */}
+                                                        <div className="grid gap-2 border-t border-b border-black/10 py-3 my-2">
+                                                            <Label className="font-black text-xs uppercase tracking-wider text-slate-700 cursor-pointer">
+                                                                📸 {t("uploadPhoto")}
+                                                            </Label>
+                                                            <div 
+                                                                onClick={() => {
+                                                                    const el = document.getElementById(`${uniqueId}-pet-photo-${index}`);
+                                                                    if (el) el.click();
+                                                                }}
+                                                                className="relative h-16 w-full rounded-xl border-3 border-dashed border-black/20 transition-all duration-300 flex flex-col items-center justify-center gap-1 cursor-pointer overflow-hidden hover:bg-black/5 bg-[#FAFAFA]"
+                                                            >
+                                                                {previewUrl ? (
+                                                                    <>
+                                                                        <img src={previewUrl} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                                                                        <div className="relative z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg border-2 border-black shadow-md">
+                                                                            <ImageIcon className="h-3.5 w-3.5 text-[#06B6D4]" />
+                                                                            <span className="text-[9px] font-black uppercase truncate max-w-[200px]">
+                                                                                {petImages[index]?.name}
+                                                                            </span>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Camera className="h-4 w-4 text-slate-400" />
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                                            {locale === "es" ? "Seleccionar Imagen" : "Choose Image"}
+                                                                        </span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                            <input
+                                                                id={`${uniqueId}-pet-photo-${index}`}
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="sr-only"
+                                                                title={locale === "es" ? "Subir foto de mascota" : "Upload pet photo"}
+                                                                aria-label={locale === "es" ? "Subir foto de mascota" : "Upload pet photo"}
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) handleFileChange(index, file);
+                                                                }}
+                                                            />
+                                                        </div>
+
+                                                        {/* Florida Rabies Protection */}
+                                                        <div className="border-2 border-black rounded-2xl p-4 bg-white shadow-[2px_2px_0_0_#000] space-y-4">
+                                                            <div className="flex items-center justify-between gap-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+                                                                    <Label htmlFor={`rabiesVaccinated-${index}`} className="font-black text-xs sm:text-sm text-slate-800 uppercase tracking-tight leading-tight cursor-pointer">
+                                                                        🛡️ {t("rabiesVaccination")}
+                                                                    </Label>
+                                                                </div>
+                                                                <input
+                                                                    id={`rabiesVaccinated-${index}`}
+                                                                    type="checkbox"
+                                                                    className="h-6 w-6 accent-[#06B6D4] border-3 border-black rounded-lg cursor-pointer shrink-0"
+                                                                    {...form.register(`pets.${index}.rabiesVaccinated`)}
+                                                                />
+                                                            </div>
+
+                                                            <p className="text-[10px] font-bold text-slate-500 leading-relaxed uppercase">
+                                                                ℹ️ {t("rabiesVaccinationPlaceholder")}
+                                                            </p>
+
+                                                            {isVaccinated ? (
+                                                                <div className="grid gap-1.5 pt-2 border-t-2 border-black/5">
+                                                                    <Label htmlFor={`rabiesRegistry-${index}`} className="font-black text-xs text-slate-600 uppercase tracking-wider">{t("rabiesNumber")}</Label>
+                                                                    <Input id={`rabiesRegistry-${index}`} placeholder={t("rabiesNumberPlaceholder")} {...form.register(`pets.${index}.rabiesRegistry`)} className="border-3 border-black bg-white rounded-xl text-sm h-10 focus-visible:ring-0 placeholder-slate-400 font-bold tracking-widest uppercase text-neutral-900" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="bg-rose-500/10 border-2 border-rose-500 text-rose-600 p-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider leading-relaxed flex items-start gap-2 mt-2">
+                                                                    <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
+                                                                    <span>{t("rabiesRequired")}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <div className="bg-rose-500/10 border-2 border-rose-500 text-rose-600 p-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider leading-relaxed flex items-start gap-2 mt-2">
-                                                        <AlertTriangle className="h-4.5 w-4.5 shrink-0 mt-0.5" />
-                                                        <span>{t("rabiesRequired")}</span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                                );
+                                            })}
                                         </div>
 
-                                        <div className="flex justify-between pt-4 border-t-3 border-black">
+                                        <Button
+                                            type="button"
+                                            onClick={() => append({ name: "", breed: "", weight: undefined as any, age: "", rabiesVaccinated: false, rabiesRegistry: "" })}
+                                            className="w-full bg-amber-400 hover:bg-amber-500 text-neutral-900 font-black h-12 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-2 mt-2 uppercase text-xs"
+                                        >
+                                            ➕ {locale === "es" ? "Añadir otro perro" : "+ Add another dog"}
+                                        </Button>
+
+                                        <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t-3 border-black">
                                             <Button
                                                 type="button"
                                                 onClick={() => setStep(1)}
-                                                className="bg-slate-100 text-black hover:bg-slate-200 font-black h-12 px-6 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer"
+                                                className="w-full sm:w-auto bg-slate-100 text-black hover:bg-slate-200 font-black h-12 px-6 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer"
                                             >
                                                 ⇠ {locale === "es" ? "Anterior" : "Back"}
                                             </Button>
                                             <Button
                                                 type="button"
                                                 onClick={handleNextStep2}
-                                                className="bg-[#06B6D4] hover:bg-[#06B6D4]/90 text-white font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer flex items-center gap-2"
+                                                className="w-full sm:w-auto bg-[#06B6D4] hover:bg-[#06B6D4]/90 text-white font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer flex items-center justify-center gap-2"
                                             >
                                                 {locale === "es" ? "Siguiente" : "Next"} ➔
                                             </Button>
@@ -643,164 +784,215 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                     >
                                         <div className="border-b-3 border-black pb-3">
                                             <h3 className="font-black text-lg uppercase tracking-tight text-neutral-900 flex items-center gap-2">
-                                                ✂️ {locale === "es" ? "3. Elige tus Servicios" : "3. Choose Services"}
+                                                ✂️ {locale === "es" ? "3. Elige los Servicios para tus Perros" : "3. Choose Services for Your Dogs"}
                                             </h3>
                                         </div>
 
-                                        <div className="space-y-4">
-                                            {/* 1. Main Grooming Select */}
-                                            <div className="space-y-2">
-                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">
-                                                    🏷️ {locale === "es" ? "Paquete de Grooming (Selecciona 1)" : "Grooming Package (Select 1)"}
-                                                </Label>
-                                                <div className="space-y-2">
-                                                    {mainGroomings.map(s => {
-                                                        const name = activeLocale === "es" ? s.nameEs : s.nameEn;
-                                                        const isSelected = selectedMainGrooming === s.id;
-                                                        return (
-                                                            <div 
-                                                                key={s.id}
-                                                                onClick={() => setSelectedMainGrooming(s.id)}
-                                                                className={cn(
-                                                                    "border-3 rounded-xl p-3 flex justify-between items-center cursor-pointer transition-all select-none",
-                                                                    isSelected 
-                                                                        ? "bg-[#06B6D4]/10 border-[#06B6D4] shadow-[2px_2px_0_0_#06B6D4]" 
-                                                                        : "bg-[#FAFAFA] border-black/10 hover:border-black"
-                                                                )}
-                                                            >
-                                                                <div className="flex items-center gap-2.5">
-                                                                    <div className={cn(
-                                                                        "h-4 w-4 rounded-full border-2 border-black flex items-center justify-center shrink-0",
-                                                                        isSelected && "bg-[#06B6D4]"
-                                                                    )}>
-                                                                        {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                                                                    </div>
-                                                                    <span className="font-black text-xs sm:text-sm uppercase tracking-tight text-neutral-800">{name}</span>
-                                                                </div>
-                                                                <span className="font-black text-sm text-[#06B6D4]">${Number(s.basePrice).toFixed(2)}</span>
+                                        <div className="space-y-8">
+                                            {fields.map((field, petIdx) => {
+                                                const petName = form.watch(`pets.${petIdx}.name`) || `Perro #${petIdx + 1}`;
+                                                const servicesForPet = petServices[petIdx] || { mainGrooming: "", addons: [], shampoo: "" };
+
+                                                const setMainGroomingForPet = (id: string) => {
+                                                    setPetServices(prev => ({
+                                                        ...prev,
+                                                        [petIdx]: {
+                                                            ...prev[petIdx],
+                                                            mainGrooming: id
+                                                        }
+                                                    }));
+                                                };
+
+                                                const toggleAddonForPet = (id: string) => {
+                                                    setPetServices(prev => {
+                                                        const currentAddons = prev[petIdx]?.addons || [];
+                                                        const newAddons = currentAddons.includes(id)
+                                                            ? currentAddons.filter(x => x !== id)
+                                                            : [...currentAddons, id];
+                                                        return {
+                                                            ...prev,
+                                                            [petIdx]: {
+                                                                ...prev[petIdx],
+                                                                addons: newAddons
+                                                            }
+                                                        };
+                                                    });
+                                                };
+
+                                                const setShampooForPet = (id: string) => {
+                                                    setPetServices(prev => ({
+                                                        ...prev,
+                                                        [petIdx]: {
+                                                            ...prev[petIdx],
+                                                            shampoo: id
+                                                        }
+                                                    }));
+                                                };
+
+                                                return (
+                                                    <div key={field.id} className="border-4 border-black p-5 rounded-2xl bg-white space-y-4 shadow-[4px_4px_0_0_#000]">
+                                                        <div className="border-b-2 border-black/10 pb-2">
+                                                            <h4 className="font-black text-sm uppercase tracking-widest text-[#06B6D4]">
+                                                                🐕 Servicios para: {petName}
+                                                            </h4>
+                                                        </div>
+
+                                                        {/* 1. Main Grooming Select */}
+                                                        <div className="space-y-2">
+                                                            <Label className="font-black text-xs uppercase tracking-wider text-slate-700">
+                                                                🏷️ {locale === "es" ? "Paquete de Grooming (Selecciona 1)" : "Grooming Package (Select 1)"}
+                                                            </Label>
+                                                            <div className="space-y-2">
+                                                                {mainGroomings.map(s => {
+                                                                    const name = activeLocale === "es" ? s.nameEs : s.nameEn;
+                                                                    const isSelected = servicesForPet.mainGrooming === s.id;
+                                                                    return (
+                                                                        <div 
+                                                                            key={s.id}
+                                                                            onClick={() => setMainGroomingForPet(s.id)}
+                                                                            className={cn(
+                                                                                "border-3 rounded-xl p-3 flex justify-between items-center cursor-pointer transition-all select-none",
+                                                                                isSelected 
+                                                                                    ? "bg-[#06B6D4]/10 border-[#06B6D4] shadow-[2px_2px_0_0_#06B6D4]" 
+                                                                                    : "bg-[#FAFAFA] border-black/10 hover:border-black"
+                                                                            )}
+                                                                        >
+                                                                            <div className="flex items-center gap-2.5">
+                                                                                <div className={cn(
+                                                                                    "h-4 w-4 rounded-full border-2 border-black flex items-center justify-center shrink-0",
+                                                                                    isSelected && "bg-[#06B6D4]"
+                                                                                )}>
+                                                                                    {isSelected && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                                                                                </div>
+                                                                                <span className="font-black text-xs sm:text-sm uppercase tracking-tight text-neutral-800">{name}</span>
+                                                                            </div>
+                                                                            <span className="font-black text-sm text-[#06B6D4]">${Number(s.basePrice).toFixed(2)}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
+                                                        </div>
 
-                                            {/* 2. Add-on Treatments Checklist */}
-                                            {addons.length > 0 && (
-                                                <div className="space-y-2 pt-2 border-t-2 border-black/5">
-                                                    <Label className="font-black text-xs uppercase tracking-wider text-slate-700">
-                                                        ✨ {locale === "es" ? "Tratamientos Extras (Add-ons)" : "Extra Treatments (Add-ons)"}
-                                                    </Label>
-                                                    <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
-                                                        {addons.map(s => {
-                                                            const name = activeLocale === "es" ? s.nameEs : s.nameEn;
-                                                            const isChecked = selectedAddons.includes(s.id);
-                                                            return (
-                                                                <div 
-                                                                    key={s.id}
-                                                                    onClick={() => toggleAddon(s.id)}
-                                                                    className={cn(
-                                                                        "border-3 rounded-xl p-3 flex justify-between items-center cursor-pointer transition-all select-none",
-                                                                        isChecked 
-                                                                            ? "bg-amber-500/10 border-amber-500 shadow-[2px_2px_0_0_#d97706]" 
-                                                                            : "bg-[#FAFAFA] border-black/10 hover:border-black"
-                                                                    )}
-                                                                >
-                                                                    <div className="flex items-center gap-2.5">
-                                                                        <input 
-                                                                            type="checkbox"
-                                                                            checked={isChecked}
-                                                                            readOnly
-                                                                            title={name}
-                                                                            aria-label={name}
-                                                                            className="h-4.5 w-4.5 accent-amber-500 border-2 border-black rounded cursor-pointer"
-                                                                        />
-                                                                        <span className="font-black text-[11px] sm:text-xs uppercase tracking-tight text-neutral-800 leading-tight">{name}</span>
-                                                                    </div>
-                                                                    <span className="font-black text-xs text-amber-600 shrink-0">+${Number(s.basePrice).toFixed(2)}</span>
+                                                        {/* 2. Add-on Treatments Checklist */}
+                                                        {addons.length > 0 && (
+                                                            <div className="space-y-2 pt-2 border-t-2 border-black/5">
+                                                                <Label className="font-black text-xs uppercase tracking-wider text-slate-700">
+                                                                    ✨ {locale === "es" ? "Tratamientos Extras (Add-ons)" : "Extra Treatments (Add-ons)"}
+                                                                </Label>
+                                                                <div className="grid grid-cols-1 gap-2 max-h-[160px] overflow-y-auto pr-1 scrollbar-thin">
+                                                                    {addons.map(s => {
+                                                                        const name = activeLocale === "es" ? s.nameEs : s.nameEn;
+                                                                        const isChecked = (servicesForPet.addons || []).includes(s.id);
+                                                                        return (
+                                                                            <div 
+                                                                                key={s.id}
+                                                                                onClick={() => toggleAddonForPet(s.id)}
+                                                                                className={cn(
+                                                                                    "border-3 rounded-xl p-3 flex justify-between items-center cursor-pointer transition-all select-none",
+                                                                                    isChecked 
+                                                                                        ? "bg-amber-500/10 border-amber-500 shadow-[2px_2px_0_0_#d97706]" 
+                                                                                        : "bg-[#FAFAFA] border-black/10 hover:border-black"
+                                                                                )}
+                                                                            >
+                                                                                <div className="flex items-center gap-2.5">
+                                                                                    <input 
+                                                                                        type="checkbox"
+                                                                                        checked={isChecked}
+                                                                                        readOnly
+                                                                                        title={name}
+                                                                                        aria-label={name}
+                                                                                        className="h-4.5 w-4.5 accent-amber-500 border-2 border-black rounded cursor-pointer"
+                                                                                    />
+                                                                                    <span className="font-black text-[11px] sm:text-xs uppercase tracking-tight text-neutral-800 leading-tight">{name}</span>
+                                                                                </div>
+                                                                                <span className="font-black text-xs text-amber-600 shrink-0">+${Number(s.basePrice).toFixed(2)}</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
-                                                            );
-                                                        })}
+                                                            </div>
+                                                        )}
+
+                                                        {/* 3. Special Shampoo Selector */}
+                                                        {shampoos.length > 0 && (
+                                                            <div className="space-y-2 pt-2 border-t-2 border-black/5">
+                                                                <Label htmlFor={`special-shampoo-${petIdx}`} className="font-black text-xs uppercase tracking-wider text-slate-700">
+                                                                    🧼 {locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
+                                                                </Label>
+                                                                <select
+                                                                    id={`special-shampoo-${petIdx}`}
+                                                                    title={locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
+                                                                    value={servicesForPet.shampoo}
+                                                                    onChange={(e) => setShampooForPet(e.target.value)}
+                                                                    className="flex h-11 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] appearance-none font-bold text-slate-800"
+                                                                >
+                                                                    <option value="">{locale === "es" ? "Ninguno (Champú Orgánico Estándar)" : "None (Standard Organic Shampoo)"}</option>
+                                                                    {shampoos.map(s => {
+                                                                        const name = activeLocale === "es" ? s.nameEs : s.nameEn;
+                                                                        return (
+                                                                            <option key={s.id} value={s.id}>
+                                                                                {name} (+${Number(s.basePrice).toFixed(2)})
+                                                                            </option>
+                                                                        );
+                                                                    })}
+                                                                </select>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            )}
-
-                                            {/* 3. Special Shampoo Selector */}
-                                            {shampoos.length > 0 && (
-                                                <div className="space-y-2 pt-2 border-t-2 border-black/5">
-                                                    <Label htmlFor="special-shampoo" className="font-black text-xs uppercase tracking-wider text-slate-700">
-                                                        🧼 {locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
-                                                    </Label>
-                                                    <select
-                                                        id="special-shampoo"
-                                                        title={locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
-                                                        value={selectedShampoo}
-                                                        onChange={(e) => setSelectedShampoo(e.target.value)}
-                                                        className="flex h-11 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] appearance-none font-bold text-slate-800"
-                                                    >
-                                                        <option value="">{locale === "es" ? "Ninguno (Champú Orgánico Estándar)" : "None (Standard Organic Shampoo)"}</option>
-                                                        {shampoos.map(s => {
-                                                            const name = activeLocale === "es" ? s.nameEs : s.nameEn;
-                                                            return (
-                                                                <option key={s.id} value={s.id}>
-                                                                    {name} (+${Number(s.basePrice).toFixed(2)})
-                                                                </option>
-                                                            );
-                                                        })}
-                                                    </select>
-                                                </div>
-                                            )}
-
-                                            {/* Optional Client Message */}
-                                            <div className="space-y-1.5 pt-2 border-t-2 border-black/5">
-                                                <Label htmlFor="message" className="font-black text-xs uppercase tracking-wider text-slate-700">
-                                                    ✉️ {locale === "es" ? "Mensaje o Nota Opcional" : "Optional Message or Note"}
-                                                </Label>
-                                                <Textarea 
-                                                    id="message" 
-                                                    placeholder={locale === "es" ? "Indicaciones especiales sobre tu mascota o domicilio..." : "Special instructions about your pet or address..."} 
-                                                    {...form.register("message")} 
-                                                    className="border-3 border-black bg-white rounded-xl text-sm min-h-[70px] focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900"
-                                                />
-                                            </div>
-
-                                            {/* Summary card embedded inside wizard step 3 on mobile */}
-                                            <div className="lg:hidden pt-4">
-                                                {renderSummaryCard(true)}
-                                            </div>
-
-                                            {/* legal acceptance checkbox */}
-                                            <div className="space-y-3 pt-4 border-t-2 border-black/5">
-                                                <div className="flex items-start gap-2.5">
-                                                    <input 
-                                                        type="checkbox"
-                                                        id="legalAccepted"
-                                                        className="h-5 w-5 accent-[#06B6D4] border-3 border-black rounded cursor-pointer mt-0.5 shrink-0"
-                                                        {...form.register("legalAccepted")}
-                                                    />
-                                                    <Label htmlFor="legalAccepted" className="text-[10px] font-semibold text-slate-650 leading-relaxed uppercase select-none cursor-pointer">
-                                                        ⚠️ {locale === "es" 
-                                                            ? "Declaro que la vacuna de la rabia está al día según la ley de Florida y acepto que el precio es un estimado provisional sujeto a reajuste tras inspección física por nudos o conducta de la mascota."
-                                                            : "I declare that the rabies vaccine is active under Florida law and accept that this price is a provisional estimate subject to final physical check (due to matting or dog temperament)."}
-                                                    </Label>
-                                                </div>
-                                                {form.formState.errors.legalAccepted && (
-                                                    <p className="text-[10px] font-black text-rose-500 uppercase">{form.formState.errors.legalAccepted.message}</p>
-                                                )}
-                                            </div>
+                                                );
+                                            })}
                                         </div>
 
-                                        <div className="flex justify-between pt-4 border-t-3 border-black">
+                                        {/* Optional Client Message */}
+                                        <div className="space-y-1.5 pt-4 border-t-2 border-black/5">
+                                            <Label htmlFor={`${uniqueId}-message`} className="font-black text-xs uppercase tracking-wider text-slate-700">
+                                                ✉️ {locale === "es" ? "Mensaje o Nota Opcional" : "Optional Message or Note"}
+                                            </Label>
+                                            <Textarea 
+                                                id={`${uniqueId}-message`} 
+                                                placeholder={locale === "es" ? "Indicaciones especiales sobre tu mascota o domicilio..." : "Special instructions about your pet or address..."} 
+                                                {...form.register("message")} 
+                                                className="border-3 border-black bg-white rounded-xl text-sm min-h-[70px] focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900"
+                                            />
+                                        </div>
+
+                                        {/* Summary card embedded inside wizard step 3 on mobile */}
+                                        <div className="lg:hidden pt-4">
+                                            {renderSummaryCard(true)}
+                                        </div>
+
+                                        {/* legal acceptance checkbox */}
+                                        <div className="space-y-3 pt-4 border-t-2 border-black/5">
+                                            <div className="flex items-start gap-2.5">
+                                                <input 
+                                                    type="checkbox"
+                                                    id={`${uniqueId}-legalAccepted`}
+                                                    className="h-5 w-5 accent-[#06B6D4] border-3 border-black rounded cursor-pointer mt-0.5 shrink-0"
+                                                    {...form.register("legalAccepted")}
+                                                />
+                                                <Label htmlFor={`${uniqueId}-legalAccepted`} className="text-[10px] font-semibold text-slate-650 leading-relaxed uppercase select-none cursor-pointer">
+                                                    ⚠️ {locale === "es" 
+                                                        ? "Declaro que la vacuna de la rabia está al día según la ley de Florida y acepto que el precio es un estimado provisional sujeto a reajuste tras inspección física por nudos o conducta de la mascota."
+                                                        : "I declare that the rabies vaccine is active under Florida law and accept that this price is a provisional estimate subject to final physical check (due to matting or dog temperament)."}
+                                                </Label>
+                                            </div>
+                                            {form.formState.errors.legalAccepted && (
+                                                <p className="text-[10px] font-black text-rose-500 uppercase">{form.formState.errors.legalAccepted.message}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t-3 border-black">
                                             <Button
                                                 type="button"
                                                 onClick={() => setStep(2)}
-                                                className="bg-slate-100 text-black hover:bg-slate-200 font-black h-12 px-6 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer"
+                                                className="w-full sm:w-auto bg-slate-100 text-black hover:bg-slate-200 font-black h-12 px-6 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer"
                                             >
                                                 ⇠ {locale === "es" ? "Anterior" : "Back"}
                                             </Button>
                                             <Button
                                                 type="submit"
-                                                disabled={isPending || !form.watch("legalAccepted") || (watchedWeight <= 0) || !form.watch("rabiesVaccinated")}
-                                                className="bg-[#2ECC71] text-neutral-900 hover:bg-[#2ECC71]/90 font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs"
+                                                disabled={isPending || !form.watch("legalAccepted") || petsList.some(pet => !pet.name || !pet.breed || !pet.weight || !pet.age || !pet.rabiesVaccinated)}
+                                                className="w-full sm:w-auto bg-[#2ECC71] text-neutral-900 hover:bg-[#2ECC71]/90 font-black h-12 px-8 rounded-xl border-3 border-black shadow-[4px_4px_0_0_#000] hover:-translate-y-1 hover:-translate-x-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest text-xs"
                                             >
                                                 {isPending ? tIndex("sending", { defaultMessage: "Enviando..." }) : t("submit")} 🫧
                                             </Button>

@@ -6,6 +6,8 @@ import QuoteSection from "@/components/public/QuoteSection";
 import TransformationsSection from "@/components/public/TransformationsSection";
 import db from '@/lib/db';
 import MobileHome from "@/components/public/MobileHome";
+import { PopArtDots, PopArtZap, PopArtStar } from '@/components/public/PopArtDecorations';
+import { ZigzagYellowDoodle, OrangeBlobDoodle, CyanPlusDoodle } from '@/components/public/Doodles';
 
 const GallerySection = dynamic(() => import('@/components/public/GallerySection'), {
   loading: () => <div className="min-h-[400px] bg-secondary/10 animate-pulse rounded-3xl m-8" />
@@ -69,31 +71,35 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   return (
     <>
       {!isMobile && (
-        <div className="hidden md:flex flex-col gap-0">
-          <HeroSection config={config as any} locale={locale} />
-          {config?.transformationsEnabled && (
-            <div className="bg-white py-16 border-b-4 border-black relative overflow-hidden">
-              <div className="container max-w-[1400px] mx-auto px-4 md:px-8">
-                <div className="mb-12 text-center space-y-4">
-                  <div className="inline-block bg-[#7C3AED] text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 border-3 border-black shadow-[3px_3px_0px_0px_#000] -rotate-1">
-                    {locale === "es" ? "Antes y Después" : "Before & After"}
-                  </div>
-                  <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black uppercase tracking-tight text-neutral-900 leading-none">
-                    {locale === "es" ? "Nuestras Transformaciones" : "Our Transformations"}
-                  </h2>
-                  <p className="text-sm sm:text-base font-bold text-slate-500 uppercase tracking-wider">
-                    {locale === "es" ? "Mira los increíbles cambios de look de nuestros clientes" : "See the amazing look updates of our clients"}
-                  </p>
-                </div>
-                <TransformationsSection items={transformations as any} locale={locale} />
-              </div>
-            </div>
-          )}
-          {/* Unified Cotizador block */}
-          <QuoteSection locale={locale} initialServices={services} />
-          {/* Gallery Carousel right below Quote block */}
-          <GallerySection initialItems={galleryItems} />
-          <Footer config={config as any} locale={locale} />
+        <div className="hidden md:flex flex-col gap-0 relative overflow-hidden bg-[#FDFCF8]">
+          {/* Global subtle pop-art backgrounds */}
+          <PopArtDots className="absolute inset-0 z-0 opacity-10 pointer-events-none" />
+          
+          {/* Subtle floating background decorations */}
+          <div className="absolute top-[18%] left-[2%] z-0 opacity-15 pointer-events-none scale-150 rotate-12">
+            <ZigzagYellowDoodle className="w-48 h-24" />
+          </div>
+          <div className="absolute top-[32%] right-[3%] z-0 opacity-20 pointer-events-none scale-125 -rotate-45">
+            <PopArtZap className="w-20 h-20" />
+          </div>
+          <div className="absolute top-[48%] left-[4%] z-0 opacity-15 pointer-events-none scale-150">
+            <CyanPlusDoodle className="w-24 h-24" />
+          </div>
+          <div className="absolute top-[65%] right-[5%] z-0 opacity-15 pointer-events-none scale-[1.75] rotate-45">
+            <OrangeBlobDoodle className="w-28 h-28" />
+          </div>
+          <div className="absolute top-[82%] left-[3%] z-0 opacity-20 pointer-events-none scale-125 -rotate-12">
+            <PopArtStar className="w-20 h-20" />
+          </div>
+          
+          <div className="relative z-10 w-full flex flex-col gap-0">
+            <HeroSection config={config as any} locale={locale} />
+            {/* Gallery Carousel right below Hero block */}
+            <GallerySection initialItems={galleryItems} />
+            {/* Unified Cotizador block */}
+            <QuoteSection locale={locale} initialServices={services} />
+            <Footer config={config as any} locale={locale} />
+          </div>
         </div>
       )}
 

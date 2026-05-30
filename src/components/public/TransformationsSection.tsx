@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Calendar, SlidersHorizontal, Sparkles, User, Footprints, ShieldAlert, Award } from "lucide-react";
+import { Search, Calendar, SlidersHorizontal, Sparkles, Footprints, Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

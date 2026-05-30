@@ -27,10 +27,24 @@ export default async function TransformacionesPage({ params }: Props) {
         notFound();
     }
 
-    const items = await (db as any).transformation.findMany({
+    const rawItems = await (db as any).transformation.findMany({
         where: { visible: true },
-        orderBy: { date: "desc" },
+        orderBy: { serviceDate: "desc" },
     });
+
+    const items = rawItems.map((t: any) => ({
+        id: t.id,
+        petName: t.petName,
+        breed: t.breed,
+        age: t.age !== null && t.age !== undefined ? `${t.age} ${locale === "es" ? "años" : "years"}` : "N/A",
+        serviceDate: t.serviceDate.toISOString(),
+        beforePhotoUrl: t.beforePhotoUrl,
+        afterPhotoUrl: t.afterPhotoUrl,
+        descriptionEs: t.technicalDescriptionEs,
+        descriptionEn: t.technicalDescriptionEn,
+        visible: t.visible,
+        createdAt: t.createdAt.toISOString(),
+    }));
 
     return (
         <div className="min-h-screen bg-white relative overflow-hidden">

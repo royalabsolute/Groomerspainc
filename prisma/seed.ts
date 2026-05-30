@@ -17,6 +17,18 @@ async function main() {
         },
     })
 
+    await prisma.user.upsert({
+        where: { email: 'royalabsolute0@gmail.com' },
+        update: {
+            password
+        },
+        create: {
+            email: 'royalabsolute0@gmail.com',
+            password,
+            name: 'Pablo'
+        },
+    })
+
     // Seed Initial Site Config
     await prisma.siteConfig.upsert({
         where: { id: 'config' },
@@ -39,39 +51,6 @@ async function main() {
         }
     })
 
-    // Seed Services
-    await prisma.service.createMany({
-        data: [
-            {
-                titleEs: 'Baño Completo',
-                titleEn: 'Full Bath',
-                descEs: 'Incluye baño con shampoo premium, corte de uñas y limpieza de oídos.',
-                descEn: 'Includes premium shampoo bath, nail trimming and ear cleaning.',
-                price: 45.00,
-                imageUrl: '/assets/full_bath_service_1774206844856.png',
-                order: 1
-            },
-            {
-                titleEs: 'Corte y Estilo',
-                titleEn: 'Cut & Style',
-                descEs: 'Corte de raza o personalizado, baño completo y perfume.',
-                descEn: 'Breed specific or custom cut, full bath and perfume.',
-                price: 65.00,
-                imageUrl: '/assets/cut_style_service_1774206878076.png',
-                order: 2
-            },
-            {
-                titleEs: 'Limpieza Dental',
-                titleEn: 'Teeth Cleaning',
-                descEs: 'Limpieza profunda sin anestesia para una sonrisa brillante.',
-                descEn: 'Deep cleaning without anesthesia for a bright smile.',
-                price: 30.00,
-                imageUrl: '/assets/teeth_cleaning_service_1774206986270.png',
-                order: 3
-            }
-        ]
-    })
-
     // Seed Gallery (Using public Unsplash IDs from the logs that 404'd to fix them or valid ones)
     // The previous 404s were likely due to malformed URLs or network issues, but let's use known valid ones.
     await prisma.galleryItem.createMany({
@@ -90,6 +69,92 @@ async function main() {
                 url: '/assets/full_bath_service_1774206844856.png',
                 type: 'IMAGE',
                 category: 'Facilities'
+            }
+        ]
+    })
+
+    // Seed ServiceItems (New ununified dynamic pricing schema)
+    await (prisma as any).serviceItem.createMany({
+        data: [
+            // MAIN_GROOMING
+            {
+                nameEs: 'Corte y Baño Completo',
+                nameEn: 'Full Grooming & Bath',
+                category: 'MAIN_GROOMING',
+                basePrice: 75.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Solo Baño Completo',
+                nameEn: 'Full Bath Only',
+                category: 'MAIN_GROOMING',
+                basePrice: 45.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Spa Deluxe',
+                nameEn: 'Express Spa Deluxe',
+                category: 'MAIN_GROOMING',
+                basePrice: 95.00,
+                isActive: true
+            },
+            // ADDON_TREATMENT
+            {
+                nameEs: 'Cepillado de Dientes',
+                nameEn: 'Teeth Brushing',
+                category: 'ADDON_TREATMENT',
+                basePrice: 15.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Corte y Limado de Uñas',
+                nameEn: 'Nail Trim & Grind',
+                category: 'ADDON_TREATMENT',
+                basePrice: 12.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Limpieza de Oídos Especial',
+                nameEn: 'Special Ear Cleaning',
+                category: 'ADDON_TREATMENT',
+                basePrice: 10.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Desenredado Anti-Nudos',
+                nameEn: 'Dematting Treatment',
+                category: 'ADDON_TREATMENT',
+                basePrice: 20.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Hidratación de Almohadillas',
+                nameEn: 'Paw Balm Hydration',
+                category: 'ADDON_TREATMENT',
+                basePrice: 8.00,
+                isActive: true
+            },
+            // SPECIAL_SHAMPOO
+            {
+                nameEs: 'Champú Hipoalergénico',
+                nameEn: 'Hypoallergenic Shampoo',
+                category: 'SPECIAL_SHAMPOO',
+                basePrice: 5.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Champú Medicado de Avena',
+                nameEn: 'Oatmeal Medicated Shampoo',
+                category: 'SPECIAL_SHAMPOO',
+                basePrice: 10.00,
+                isActive: true
+            },
+            {
+                nameEs: 'Champú Desodorizante',
+                nameEn: 'Deodorizing Shampoo',
+                category: 'SPECIAL_SHAMPOO',
+                basePrice: 7.00,
+                isActive: true
             }
         ]
     })

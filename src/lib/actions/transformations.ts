@@ -6,29 +6,35 @@ import { uploadFile } from "./upload";
 
 // ─── READ ────────────────────────────────────────────────
 export async function getAllTransformations() {
-    return (db as any).transformation.findMany({ orderBy: { date: "desc" } });
+    return (db as any).transformation.findMany({ orderBy: { serviceDate: "desc" } });
 }
 
 export async function getPublicTransformations() {
     return (db as any).transformation.findMany({
         where: { visible: true },
-        orderBy: { date: "desc" },
+        orderBy: { serviceDate: "desc" },
     });
 }
 
 // ─── CREATE ──────────────────────────────────────────────
 export async function createTransformation(formData: FormData) {
     try {
-        const titleEs = formData.get("titleEs") as string;
-        const titleEn = formData.get("titleEn") as string;
-        const dateStr = formData.get("date") as string;
+        const petName = formData.get("petName") as string;
+        const breed = formData.get("breed") as string;
+        const ageRaw = formData.get("age") as string;
+        const serviceDateStr = formData.get("serviceDate") as string;
+        const technicalDescriptionEs = formData.get("descriptionEs") as string;
+        const technicalDescriptionEn = formData.get("descriptionEn") as string;
         const visible = formData.get("visible") === "true";
         const beforeFile = formData.get("beforeImage") as File | null;
         const afterFile = formData.get("afterImage") as File | null;
 
-        if (!titleEs || !titleEn || !beforeFile || !afterFile) {
+        if (!petName || !breed || !ageRaw || !serviceDateStr || !technicalDescriptionEs || !technicalDescriptionEn || !beforeFile || !afterFile) {
             return { success: false, error: "Faltan campos requeridos." };
         }
+
+        const parsedAge = parseInt(ageRaw, 10);
+        const age = isNaN(parsedAge) ? null : parsedAge;
 
         // Upload before image
         const beforeFD = new FormData();
@@ -44,12 +50,15 @@ export async function createTransformation(formData: FormData) {
 
         await (db as any).transformation.create({
             data: {
-                titleEs,
-                titleEn,
-                date: dateStr ? new Date(dateStr) : new Date(),
+                petName,
+                breed,
+                age,
+                serviceDate: new Date(serviceDateStr),
                 visible,
-                beforeImageUrl: beforeResult.url!,
-                afterImageUrl: afterResult.url!,
+                beforePhotoUrl: beforeResult.url!,
+                afterPhotoUrl: afterResult.url!,
+                technicalDescriptionEs,
+                technicalDescriptionEn,
             },
         });
 
@@ -66,42 +75,55 @@ export async function createTransformation(formData: FormData) {
 // ─── UPDATE ──────────────────────────────────────────────
 export async function updateTransformation(id: string, formData: FormData) {
     try {
-        const titleEs = formData.get("titleEs") as string;
-        const titleEn = formData.get("titleEn") as string;
-        const dateStr = formData.get("date") as string;
+        const petName = formData.get("petName") as string;
+        const breed = formData.get("breed") as string;
+        const ageRaw = formData.get("age") as string;
+        const serviceDateStr = formData.get("serviceDate") as string;
+        const technicalDescriptionEs = formData.get("descriptionEs") as string;
+        const technicalDescriptionEn = formData.get("descriptionEn") as string;
         const visible = formData.get("visible") === "true";
         const beforeFile = formData.get("beforeImage") as File | null;
         const afterFile = formData.get("afterImage") as File | null;
 
+        if (!petName || !breed || !ageRaw || !serviceDateStr || !technicalDescriptionEs || !technicalDescriptionEn) {
+            return { success: false, error: "Faltan campos requeridos." };
+        }
+
+        const parsedAge = parseInt(ageRaw, 10);
+        const age = isNaN(parsedAge) ? null : parsedAge;
+
         const existing = await (db as any).transformation.findUnique({ where: { id } });
         if (!existing) return { success: false, error: "No encontrado." };
 
-        let beforeImageUrl = existing.beforeImageUrl;
-        let afterImageUrl = existing.afterImageUrl;
+        let beforePhotoUrl = existing.beforePhotoUrl;
+        let afterPhotoUrl = existing.afterPhotoUrl;
 
         if (beforeFile && beforeFile.size > 0) {
             const fd = new FormData();
             fd.append("file", beforeFile);
             const r = await uploadFile(fd);
-            if (r.success) beforeImageUrl = r.url!;
+            if (r.success) beforePhotoUrl = r.url!;
         }
 
         if (afterFile && afterFile.size > 0) {
             const fd = new FormData();
             fd.append("file", afterFile);
             const r = await uploadFile(fd);
-            if (r.success) afterImageUrl = r.url!;
+            if (r.success) afterPhotoUrl = r.url!;
         }
 
         await (db as any).transformation.update({
             where: { id },
             data: {
-                titleEs,
-                titleEn,
-                date: dateStr ? new Date(dateStr) : existing.date,
+                petName,
+                breed,
+                age,
+                serviceDate: new Date(serviceDateStr),
                 visible,
-                beforeImageUrl,
-                afterImageUrl,
+                beforePhotoUrl,
+                afterPhotoUrl,
+                technicalDescriptionEs,
+                technicalDescriptionEn,
             },
         });
 

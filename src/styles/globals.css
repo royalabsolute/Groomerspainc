@@ -180,11 +180,40 @@ body:has(.admin-scope) {
   background: rgba(255, 255, 255, 0.3); /* Resalte refinado al pasar el ratón */
 }
 
-/* Compatibilidad estándar para navegadores modernos (Firefox, etc.) */
+/* Compatibilidad estándar para navegadores modernos (Firefox, etc.) y scroll fluido */
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body,
 .admin-scope,
 .admin-scope * {
+  /* Modern browsers (Chrome 121+, Firefox, Edge) */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.15) #121212;
+}
+
+/* Fallback for Safari, older Chrome, Samsung Internet */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+.admin-scope::-webkit-scrollbar,
+.admin-scope *::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+.admin-scope::-webkit-scrollbar-track,
+.admin-scope *::-webkit-scrollbar-track {
+  background: #121212;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+.admin-scope::-webkit-scrollbar-thumb,
+.admin-scope *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
 }

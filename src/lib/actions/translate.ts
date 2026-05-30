@@ -75,12 +75,12 @@ export async function translateAllMissing() {
         const transformations = await (db as any).transformation.findMany();
         for (const t of transformations) {
             const updates: any = {};
-            if (t.titleEs && !t.titleEn) {
-                const tr = await translateText(t.titleEs, "es", "en");
-                if (tr.success && tr.text) { updates.titleEn = tr.text; translationsDone++; }
-            } else if (t.titleEn && !t.titleEs) {
-                const tr = await translateText(t.titleEn, "en", "es");
-                if (tr.success && tr.text) { updates.titleEs = tr.text; translationsDone++; }
+            if (t.descriptionEs && !t.descriptionEn) {
+                const tr = await translateText(t.descriptionEs, "es", "en");
+                if (tr.success && tr.text) { updates.descriptionEn = tr.text; translationsDone++; }
+            } else if (t.descriptionEn && !t.descriptionEs) {
+                const tr = await translateText(t.descriptionEn, "en", "es");
+                if (tr.success && tr.text) { updates.descriptionEs = tr.text; translationsDone++; }
             }
             if (Object.keys(updates).length > 0) {
                 await (db as any).transformation.update({ where: { id: t.id }, data: updates });

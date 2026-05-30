@@ -13,21 +13,17 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MobileBottomNav, { MobileTab } from "./MobileBottomNav";
-import ContactForm from "./ContactForm";
+import QuoteSection from "./QuoteSection";
 import TransformationsSection from "./TransformationsSection";
 import { PopArtStar, PopArtZap, PopArtZigZag, PopArtSticker, PopArtDots } from "./PopArtDecorations";
 
 interface ServiceFromDB {
     id: string;
-    titleEs: string;
-    titleEn: string;
-    descEs: string;
-    descEn: string;
-    price: string | number | null;
-    imageUrl: string | null;
-    active: boolean;
-    order: number;
-    recommendedProducts?: string | null;
+    nameEs: string;
+    nameEn: string;
+    category: string;
+    basePrice: number;
+    isActive: boolean;
 }
 
 interface GalleryItemFromDB {
@@ -39,17 +35,22 @@ interface GalleryItemFromDB {
 
 interface TransformationFromDB {
     id: string;
-    titleEs: string;
-    titleEn: string;
-    beforeImageUrl: string;
-    afterImageUrl: string;
-    date: string;
+    petName: string;
+    breed: string;
+    age: string;
+    serviceDate: string;
+    beforePhotoUrl: string;
+    afterPhotoUrl: string;
+    descriptionEs: string;
+    descriptionEn: string;
+    visible: boolean;
+    createdAt: string;
 }
 
 interface MobileHomeProps {
     config: any;
     locale: string;
-    services: ServiceFromDB[];
+    services: any[];
     galleryItems: GalleryItemFromDB[];
     transformations: TransformationFromDB[];
 }
@@ -167,10 +168,8 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
 
     // Filter services based on search query
     const filteredServices = services.filter(service => {
-        const title = activeLocale === "es" ? service.titleEs : service.titleEn;
-        const desc = activeLocale === "es" ? service.descEs : service.descEn;
-        return title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-               desc.toLowerCase().includes(searchQuery.toLowerCase());
+        const title = activeLocale === "es" ? service.nameEs : service.nameEn;
+        return title.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
     return (
@@ -249,7 +248,7 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                         onClick={() => {
                                             setActiveTab("home");
                                             setTimeout(() => {
-                                                const element = document.getElementById("mobile-booking-section");
+                                                const element = document.getElementById("cotizar");
                                                 if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
                                             }, 100);
                                         }}
@@ -330,9 +329,14 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                 </div>
                             </div>
 
-                            {/* 3D Rotating Stack Card Carousel of Happiness (Galería de Felicidad) */}
+                            {/* Unified Cotizador block */}
+                            <div className="pt-2">
+                                <QuoteSection locale={locale} initialServices={services} />
+                            </div>
+
+                            {/* 3D Rotating Stack Card Carousel of Happiness (Galería de Felicidad) - Desplazado abajo */}
                             {carouselImages.length > 0 && (
-                                <div className="space-y-4 pt-2 overflow-visible">
+                                <div className="space-y-4 pt-4 overflow-visible">
                                     <div className="text-center space-y-1 relative">
                                         <PopArtStar className="w-10 h-10 absolute -top-4 -left-2 -rotate-12 text-[#FFDE4D]" />
                                         <h2 className="text-2xl font-black uppercase tracking-tight">
@@ -414,26 +418,6 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                 </div>
                             )}
 
-                            {/* Reservar Cita / Booking Form section directly on homepage */}
-                            <div id="mobile-booking-section" className="space-y-4 pt-4 scroll-mt-24">
-                                <div className="space-y-1 text-center relative">
-                                    <PopArtZap className="w-9 h-9 absolute -top-3 -right-2 rotate-12" />
-                                    <h2 className="text-2xl font-black uppercase tracking-tight">
-                                        {contactTitle}
-                                    </h2>
-                                    <p className="text-xs font-bold text-muted-foreground max-w-xs mx-auto">
-                                        {contactSubtitle}
-                                    </p>
-                                </div>
-
-                                <div className="bg-white border-[3px] border-black rounded-2xl p-5 shadow-[5px_5px_0_0_#000] relative overflow-hidden">
-                                    <ContactForm 
-                                        locale={locale} 
-                                        services={services.map(s => JSON.parse(JSON.stringify(s)))} 
-                                    />
-                                </div>
-                            </div>
-
 
                         </m.div>
                     )}
@@ -473,8 +457,12 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                             {/* Services List */}
                             <div className="space-y-4">
                                 {filteredServices.map((service) => {
-                                    const title = activeLocale === "es" ? service.titleEs : service.titleEn;
-                                    const desc = activeLocale === "es" ? service.descEs : service.descEn;
+                                    const title = activeLocale === "es" ? service.nameEs : service.nameEn;
+                                    const categoryLabel = service.category === "MAIN_GROOMING"
+                                        ? (activeLocale === "es" ? "Servicio Principal" : "Main Service")
+                                        : service.category === "ADDON_TREATMENT"
+                                        ? (activeLocale === "es" ? "Tratamiento Adicional" : "Add-on Treatment")
+                                        : (activeLocale === "es" ? "Champú Especial" : "Special Shampoo");
                                     const Icon = getServiceIcon(title);
 
                                     return (
@@ -492,14 +480,14 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                                 </div>
                                                 <div>
                                                     <h3 className="font-black text-sm uppercase tracking-tight leading-none mb-1">{title}</h3>
-                                                    <p className="text-[11px] font-bold text-muted-foreground line-clamp-1 max-w-[180px]">{desc}</p>
+                                                    <p className="text-[11px] font-bold text-muted-foreground line-clamp-1 max-w-[180px]">{categoryLabel}</p>
                                                 </div>
                                             </div>
                                             
                                             <div className="text-right shrink-0">
-                                                {service.price ? (
+                                                {service.basePrice ? (
                                                     <span className="bg-[#DCFCE7] text-[#15803D] font-black text-xs px-2.5 py-1.5 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
-                                                        ${service.price}
+                                                        ${service.basePrice}
                                                     </span>
                                                 ) : (
                                                     <span className="text-[10px] font-black tracking-wider text-muted-foreground uppercase">{t("priceBase")}</span>
@@ -608,7 +596,7 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                         <div className="flex items-start justify-between">
                                             <div className="space-y-1">
                                                 <h3 className="text-xl font-black uppercase tracking-tight leading-none">
-                                                    {activeLocale === "es" ? selectedService.titleEs : selectedService.titleEn}
+                                                    {activeLocale === "es" ? selectedService.nameEs : selectedService.nameEn}
                                                 </h3>
                                                 <p className="text-xs font-black text-primary">
                                                     {activeLocale === "es" ? "TRATAMIENTO PREMIUM SPA" : "PREMIUM SPA TREATMENT"}
@@ -625,42 +613,41 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                         </div>
 
                                         <div className="bg-secondary/40 border-2 border-black/5 p-4 rounded-xl font-bold text-xs leading-relaxed text-slate-600">
-                                            {activeLocale === "es" ? selectedService.descEs : selectedService.descEn}
+                                            {activeLocale === "es" 
+                                                ? "Consiente a tu mascota con nuestro servicio personalizado de alta calidad." 
+                                                : "Pamper your pet with our high-quality personalized service."}
                                         </div>
 
                                         {/* Service highlight specs */}
                                         <div className="space-y-2 pt-2">
                                             <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-                                                {activeLocale === "es" ? "INCLUYE EN SESIÓN:" : "INCLUDED IN SESSION:"}
+                                                {activeLocale === "es" ? "CATEGORÍA DEL SERVICIO:" : "SERVICE CATEGORY:"}
                                             </h4>
-                                            {selectedService.recommendedProducts ? (
-                                                <ul className="grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-slate-700">
-                                                    {selectedService.recommendedProducts.split(',').filter((s: string) => s.trim() !== "").map((item: string, i: number) => {
-                                                        const key = item.trim();
-                                                        const translated = t(`inclusions.${key}`, { defaultMessage: key });
-                                                        return (
-                                                            <li key={i} className="flex items-start space-x-2">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shrink-0" />
-                                                                <span className="leading-tight">{translated}</span>
-                                                            </li>
-                                                        );
-                                                    })}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase">
-                                                    {activeLocale === "es" ? "No especificado" : "Not specified"}
-                                                </p>
-                                            )}
+                                            <p className="text-xs font-bold text-slate-700 uppercase">
+                                                {selectedService.category === "MAIN_GROOMING"
+                                                    ? (activeLocale === "es" ? "Servicio Principal" : "Main Service")
+                                                    : selectedService.category === "ADDON_TREATMENT"
+                                                    ? (activeLocale === "es" ? "Tratamiento Adicional" : "Add-on Treatment")
+                                                    : (activeLocale === "es" ? "Champú Especial" : "Special Shampoo")}
+                                            </p>
                                         </div>
 
                                         <div className="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
                                             <div className="flex flex-col">
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">{t("priceBase")}</span>
-                                                <span className="font-black text-xl text-primary">${selectedService.price || "—"}</span>
+                                                <span className="font-black text-xl text-primary">${selectedService.basePrice || "—"}</span>
                                             </div>
                                             
                                             <button
-                                                onClick={() => setShowBookingInSheet(true)}
+                                                onClick={() => {
+                                                    setSelectedService(null);
+                                                    setShowBookingInSheet(false);
+                                                    setActiveTab("home");
+                                                    setTimeout(() => {
+                                                        const element = document.getElementById("cotizar");
+                                                        if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                    }, 100);
+                                                }}
                                                 className="flex-1 py-3.5 bg-accent text-foreground font-black text-xs uppercase tracking-wider rounded-xl border-[3px] border-black shadow-[4px_4px_0_0_#000] active:translate-y-[2px] active:translate-x-[2px] active:shadow-[2px_2px_0_0_#000] flex items-center justify-center space-x-2 cursor-pointer transition-all"
                                             >
                                                 <span>{t("bookNow")}</span>
@@ -668,57 +655,7 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
                                             </button>
                                         </div>
                                     </m.div>
-                                ) : (
-                                    <m.div
-                                        key="booking-form"
-                                        initial={{ opacity: 0, y: 15 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -15 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="flex-1 flex flex-col min-h-0 space-y-4"
-                                    >
-                                        <div className="flex items-center justify-between pb-2 border-b border-black/10">
-                                            <button 
-                                                onClick={() => setShowBookingInSheet(false)}
-                                                className="flex items-center space-x-1 text-xs font-black uppercase text-slate-500 hover:text-slate-900 cursor-pointer"
-                                            >
-                                                <ChevronLeft className="w-4 h-4" strokeWidth={3} />
-                                                <span>{activeLocale === "es" ? "Atrás" : "Back"}</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setSelectedService(null)}
-                                                className="p-1 rounded-full bg-slate-100 border border-black/10 hover:bg-slate-200 cursor-pointer"
-                                                aria-label="Cerrar detalles"
-                                                title="Cerrar detalles"
-                                            >
-                                                <X className="w-4 h-4 text-slate-700" />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex-1 overflow-y-auto pr-1 pb-6 scrollbar-none space-y-3">
-                                            <div className="text-center space-y-1 py-1">
-                                                <h3 className="text-lg font-black uppercase tracking-tight">
-                                                    {activeLocale === "es" ? "SOLICITAR CITA" : "BOOK APPOINTMENT"}
-                                                </h3>
-                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                                    {activeLocale === "es" ? "Servicio:" : "Service:"} <span className="text-primary font-black">{activeLocale === "es" ? selectedService.titleEs : selectedService.titleEn}</span>
-                                                </p>
-                                            </div>
-
-                                            <ContactForm 
-                                                locale={locale}
-                                                initialService={activeLocale === "es" ? selectedService.titleEs : selectedService.titleEn} 
-                                                services={services.map(s => JSON.parse(JSON.stringify(s)))}
-                                                onSuccess={() => {
-                                                    setTimeout(() => {
-                                                        setSelectedService(null);
-                                                        setShowBookingInSheet(false);
-                                                    }, 1500);
-                                                }}
-                                            />
-                                        </div>
-                                    </m.div>
-                                )}
+                                ) : null}
                             </AnimatePresence>
                         </m.div>
                     </>

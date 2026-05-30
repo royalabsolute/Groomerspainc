@@ -87,7 +87,7 @@ export default function HeroSection({ config, locale }: HeroSectionProps) {
                                     className="h-16 px-10 text-lg font-black bg-primary text-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#0F172A] transition-all"
                                     asChild
                                 >
-                                    <Link href="/#contact">{t('bookNow')}</Link>
+                                    <Link href="/#cotizar">{t('bookNow')}</Link>
                                 </Button>
                                 <Button 
                                     size="lg" 
@@ -95,7 +95,7 @@ export default function HeroSection({ config, locale }: HeroSectionProps) {
                                     className="h-16 px-10 text-lg font-black bg-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#0F172A] transition-all hover:bg-secondary/10"
                                     asChild
                                 >
-                                    <Link href="/#services">{t('viewServices')}</Link>
+                                    <Link href="/#cotizar">{t('viewServices')}</Link>
                                 </Button>
                             </div>
                         </m.div>

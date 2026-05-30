@@ -2,81 +2,78 @@
 
 import db from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { events, EVENT_TOPICS } from "@/lib/events";
 
-export async function createService(data: any) {
+export async function createService(data: {
+    id?: string;
+    nameEs: string;
+    nameEn: string;
+    category: "MAIN_GROOMING" | "ADDON_TREATMENT" | "SPECIAL_SHAMPOO";
+    basePrice: number;
+    isActive: boolean;
+}) {
     try {
-        const service = await db.service.upsert({
+        const service = await (db as any).serviceItem.upsert({
             where: { id: data.id || "new-temp-id" },
             update: {
-                titleEs: data.titleEs,
-                titleEn: data.titleEn,
-                descEs: data.descEs,
-                descEn: data.descEn,
-                price: data.price,
-                active: data.active,
-                imageUrl: data.imageUrl,
-                icon: data.icon,
-                recommendedProducts: data.recommendedProducts,
+                nameEs: data.nameEs,
+                nameEn: data.nameEn,
+                category: data.category,
+                basePrice: data.basePrice,
+                isActive: data.isActive,
             },
             create: {
-                titleEs: data.titleEs,
-                titleEn: data.titleEn,
-                descEs: data.descEs,
-                descEn: data.descEn,
-                price: data.price,
-                active: data.active,
-                imageUrl: data.imageUrl,
-                icon: data.icon,
-                recommendedProducts: data.recommendedProducts,
+                nameEs: data.nameEs,
+                nameEn: data.nameEn,
+                category: data.category,
+                basePrice: data.basePrice,
+                isActive: data.isActive,
             }
         });
+        
         revalidatePath("/");
         revalidatePath("/[locale]", "layout");
         revalidatePath("/[locale]", "page");
-        revalidatePath("/[locale]/services", "page");
         revalidatePath("/admin/services");
-        
-        events.emit(EVENT_TOPICS.SERVICES_UPDATE);
+        revalidatePath("/admin/servicios");
         
         return { success: true, serviceId: service.id };
     } catch (error) {
-        console.error("Error saving service:", error);
+        console.error("Error saving service item:", error);
         return { success: false, error: "Failed to save service" };
     }
 }
 
 export async function deleteService(id: string) {
     try {
-        await db.service.delete({
+        await (db as any).serviceItem.delete({
             where: { id }
         });
+        
         revalidatePath("/");
         revalidatePath("/[locale]", "layout");
         revalidatePath("/[locale]", "page");
         revalidatePath("/admin/services");
-
-        events.emit(EVENT_TOPICS.SERVICES_UPDATE);
+        revalidatePath("/admin/servicios");
 
         return { success: true };
     } catch (error) {
-        console.error("Error deleting service:", error);
+        console.error("Error deleting service item:", error);
         return { success: false, error: "Failed to delete service" };
     }
 }
 
 export async function toggleServiceStatus(id: string, active: boolean) {
     try {
-        await db.service.update({
+        await (db as any).serviceItem.update({
             where: { id },
-            data: { active }
+            data: { isActive: active }
         });
+        
         revalidatePath("/");
         revalidatePath("/[locale]", "layout");
         revalidatePath("/[locale]", "page");
         revalidatePath("/admin/services");
-
-        events.emit(EVENT_TOPICS.SERVICES_UPDATE);
+        revalidatePath("/admin/servicios");
 
         return { success: true };
     } catch (error) {

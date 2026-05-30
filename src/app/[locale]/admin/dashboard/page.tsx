@@ -5,14 +5,15 @@ import DashboardContent from "@/components/admin/DashboardContent";
 export default async function AdminDashboard() {
     // Fetch real stats
     const [servicesCount, galleryCount, inquiriesCount, transactions, allInquiries] = await Promise.all([
-        db.service.count(),
+        (db as any).serviceItem.count(),
         db.galleryItem.count(),
-        db.inquiry.count({ where: { status: 'PENDING' } }),
+        (db as any).quoteRequest.count({ where: { status: 'PENDING_REVIEW' } }),
         (db as any).transaction.findMany({
             orderBy: { date: 'asc' }
         }),
-        db.inquiry.findMany({
-            orderBy: { createdAt: 'asc' }
+        (db as any).quoteRequest.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: { createdAt: true, systemEstimatedPrice: true, status: true }
         })
     ]);
 
@@ -69,7 +70,7 @@ export default async function AdminDashboard() {
         };
     }).reverse();
 
-    allInquiries.forEach((inq) => {
+    allInquiries.forEach((inq: any) => {
         const date = new Date(inq.createdAt);
         const diffTime = Math.abs(new Date().getTime() - date.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

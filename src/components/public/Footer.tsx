@@ -48,7 +48,7 @@ export default function Footer({ config, locale }: FooterProps) {
             </div>
 
             {/* Main Floating Footer Card */}
-            <div className="container max-w-7xl mx-auto bg-white border-4 border-black rounded-[2rem] shadow-[12px_12px_0px_0px_#0F172A] p-8 md:p-12 relative z-10 flex flex-col gap-10">
+            <div className="container max-w-7xl mx-auto bg-white border-4 border-black rounded-4xl shadow-[12px_12px_0px_0px_#0F172A] p-8 md:p-12 relative z-10 flex flex-col gap-10">
                 
                 {/* Top Section: Branding & Links */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
@@ -85,9 +85,9 @@ export default function Footer({ config, locale }: FooterProps) {
                             </h3>
                             <ul className="space-y-3 font-bold text-foreground text-lg">
                                 <li><Link href="/" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('home')}</Link></li>
-                                <li><Link href="/#services" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('services')}</Link></li>
+                                <li><Link href="/#cotizar" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('services')}</Link></li>
                                 <li><Link href="/#gallery" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('gallery')}</Link></li>
-                                <li><Link href="/#contact" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('contact')}</Link></li>
+                                <li><Link href="/#cotizar" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('contact')}</Link></li>
                             </ul>
                         </div>
 

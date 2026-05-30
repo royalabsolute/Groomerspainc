@@ -49,23 +49,22 @@ export async function getAvailableHours(dateString: string) {
         const endDate = new Date(dateString);
         endDate.setUTCDate(endDate.getUTCDate() + 1);
 
-        const existingInquiries = await db.inquiry.findMany({
+        const existingInquiries = await (db as any).quoteRequest.findMany({
             where: {
                 appointmentDate: {
                     gte: startDate,
                     lt: endDate
                 },
                 status: {
-                    in: ["PENDING", "CONFIRMED"]
-                },
-                deleted: false
+                    in: ["PENDING_REVIEW", "PRICED", "CONFIRMED"]
+                }
             },
             select: {
                 appointmentTime: true
             }
         });
 
-        const bookedHours = existingInquiries.map(inquiry => inquiry.appointmentTime);
+        const bookedHours = existingInquiries.map((inquiry: any) => inquiry.appointmentTime);
 
         // Filtramos las horas ya ocupadas
         let availableHours = allHours.filter(hour => !bookedHours.includes(hour));

@@ -49,13 +49,13 @@ export default function Navbar({ config }: NavbarProps) {
                 window.requestAnimationFrame(() => {
                     setScrolled(window.scrollY > 50);
 
-                    const sections = ["services", "gallery", "contact"];
+                    const sections = ["cotizar", "gallery"];
                     let current = "";
 
                     const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
 
                     if (isAtBottom) {
-                        current = "contact";
+                        current = "cotizar";
                     } else if (window.scrollY < 100) {
                         current = "home";
                     } else {
@@ -97,10 +97,10 @@ export default function Navbar({ config }: NavbarProps) {
 
     const navLinks = [
         { href: "/", id: "home", label: t("home") },
-        { href: "/#services", id: "services", label: t("services") },
+        { href: "/#cotizar", id: "services", label: t("services") },
         ...(config?.transformationsEnabled ? [{ href: "/transformaciones", id: "transformations", label: t("transformations") }] : []),
         { href: "/#gallery", id: "gallery", label: t("gallery") },
-        { href: "/#contact", id: "contact", label: t("contact") },
+        { href: "/#cotizar", id: "contact", label: t("contact") },
     ];
 
     const changeLocale = (newLocale: "es" | "en") => {
@@ -113,6 +113,9 @@ export default function Navbar({ config }: NavbarProps) {
         }
         if (pathname !== "/" && pathname !== "/es" && pathname !== "/en") {
             return false;
+        }
+        if (linkId === "services" || linkId === "contact") {
+            return activeSection === "cotizar";
         }
         return activeSection === linkId || (linkId === 'home' && activeSection === '');
     };

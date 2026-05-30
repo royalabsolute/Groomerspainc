@@ -10,7 +10,7 @@ export default async function EditServicePage({
 }) {
     const { id } = await params;
 
-    const service = await db.service.findUnique({
+    const service = await (db as any).serviceItem.findUnique({
         where: { id }
     });
 
@@ -23,7 +23,7 @@ export default async function EditServicePage({
             <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto">
                 <AdminHeader
                     title="Editar Servicio"
-                    subtitle={`Modificando: ${service.titleEs}`}
+                    subtitle={`Modificando: ${service.nameEs}`}
                 />
 
                 <div className="mt-8">

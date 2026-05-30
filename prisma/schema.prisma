@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -17,23 +17,6 @@ model User {
   createdAt DateTime @default(now())
 }
 
-model Service {
-  id                  String   @id @default(cuid())
-  titleEs             String
-  titleEn             String
-  descEs              String
-  descEn              String
-  price               Decimal?
-  imageUrl            String?
-  active              Boolean  @default(true)
-  order               Int      @default(0)
-  icon                String?
-  iconName            String?  // Explicit icon name for lucide-react selection
-  recommendedProducts String?  // String field to store recommended products/supplies (JSON/comma-separated)
-
-  @@index([titleEs])
-  @@index([titleEn])
-}
 
 model GalleryItem {
   id        String   @id @default(cuid())
@@ -64,15 +47,22 @@ model Inquiry {
   phone           String?
   message         String
   petDetails      String?
+  petName         String?
+  breed           String?
+  petWeight       Float?
+  petAge          String?
+  rabiesVaccinated Boolean? @default(false)
+  rabiesRegistry  String?
+  zipCode         String?
   petImageUrl     String?
   read            Boolean  @default(false)
   createdAt       DateTime @default(now())
   service         String?
   status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, UNPAID
   discountCode    String?  // Stored discount code used
-  basePrice       Decimal? @default(0)
-  discountApplied Decimal? @default(0)
-  netGain         Decimal? @default(0)
+  basePrice       Float?   @default(0)
+  discountApplied Float?   @default(0)
+  netGain         Float?   @default(0)
   deleted         Boolean  @default(false)
   address         String?
   appointmentDate DateTime?
@@ -153,16 +143,20 @@ model SiteConfig {
 }
 
 model Transformation {
-  id             String   @id @default(cuid())
-  titleEs        String
-  titleEn        String
-  beforeImageUrl String
-  afterImageUrl  String
-  date           DateTime @default(now())
-  visible        Boolean  @default(true)
-  createdAt      DateTime @default(now())
+  id                    String   @id @default(cuid())
+  petName               String
+  breed                 String
+  age                   Int?
+  serviceDate           DateTime
+  beforePhotoUrl        String   // Ruta local NVMe
+  afterPhotoUrl         String   // Ruta local NVMe
+  technicalDescriptionEs String
+  technicalDescriptionEn String
+  visible               Boolean  @default(true)
+  createdAt             DateTime @default(now())
 
-  @@index([date])
+  @@index([breed])
+  @@index([serviceDate])
   @@index([createdAt])
 }
 
@@ -179,7 +173,7 @@ model PasswordResetToken {
 model Transaction {
   id          String   @id @default(cuid())
   type        String   // "INCOME" or "EXPENSE"
-  amount      Decimal
+  amount      Float
   description String
   date        DateTime @default(now())
   invoiceUrl  String?
@@ -189,4 +183,89 @@ model Transaction {
 
   @@index([type])
   @@index([date])
+}
+
+
+
+model ServiceItem {
+  id        String          @id @default(cuid())
+  nameEs    String          // Nombre en Español
+  nameEn    String          // Nombre en Inglés
+  category  String
+  basePrice Float
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  // Relación Many-to-Many implícita con PetProfile
+  pets      PetProfile[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model QuoteRequest {
+  id                   String      @id @default(cuid())
+  status               String      @default("PENDING_REVIEW")
+  
+  // Datos del Dueño
+  ownerName            String
+  ownerPhone           String
+  ownerEmail           String
+  
+  // Dirección física en Florida
+  address              String
+  zipCode              String
+  city                 String      @default("Miami") // Broward / Miami-Dade focus
+  
+  // Relación One-to-Many con las Mascotas
+  pets                 PetProfile[]
+  
+  // Validaciones y Cláusulas Legales
+  termsAccepted        Boolean     // Aceptación de precio estimado provisional
+  
+  // Motores de Precios
+  systemEstimatedPrice Float
+  finalAdminPrice      Float?
+  
+  message              String?
+  appointmentDate      DateTime?
+  appointmentTime      String?
+  discountCode         String?
+  
+  // Sistema de Agenda Dinámica y Control de Tiempo
+  scheduledDate        DateTime?
+  startTime            DateTime?
+  estimatedEndTime     DateTime?
+  actualEndTime        DateTime?
+
+  read                 Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([status])
+  @@index([ownerEmail])
+}
+
+model PetProfile {
+  id                    String        @id @default(cuid())
+  quoteRequestId        String
+  quoteRequest          QuoteRequest  @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  
+  name                  String
+  breed                 String
+  weightLbs             Float
+  ageYears              Int?
+  photoUrl              String?       // Foto individual de la mascota
+  rabiesVaccineUpToDate Boolean       // Cada mascota debe validar su vacuna individualmente
+  rabiesRegistry        String?       // Número de registro de rabia si aplica
+  
+  // Relación Many-to-Many para los servicios de cada perro
+  services              ServiceItem[]
+  shampooId             String?       // ID de Champú Especial
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([quoteRequestId])
 }

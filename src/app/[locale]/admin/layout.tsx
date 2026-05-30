@@ -20,13 +20,20 @@ export default async function AdminLayout({
         redirect(`/${locale}/login-admin`);
     }
 
-    const pendingInquiries = await db.inquiry.findMany({
-        where: { status: 'PENDING', deleted: false } as any,
+    const rawPending = await (db as any).quoteRequest.findMany({
+        where: { status: 'PENDING_REVIEW' },
         orderBy: { createdAt: 'desc' },
-        take: 5
+        take: 5,
+        include: { pets: true }
     });
 
-    const serializedInquiries = JSON.parse(JSON.stringify(pendingInquiries));
+    const serializedInquiries = rawPending.map((q: any) => ({
+        id: q.id,
+        name: q.ownerName,
+        petName: (q.pets || []).map((p: any) => p.name).join(", ") || "N/A",
+        createdAt: q.createdAt.toISOString(),
+        status: q.status
+    }));
 
     return (
         <SessionProviderWrapper>

@@ -73,7 +73,9 @@ export default async function AdminInquiriesPage() {
             status: item.status,
             read: item.read,
             createdAt: item.createdAt,
-            pets: pets
+            pets: pets,
+            contractUrl: item.contractUrl || null,
+            groomerNotes: item.groomerNotes || null
         };
     });
 

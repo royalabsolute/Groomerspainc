@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { 
     Mail, Phone, Calendar, User, Search, Trash2, CheckCircle2, Clock, 
     Sparkles, Image as ImageIcon, DollarSign, X, ShieldCheck, Footprints,
-    MessageSquare, Send, Award, Droplets, Dog, MapPin, Tag
+    MessageSquare, Send, Award, Droplets, Dog, MapPin, Tag, Printer, FileText
 } from "lucide-react";
 import { 
     deleteInquiry, 
@@ -18,7 +18,8 @@ import {
     markInquiryAsRead, 
     completeInquiryPayment, 
     saveAdminFinalPrice, 
-    sendBilingualQuoteEmail 
+    sendBilingualQuoteEmail,
+    completeInquiryWithLegal
 } from "@/lib/actions/inquiries";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,8 @@ export interface InquiryItem {
     read: boolean;
     createdAt: Date;
     pets: PetProfileItem[];
+    contractUrl: string | null;
+    groomerNotes: string | null;
 }
 
 interface ServiceItem {
@@ -93,6 +96,12 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
     const [finalPriceInput, setFinalPriceInput] = useState<string>("");
     const [isSavingPrice, setIsSavingPrice] = useState(false);
     const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+    // Legal Close Modal States
+    const [isLegalCloseOpen, setIsLegalCloseOpen] = useState(false);
+    const [contractFile, setContractFile] = useState<File | null>(null);
+    const [groomerNotes, setGroomerNotes] = useState("");
+    const [isSubmittingLegal, setIsSubmittingLegal] = useState(false);
 
     useEffect(() => {
         setItems(initialItems);
@@ -128,6 +137,46 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
             router.refresh();
         } else {
             toast.error("Error al eliminar cotización");
+        }
+    };
+
+    const handleLegalCloseSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedItem || !contractFile) return;
+
+        setIsSubmittingLegal(true);
+        try {
+            const formData = new FormData();
+            formData.append("id", selectedItem.id);
+            formData.append("groomerNotes", groomerNotes);
+            formData.append("contract", contractFile);
+
+            const result = await completeInquiryWithLegal(formData);
+            if (result.success) {
+                toast.success("Cita completada y registro legal/financiero guardado");
+                
+                // Update local state
+                const updated = {
+                    ...selectedItem,
+                    status: "COMPLETED" as const,
+                    contractUrl: result.contractUrl || null,
+                    groomerNotes: groomerNotes
+                };
+                setItems(items.map(i => i.id === selectedItem.id ? updated : i));
+                setSelectedItem(updated);
+                
+                // Reset fields
+                setContractFile(null);
+                setGroomerNotes("");
+                setIsLegalCloseOpen(false);
+                router.refresh();
+            } else {
+                toast.error(result.error || "Error al completar cita");
+            }
+        } catch {
+            toast.error("Error de red o conexión");
+        } finally {
+            setIsSubmittingLegal(false);
         }
     };
 
@@ -224,6 +273,222 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                 setItems(items.map(i => i.id === item.id ? { ...i, read: true } : i));
             }).catch(() => null);
         }
+    };
+
+    const handleDownloadPDF = (item: InquiryItem) => {
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+            toast.error("El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes.");
+            return;
+        }
+
+        const price = item.finalAdminPrice || item.systemEstimatedPrice;
+        
+        // Compile all pets in English representation
+        let petsInfo = "";
+        const petsList = item.pets && item.pets.length > 0 ? item.pets : [
+            {
+                name: item.petName,
+                breed: item.breed,
+                weight: item.petWeight,
+                age: item.petAge,
+                rabiesVaccinated: item.rabiesVaccinated,
+                rabiesRegistry: item.rabiesRegistry,
+                selectedServiceIds: item.selectedServiceIds
+            }
+        ];
+
+        petsList.forEach((pet, idx) => {
+            const ids = pet.selectedServiceIds.split(",").map(id => id.trim()).filter(Boolean);
+            const chosen = services.filter(s => ids.includes(s.id));
+            const servicesText = chosen.map(s => s.nameEn).join(", ") || "Grooming";
+
+            petsInfo += `
+            <div style="border: 1px solid #000; padding: 12px; margin-bottom: 12px; border-radius: 8px;">
+                <p style="margin: 4px 0;"><strong>PET #${idx + 1} NAME:</strong> ${pet.name || "_______________"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>BREED:</strong> ${pet.breed || "_______________"}</p>
+                <p style="margin: 4px 0;"><strong>WEIGHT:</strong> ${pet.weight ? `${pet.weight} lbs` : "_______ lbs"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>AGE:</strong> ${pet.age || "_______________"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>MEDICAL ISSUES / OBSERVATIONS:</strong> ____________________________</p>
+                <p style="margin: 4px 0;"><strong>RABIES VACCINE EXPIRATION DATE:</strong> ________________________ &nbsp;&nbsp;|&nbsp;&nbsp; <strong>GROOMER INITIALS:</strong> _________</p>
+                <p style="margin: 4px 0;"><strong>REQUESTED SERVICES:</strong> ${servicesText}</p>
+            </div>
+            `;
+        });
+
+        printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>GROOMERS, INC. - Liability Waiver - ${item.name}</title>
+            <style>
+                body {
+                    font-family: 'Courier New', Courier, monospace;
+                    color: #000;
+                    margin: 40px;
+                    line-height: 1.5;
+                    font-size: 12px;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px double #000;
+                    padding-bottom: 12px;
+                    margin-bottom: 20px;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 20px;
+                    font-weight: bold;
+                    letter-spacing: 1px;
+                }
+                .header p {
+                    margin: 4px 0 0;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                .section {
+                    margin-bottom: 20px;
+                }
+                .section-title {
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    border-bottom: 1px solid #000;
+                    padding-bottom: 3px;
+                    margin-bottom: 10px;
+                    font-size: 13px;
+                }
+                .field-row {
+                    display: flex;
+                    justify-content: flex-start;
+                    flex-wrap: wrap;
+                    margin-bottom: 6px;
+                }
+                .field {
+                    margin-right: 20px;
+                    margin-bottom: 6px;
+                }
+                .terms {
+                    text-align: justify;
+                    font-size: 10px;
+                    line-height: 1.4;
+                    border: 1px dashed #000;
+                    padding: 10px;
+                    margin-bottom: 20px;
+                    background: #FAFAFA;
+                }
+                .signatures {
+                    margin-top: 30px;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                .signature-line {
+                    border-top: 1px solid #000;
+                    width: 45%;
+                    text-align: center;
+                    padding-top: 5px;
+                    margin-top: 40px;
+                }
+                .footer-box {
+                    border: 1px solid #000;
+                    padding: 10px;
+                    margin-top: 20px;
+                    font-size: 11px;
+                }
+                @media print {
+                    body {
+                        margin: 20px;
+                    }
+                    button {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div style="text-align: right; margin-bottom: 10px;">
+                <button onclick="window.print()" style="padding: 8px 16px; font-weight: bold; cursor: pointer; background: #000; color: #FFF; border: none; border-radius: 4px;">PRINT / SAVE PDF</button>
+            </div>
+
+            <!-- HEADER -->
+            <div class="header">
+                <h1>GROOMERS, INC.</h1>
+                <p>Mobile Pet Grooming Spa | Miami, FL</p>
+                <p style="font-size: 14px; margin-top: 8px;">LIABILITY WAIVER & SERVICE AGREEMENT</p>
+            </div>
+
+            <!-- SEC 1: CLIENT INFORMATION -->
+            <div class="section">
+                <div class="section-title">SECTION 1: CLIENT & VEHICLE DESTINATION</div>
+                <div class="field-row">
+                    <div class="field"><strong>CLIENT NAME:</strong> ${item.name}</div>
+                    <div class="field"><strong>PHONE:</strong> ${item.phone}</div>
+                    <div class="field"><strong>EMAIL:</strong> ${item.email}</div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><strong>SERVICE ADDRESS:</strong> ${item.address}, ZIP ${item.zipCode}</div>
+                </div>
+            </div>
+
+            <!-- SEC 2 & 3: PETS & RABIES REGISTRY -->
+            <div class="section">
+                <div class="section-title">SECTION 2 & 3: PET SPECIFICATION & SERVICES INFO (FL Law Compliance)</div>
+                <p style="font-size: 10px; margin: 0 0 10px 0; font-style: italic;">* In compliance with Florida Law, rabies tags / proof of vaccine expiration date must be registered prior to service start.</p>
+                ${petsInfo}
+            </div>
+
+            <div class="section">
+                <div class="field-row" style="margin-top: 10px;">
+                    <div class="field"><strong>TOTAL ESTIMATED SPA PRICE:</strong> $${price.toFixed(2)}</div>
+                    <div class="field"><strong>SPECIFIC INSTRUCTIONS:</strong> ________________________________________________</div>
+                </div>
+            </div>
+
+            <!-- SEC 4: TERMS & AGREEMENTS -->
+            <div class="section">
+                <div class="section-title">SECTION 4: MOBILE SPA SERVICE TERMS</div>
+                <div class="terms">
+                    1. MATTED COAT POLICY: Shaving a matted coat can expose pre-existing skin conditions. Groomers, Inc. is not responsible for irritation, cuts or abrasions resulting from de-matting or clipping a severely matted coat.<br/>
+                    2. BEHAVIOR & SAFETY: Owner must inform the groomer if the pet exhibits aggressive behavior. We reserve the right to refuse service or use safe muzzling if required for pet and handler protection.<br/>
+                    3. CASH ONLY PAYMENT: Groomers, Inc. operates strictly on a Cash-On-Delivery (COD) basis. Payments must be processed immediately upon pet check-out.<br/>
+                    4. LIABILITY WAIVER: Owner releases Groomers, Inc. from any liability for injury, illness or damage arising from standard grooming procedures or sudden health events during spa sessions.
+                </div>
+            </div>
+
+            <!-- SEC 5 & FOOTER: SIGNATURES & CLOSURE -->
+            <div class="section">
+                <div class="section-title">SECTION 5: SIGNATURES & FINAL CLOSURE</div>
+                
+                <div class="signatures">
+                    <div class="signature-line">
+                        CLIENT SIGNATURE & DATE<br/>
+                        X ________________________________________
+                    </div>
+                    <div class="signature-line">
+                        SPA GROOMER SIGNATURE & DATE<br/>
+                        X ________________________________________
+                    </div>
+                </div>
+
+                <div class="footer-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold;">
+                        <label><input type="checkbox"/> [ ] SERVICE COMPLETED SUCCESSFULLY</label>
+                        <span>FINAL CASH RECEIVED: $________________</span>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <strong>GROOMER FINAL CLINICAL/BEHAVIOR NOTES:</strong><br/>
+                        <p style="margin: 8px 0 0 0; line-height: 1.8;">___________________________________________________________________________________________________________________</p>
+                        <p style="margin: 4px 0 0 0; line-height: 1.8;">___________________________________________________________________________________________________________________</p>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                // Auto trigger browser print dialogue
+                window.onload = function() {
+                    window.print();
+                }
+            </script>
+        </body>
+        </html>
+        `);
+        printWindow.document.close();
     };
 
     const filteredItems = items.filter(item => {
@@ -430,37 +695,37 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                     const shampooTreats = chosenServices.filter(s => s.category === "SPECIAL_SHAMPOO");
 
                     return (
-                        <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[90vh] overflow-y-auto rounded-3xl border-4 border-black bg-amber-50 text-neutral-900 p-6 shadow-[12px_12px_0px_0px_#000] z-50">
-                            <DialogHeader className="border-b-3 border-black pb-4">
-                                <DialogTitle className="text-2xl font-black uppercase text-neutral-950 tracking-tight flex items-center gap-2">
-                                    🔎 {selectedItem.status === "PENDING_REVIEW" ? "Revisión de Cotización" : "Detalles de Solicitud"}
+                        <DialogContent className="w-[95vw] sm:max-w-[650px] max-h-[90vh] overflow-y-auto rounded-3xl border border-zinc-800 bg-zinc-950 text-zinc-100 p-6 shadow-2xl z-50">
+                            <DialogHeader className="border-b border-zinc-800 pb-4">
+                                <DialogTitle className="text-xl font-bold uppercase text-zinc-100 tracking-tight flex items-center gap-2">
+                                    <Search className="h-5 w-5 text-[#A78BFA]" /> {selectedItem.status === "PENDING_REVIEW" ? "Revisión de Cotización" : "Detalles de Solicitud"}
                                 </DialogTitle>
-                                <DialogDescription className="text-neutral-700 font-bold uppercase text-[10px] tracking-wider">
+                                <DialogDescription className="text-zinc-400 font-bold uppercase text-[10px] tracking-wider">
                                     ID: {selectedItem.id}
                                 </DialogDescription>
                             </DialogHeader>
 
-                            <div className="space-y-6 pt-4 text-sm text-slate-800 font-medium">
+                            <div className="space-y-6 pt-4 text-sm text-zinc-300 font-medium">
                                 
                                 {/* 1. Owner & Address Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-2 shadow-[4px_4px_0_0_#000]">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2 flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-[#7C3AED]" /> <span>Cliente</span></h4>
-                                        <p className="font-black text-black">{selectedItem.name}</p>
-                                        <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {selectedItem.email}</p>
-                                        <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {selectedItem.phone}</p>
+                                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2 shadow-md">
+                                        <h4 className="text-[10px] font-bold text-[#A78BFA] uppercase tracking-widest border-b border-zinc-800/80 pb-1.5 mb-2 flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-[#A78BFA]" /> <span>Cliente</span></h4>
+                                        <p className="font-bold text-zinc-100">{selectedItem.name}</p>
+                                        <p className="text-xs font-bold text-zinc-400 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> {selectedItem.email}</p>
+                                        <p className="text-xs font-bold text-zinc-400 flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> {selectedItem.phone}</p>
                                     </div>
-                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-2 shadow-[4px_4px_0_0_#000]">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#7C3AED]" /> <span>Destino</span></h4>
-                                        <p className="font-black text-black">{selectedItem.address}</p>
-                                        <p className="text-xs font-bold text-slate-600">Florida (ZIP: {selectedItem.zipCode})</p>
+                                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2 shadow-md">
+                                        <h4 className="text-[10px] font-bold text-[#A78BFA] uppercase tracking-widest border-b border-zinc-800/80 pb-1.5 mb-2 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#A78BFA]" /> <span>Destino</span></h4>
+                                        <p className="font-bold text-zinc-100">{selectedItem.address}</p>
+                                        <p className="text-xs font-bold text-zinc-400">Florida (ZIP: {selectedItem.zipCode})</p>
                                     </div>
                                 </div>
 
                                 {/* 2 & 3 & 4. Loop over each Pet in the list */}
                                 <div className="space-y-4">
-                                    <h4 className="text-[11px] font-black text-[#7C3AED] uppercase tracking-widest border-b-3 border-black pb-1.5 flex items-center gap-2">
-                                        <Dog className="h-4 w-4 text-[#7C3AED]" /> Mascotas y Servicios Solicitados ({selectedItem.pets?.length || 0})
+                                    <h4 className="text-[11px] font-bold text-[#A78BFA] uppercase tracking-widest border-b border-zinc-800 pb-1.5 flex items-center gap-2">
+                                        <Dog className="h-4 w-4 text-[#A78BFA]" /> Mascotas y Servicios Solicitados ({selectedItem.pets?.length || 0})
                                     </h4>
                                     {(selectedItem.pets && selectedItem.pets.length > 0 ? selectedItem.pets : [
                                         {
@@ -483,35 +748,35 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         const shampooTreats = petServices.filter(s => s.category === "SPECIAL_SHAMPOO");
 
                                         return (
-                                            <div key={pet.id} className="bg-white border-3 border-black rounded-xl p-4 space-y-4 shadow-[4px_4px_0_0_#000]">
-                                                <div className="flex justify-between items-center border-b-2 border-black/10 pb-2">
-                                                    <span className="font-black text-xs uppercase tracking-widest text-[#7C3AED] flex items-center gap-1.5">
-                                                        <Dog className="h-3.5 w-3.5 text-[#7C3AED]" /> Perro #{idx + 1}: {pet.name}
+                                            <div key={pet.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4 shadow-md">
+                                                <div className="flex justify-between items-center border-b border-zinc-800/80 pb-2">
+                                                    <span className="font-bold text-xs uppercase tracking-widest text-[#A78BFA] flex items-center gap-1.5">
+                                                        <Dog className="h-3.5 w-3.5 text-[#A78BFA]" /> Perro #{idx + 1}: {pet.name}
                                                     </span>
                                                     <span className={cn(
-                                                        "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border-2 border-black shadow-[1px_1px_0_0_#000]",
+                                                        "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-transparent",
                                                         pet.rabiesVaccinated 
-                                                            ? "bg-emerald-200 text-emerald-900" 
-                                                            : "bg-red-200 text-red-900"
+                                                            ? "bg-emerald-950/50 text-emerald-400 border-emerald-800/30" 
+                                                            : "bg-red-950/50 text-red-400 border-red-800/30"
                                                     )}>
                                                         Rabia: {pet.rabiesVaccinated ? `Vigente (#${pet.rabiesRegistry || 'N/A'})` : 'Vencida/Faltante'}
                                                     </span>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium">
                                                     {/* Specs */}
                                                     <div className="space-y-2">
-                                                        <div className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="text-slate-500">Raza:</span> <strong className="text-black">{pet.breed}</strong></div>
-                                                        <div className="flex items-center gap-1.5"><Footprints className="h-3.5 w-3.5 text-[#F53F85] shrink-0" /> <span className="text-slate-500">Peso:</span> <strong className="text-[#F53F85]">{pet.weight} lbs</strong></div>
-                                                        <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="text-slate-500">Edad:</span> <strong className="text-black">{pet.age}</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> <span className="text-zinc-400">Raza:</span> <strong className="text-zinc-200">{pet.breed}</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Footprints className="h-3.5 w-3.5 text-rose-450 shrink-0" /> <span className="text-zinc-400">Peso:</span> <strong className="text-rose-455 text-rose-400">{pet.weight} lbs</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-zinc-500 shrink-0" /> <span className="text-zinc-400">Edad:</span> <strong className="text-zinc-200">{pet.age}</strong></div>
                                                         
                                                         {/* Pet services list */}
-                                                        <div className="pt-2 border-t-2 border-black/10 space-y-2 mt-2">
+                                                        <div className="pt-2 border-t border-zinc-800 space-y-2 mt-2">
                                                             {mainGroom.length > 0 && (
                                                                 <div>
-                                                                    <span className="text-[#7C3AED] font-black uppercase text-[8px] tracking-wider block">Servicio Principal:</span>
+                                                                    <span className="text-[#A78BFA] font-bold uppercase text-[8px] tracking-wider block">Servicio Principal:</span>
                                                                     {mainGroom.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-zinc-200 font-bold pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -520,9 +785,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                             )}
                                                             {addonTreats.length > 0 && (
                                                                 <div>
-                                                                    <span className="text-amber-600 font-black uppercase text-[8px] tracking-wider block">Add-ons:</span>
+                                                                    <span className="text-amber-500 font-bold uppercase text-[8px] tracking-wider block">Add-ons:</span>
                                                                     {addonTreats.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-zinc-200 font-bold pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>+${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -531,9 +796,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                             )}
                                                             {shampooTreats.length > 0 && (
                                                                 <div>
-                                                                    <span className="text-sky-600 font-black uppercase text-[8px] tracking-wider block">Champú Especial:</span>
+                                                                    <span className="text-sky-400 font-bold uppercase text-[8px] tracking-wider block">Champú Especial:</span>
                                                                     {shampooTreats.map((s: any) => (
-                                                                        <div key={s.id} className="flex justify-between text-black font-black pl-2 mt-0.5">
+                                                                        <div key={s.id} className="flex justify-between text-zinc-200 font-bold pl-2 mt-0.5">
                                                                             <span>• {s.nameEs} ({s.nameEn})</span>
                                                                             <span>+${Number(s.basePrice).toFixed(2)}</span>
                                                                         </div>
@@ -546,10 +811,10 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                     {/* Photo if exists */}
                                                     {pet.petImageUrl && (
                                                         <div className="space-y-1">
-                                                            <span className="text-[8px] text-slate-500 uppercase tracking-widest block mb-1">Foto Mascota</span>
+                                                            <span className="text-[8px] text-zinc-500 uppercase tracking-widest block mb-1">Foto Mascota</span>
                                                             <div 
                                                                 onClick={() => pet.petImageUrl && setActiveLightboxUrl(pet.petImageUrl)}
-                                                                className="relative h-28 w-full rounded-xl overflow-hidden border-2 border-black bg-slate-100 cursor-pointer hover:border-[#7C3AED] transition-colors shadow-[2px_2px_0_0_#000]"
+                                                                className="relative h-28 w-full rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 cursor-pointer hover:border-[#7C3AED] transition-colors shadow-sm"
                                                             >
                                                                 <Image 
                                                                     src={pet.petImageUrl} 
@@ -570,24 +835,24 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                 {/* 5. Notes */}
                                 {selectedItem.message && (
                                     <div className="space-y-1">
-                                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anotaciones del Dueño</h4>
-                                        <p className="bg-white border-3 border-black rounded-xl p-3 text-xs italic text-slate-800 font-black leading-relaxed shadow-[2px_2px_0_0_#000]">
+                                        <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Anotaciones del Dueño</h4>
+                                        <p className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-xs italic text-zinc-300 font-medium leading-relaxed">
                                             "{selectedItem.message}"
                                         </p>
                                     </div>
                                 )}
 
                                 {/* 6. Estimation & Pricing Adjuster Form */}
-                                <div className="border-4 border-black bg-white p-5 rounded-2xl shadow-[6px_6px_0px_0px_#000] space-y-4">
-                                    <div className="flex justify-between items-center text-xs text-slate-650 font-black uppercase">
-                                        <span>Estimado calculado por Sistema:</span>
-                                        <span className="font-black text-black text-lg bg-yellow-200 border-2 border-black px-2 py-0.5 shadow-[1.5px_1.5px_0_0_#000]">${selectedItem.systemEstimatedPrice.toFixed(2)}</span>
+                                <div className="border border-zinc-800 bg-zinc-900 p-5 rounded-2xl shadow-md space-y-4">
+                                    <div className="flex justify-between items-center text-xs text-zinc-400 font-bold uppercase">
+                                        <span>Estimado por Sistema:</span>
+                                        <span className="font-bold text-zinc-200 text-sm bg-zinc-800 border border-zinc-700 px-2.5 py-0.5 rounded-lg">${selectedItem.systemEstimatedPrice.toFixed(2)}</span>
                                     </div>
 
                                     {/* Adjust Price form */}
-                                    <form onSubmit={handleSavePrice} className="space-y-3 pt-4 border-t-3 border-black border-dashed">
-                                        <Label htmlFor="finalPrice" className="text-xs font-black uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
-                                            <DollarSign className="h-4 w-4 text-[#2ECC71]" /> <span>Corregir Tarifa Oficial Final ($)</span>
+                                    <form onSubmit={handleSavePrice} className="space-y-3 pt-4 border-t border-zinc-800 border-dashed">
+                                        <Label htmlFor="finalPrice" className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+                                            <DollarSign className="h-4 w-4 text-[#10B981]" /> <span>Corregir Tarifa Oficial Final ($)</span>
                                         </Label>
                                         <div className="flex gap-2">
                                             <Input 
@@ -597,18 +862,18 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                 placeholder="Ej. 110.00"
                                                 value={finalPriceInput}
                                                 onChange={(e) => setFinalPriceInput(e.target.value)}
-                                                className="bg-cyan-50 border-3 border-black text-black text-lg font-black h-11 focus-visible:ring-cyan-400 focus-visible:border-black rounded-xl shadow-[2px_2px_0_0_#000]"
+                                                className="bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm font-bold h-11 focus-visible:ring-zinc-800 focus-visible:border-zinc-750 rounded-xl"
                                                 required
                                             />
                                             <Button
                                                 type="submit"
                                                 disabled={isSavingPrice}
-                                                className="bg-[#2ECC71] hover:bg-[#27AE60] text-black font-black uppercase text-xs tracking-wider px-6 rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer shrink-0 transition-all"
+                                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-xs tracking-wider px-6 rounded-xl border border-zinc-700 cursor-pointer transition-all active:translate-y-px"
                                             >
                                                 {isSavingPrice ? "..." : "Guardar"}
                                             </Button>
                                         </div>
-                                        <p className="text-[9px] font-black text-slate-500 uppercase leading-normal">
+                                        <p className="text-[9px] font-bold text-zinc-500 uppercase leading-normal">
                                             * Al guardar la tarifa final oficial, el estado de la cita cambiará a "Cotizada" (PRICED) y se habilitarán los despachos en un clic.
                                         </p>
                                     </form>
@@ -616,7 +881,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
 
                                 {/* 7. Close Operations Quick Action buttons */}
                                 {selectedItem.status !== "PENDING_REVIEW" && selectedItem.finalAdminPrice !== null && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t-3 border-black border-dashed">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-800 border-dashed">
                                         
                                         {/* WhatsApp Quick Dispatch */}
                                         <a 
@@ -627,7 +892,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         >
                                             <Button 
                                                 type="button"
-                                                className="w-full h-12 bg-[#25D366] hover:bg-[#20ba5a] text-black font-black uppercase text-xs tracking-widest rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                                                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase text-xs tracking-widest rounded-xl border border-zinc-700 cursor-pointer flex items-center justify-center gap-1.5 transition-all active:translate-y-px"
                                             >
                                                 <MessageSquare className="h-4.5 w-4.5" />
                                                 Enviar WhatsApp
@@ -639,7 +904,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                             type="button"
                                             onClick={handleDispatchEmail}
                                             disabled={isSendingEmail}
-                                            className="w-full h-12 bg-cyan-450 bg-cyan-400 hover:bg-cyan-500 text-black font-black uppercase text-xs tracking-widest rounded-xl border-3 border-black shadow-[3px_3px_0_0_#000] hover:-translate-y-0.5 hover:-translate-x-0.5 hover:shadow-[4px_4px_0_0_#000] active:translate-x-0 active:translate-y-0 active:shadow-none cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+                                            className="w-full h-12 bg-sky-600 hover:bg-sky-700 text-white font-bold uppercase text-xs tracking-widest rounded-xl border border-zinc-700 cursor-pointer flex items-center justify-center gap-1.5 transition-all active:translate-y-px"
                                         >
                                             {isSendingEmail ? (
                                                 <span className="flex items-center gap-1"><span className="animate-spin text-xs">...</span> Enviando</span>
@@ -656,6 +921,15 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
 
                                 {/* Admin manual operational states triggers */}
                                 <div className="flex flex-wrap gap-2 pt-2 justify-end border-t border-[#2A2A2A]/50">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleDownloadPDF(selectedItem)}
+                                        className="border-zinc-700 hover:bg-zinc-850 text-zinc-300 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
+                                    >
+                                        <Printer className="h-3.5 w-3.5" /> Descargar Contrato Físico (PDF)
+                                    </Button>
                                     {selectedItem.status === "CONFIRMED" && (
                                         <Button
                                             type="button"

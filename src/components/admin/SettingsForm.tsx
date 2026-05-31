@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { toast } from "sonner";
 import { updateSiteConfig } from "@/lib/actions/siteConfig";
-import { translateAllMissing, translateText } from "@/lib/actions/translate";
+import { translateText } from "@/lib/actions/translate";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -54,28 +54,6 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
         setFormData((prev) => ({ ...prev, [id]: value }));
-    };
-
-    const forceTranslateAll = async () => {
-        setIsLoading(true);
-        toast.loading("Traduciendo vacíos en toda la base de datos...", { id: "translate-all" });
-        try {
-            const res = await translateAllMissing();
-            if (res.success) {
-                if (res.count && res.count > 0) {
-                    toast.success(`¡${res.count} campos traducidos! Recargando...`, { id: "translate-all" });
-                    setTimeout(() => window.location.reload(), 1500);
-                } else {
-                    toast.success("Todos los campos ya estaban traducidos.", { id: "translate-all" });
-                }
-            } else {
-                toast.error("Error al traducir: " + res.error, { id: "translate-all" });
-            }
-        } catch (error) {
-            toast.error("Error inesperado al traducir.", { id: "translate-all" });
-        } finally {
-            setIsLoading(false);
-        }
     };
 
     const handleAiTranslate = async () => {
@@ -532,15 +510,6 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row justify-end items-center gap-4 pt-4 border-t border-[#3A3A3A]">
-                <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={forceTranslateAll}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto rounded-xl h-11 border-[#3A3A3A] text-slate-300 font-semibold px-6 hover:bg-[#252525] hover:text-white bg-transparent"
-                >
-                    <Sparkles className="mr-2 h-4 w-4 text-[#7C3AED]" /> Traducir campos vacíos
-                </Button>
                 <Button
                     type="submit"
                     disabled={isLoading}

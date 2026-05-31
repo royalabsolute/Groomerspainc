@@ -84,6 +84,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     const [isPending, startTransition] = useTransition();
     const [isCheckingCode, setIsCheckingCode] = useState(false);
     const [appliedDiscount, setAppliedDiscount] = useState<string | null>(null);
+    const [applyToAll, setApplyToAll] = useState(false);
 
     // Selected services states per pet index
     const [petServices, setPetServices] = useState<{
@@ -95,6 +96,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     }>({
         0: { mainGrooming: "", addons: [], shampoo: "" }
     });
+
 
     const [petImages, setPetImages] = useState<{ [index: number]: File }>({});
     const [petPreviewUrls, setPetPreviewUrls] = useState<{ [index: number]: string }>({});
@@ -131,6 +133,22 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
         control: form.control,
         name: "pets"
     });
+
+    // Sync pet services across all pet profiles if applyToAll is true
+    useEffect(() => {
+        if (applyToAll && petServices[0]) {
+            setPetServices(prev => {
+                const next = { ...prev };
+                const firstPetServices = prev[0] || { mainGrooming: "", addons: [], shampoo: "" };
+                fields.forEach((_, i) => {
+                    if (i > 0) {
+                        next[i] = { ...firstPetServices };
+                    }
+                });
+                return next;
+            });
+        }
+    }, [applyToAll, fields.length]);
 
     const handleFileChange = (index: number, file: File) => {
         setPetImages(prev => ({ ...prev, [index]: file }));
@@ -201,7 +219,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
         const subtotal = petWeightBasePrice + petMainServicePrice + petAddonsPrice + petShampooPrice;
         
         return {
-            name: pet.name || `Perro #${index + 1}`,
+            name: pet.name || t("petPlaceholder", { number: index + 1 }),
             weightBasePrice: petWeightBasePrice,
             mainPrice: petMainServicePrice,
             addonsPrice: petAddonsPrice,
@@ -396,7 +414,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                     {/* Dynamic Dogs Breakdown */}
                     <div className="space-y-4 border-b border-black/10 pb-4">
                         <h5 className="font-black text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                            <Dog className="h-3.5 w-3.5 text-slate-400" /> {locale === "es" ? "Desglose por Perro" : "Dog Breakdown"}
+                            <Dog className="h-3.5 w-3.5 text-slate-400" /> {t("dogBreakdown")}
                         </h5>
                         <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
                             {petsCalculated.map((p, idx) => {
@@ -412,7 +430,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                         </div>
                                         <div className="space-y-0.5 text-[10px] text-slate-500 font-bold leading-normal">
                                             <div className="flex justify-between">
-                                                <span>Base Peso:</span>
+                                                <span>{t("weightBase")}</span>
                                                 <span>${p.weightBasePrice.toFixed(2)}</span>
                                             </div>
                                             {p.mainPrice > 0 && (
@@ -476,7 +494,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     };
 
     return (
-        <section id="cotizar" className="py-20 bg-[#FDFCF8] relative overflow-hidden px-4 sm:px-6 lg:px-8 border-b-4 border-black">
+        <section id="cotizar" className="py-20 bg-[#FDFCF8] bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px] relative overflow-hidden px-4 sm:px-6 lg:px-8 border-b-4 border-black">
             <div className="max-w-7xl mx-auto space-y-12">
                 
                 {/* Header Section */}
@@ -497,8 +515,20 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                 {/* Form Master Wrapper */}
                 <form onSubmit={form.handleSubmit(onSubmit)} className="w-full relative pb-16 md:pb-0">
                     
+                    {/* Notebook Decorative Spiral Rings */}
+                    <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex gap-4 sm:gap-6 z-20 pointer-events-none select-none max-w-full overflow-hidden px-4">
+                        {Array.from({ length: 12 }).map((_, i) => (
+                            <div key={i} className="flex flex-col items-center shrink-0">
+                                {/* Ring metal loop */}
+                                <div className="w-3 sm:w-4 h-7 sm:h-8 bg-zinc-350 border-2 border-black rounded-full shadow-[2px_2px_0_0_#000]" />
+                                {/* Paper punch hole */}
+                                <div className="w-2 sm:w-2.5 h-2.5 bg-[#FDFCF8] border-2 border-black rounded-full -mt-2.5" />
+                            </div>
+                        ))}
+                    </div>
+
                     {/* Single Master Container Card */}
-                    <div className="relative flex flex-col md:flex-row bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-6xl mx-auto">
+                    <div className="relative flex flex-col md:flex-row bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_#1e1e1e] w-full max-w-6xl mx-auto">
                         
                         {/* COLUMNA IZQUIERDA: Formulario dinámico por pasos (65% del ancho) */}
                         <div className="w-full md:w-[65%] bg-white p-6 md:p-10 border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col justify-between space-y-6">
@@ -577,6 +607,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                         <Input 
                                                             id={`quote-${uniqueId}-date`} 
                                                             type="date" 
+                                                            placeholder={t("datePlaceholder")}
                                                             min={new Date().toISOString().split('T')[0]}
                                                             {...form.register("appointmentDate")} 
                                                             className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900" 
@@ -651,7 +682,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                 <div className="flex items-center gap-2.5">
                                                                     <Dog className="h-5 w-5 text-[#06B6D4]" />
                                                                     <span className="font-black text-sm uppercase tracking-tight text-neutral-900">
-                                                                        {form.watch(`pets.${index}.name`) || `${locale === "es" ? "Perro" : "Pet"} #${index + 1}`}
+                                                                        {form.watch(`pets.${index}.name`) || t("petPlaceholder", { number: index + 1 })}
                                                                     </span>
                                                                 </div>
                                                                 <div className="flex items-center gap-3">
@@ -865,49 +896,101 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                         >
                                             <div className="border-b-3 border-black pb-3">
                                                 <h3 className="font-black text-lg uppercase tracking-tight text-neutral-900 flex items-center gap-2">
-                                                    <Scissors className="h-5 w-5 text-[#06B6D4]" /> {locale === "es" ? "3. Elige los Servicios para tus Perros" : "3. Choose Services for Your Dogs"}
+                                                    <Scissors className="h-5 w-5 text-[#06B6D4]" /> {t("chooseServicesForDogs")}
                                                 </h3>
                                             </div>
 
+                                            {fields.length > 1 && (
+                                                <div className="bg-[#06B6D4]/10 border-4 border-black p-4 rounded-2xl flex items-center justify-between shadow-[4px_4px_0_0_#000] select-none">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <ShieldCheck className="h-5 w-5 text-[#06B6D4]" />
+                                                        <span className="font-black text-xs sm:text-sm uppercase tracking-tight text-neutral-805">
+                                                            {locale === "es" ? "Aplicar los mismos servicios a todas las mascotas" : "Apply the same services to all pets"}
+                                                        </span>
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={applyToAll}
+                                                        onChange={(e) => setApplyToAll(e.target.checked)}
+                                                        className="h-6 w-6 accent-[#06B6D4] border-3 border-black rounded-lg cursor-pointer shrink-0"
+                                                        title={locale === "es" ? "Aplicar los mismos servicios a todas las mascotas" : "Apply the same services to all pets"}
+                                                        aria-label={locale === "es" ? "Aplicar los mismos servicios a todas las mascotas" : "Apply the same services to all pets"}
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div className="space-y-8">
                                                 {fields.map((field, petIdx) => {
-                                                    const petName = form.watch(`pets.${petIdx}.name`) || `Perro #${petIdx + 1}`;
+                                                    if (applyToAll && petIdx > 0) return null;
+
+                                                    const petName = form.watch(`pets.${petIdx}.name`) || t("petPlaceholder", { number: petIdx + 1 });
                                                     const servicesForPet = petServices[petIdx] || { mainGrooming: "", addons: [], shampoo: "" };
 
                                                     const setMainGroomingForPet = (id: string) => {
-                                                        setPetServices(prev => ({
-                                                            ...prev,
-                                                            [petIdx]: {
+                                                        setPetServices(prev => {
+                                                            const next = { ...prev };
+                                                            next[petIdx] = {
                                                                 ...prev[petIdx],
                                                                 mainGrooming: id
+                                                            };
+                                                            if (applyToAll && petIdx === 0) {
+                                                                fields.forEach((_, i) => {
+                                                                    if (i > 0) {
+                                                                        next[i] = {
+                                                                            ...next[i],
+                                                                            mainGrooming: id
+                                                                        };
+                                                                    }
+                                                                });
                                                             }
-                                                        }));
+                                                            return next;
+                                                        });
                                                     };
 
                                                     const toggleAddonForPet = (id: string) => {
                                                         setPetServices(prev => {
+                                                            const next = { ...prev };
                                                             const currentAddons = prev[petIdx]?.addons || [];
                                                             const newAddons = currentAddons.includes(id)
                                                                 ? currentAddons.filter(x => x !== id)
                                                                 : [...currentAddons, id];
-                                                            return {
-                                                                ...prev,
-                                                                [petIdx]: {
-                                                                    ...prev[petIdx],
-                                                                    addons: newAddons
-                                                                }
+                                                            next[petIdx] = {
+                                                                ...prev[petIdx],
+                                                                addons: newAddons
                                                             };
+                                                            if (applyToAll && petIdx === 0) {
+                                                                fields.forEach((_, i) => {
+                                                                    if (i > 0) {
+                                                                        next[i] = {
+                                                                            ...next[i],
+                                                                            addons: newAddons
+                                                                        };
+                                                                    }
+                                                                });
+                                                            }
+                                                            return next;
                                                         });
                                                     };
 
                                                     const setShampooForPet = (id: string) => {
-                                                        setPetServices(prev => ({
-                                                            ...prev,
-                                                            [petIdx]: {
+                                                        setPetServices(prev => {
+                                                            const next = { ...prev };
+                                                            next[petIdx] = {
                                                                 ...prev[petIdx],
                                                                 shampoo: id
+                                                            };
+                                                            if (applyToAll && petIdx === 0) {
+                                                                fields.forEach((_, i) => {
+                                                                    if (i > 0) {
+                                                                        next[i] = {
+                                                                            ...next[i],
+                                                                            shampoo: id
+                                                                        };
+                                                                    }
+                                                                });
                                                             }
-                                                        }));
+                                                            return next;
+                                                        });
                                                     };
 
                                                     return (

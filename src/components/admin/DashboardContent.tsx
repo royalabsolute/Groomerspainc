@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +17,17 @@ import {
 import { Link } from "@/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+} from "recharts";
 
 interface DashboardContentProps {
     stats: {
@@ -30,6 +42,12 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ stats }: DashboardContentProps) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const container = {
         hidden: { opacity: 0 },
         show: {
@@ -51,16 +69,6 @@ export default function DashboardContent({ stats }: DashboardContentProps) {
     const maxIncomeVal = Math.max(...monthlyIncome.map(m => m.income), 0);
     const maxTrendVal = Math.max(...appointmentTrend.map(d => d.count), 0);
 
-    // Dynamic stylesheet generation to avoid inline styles and resolve linting errors
-    const dynamicStyles = `
-        ${monthlyIncome.map((bar, i) => `
-            .dynamic-bar-h-${i} { height: ${bar.height || "0%"}; }
-        `).join('\n')}
-        ${appointmentTrend.map((point, i) => `
-            .dynamic-point-b-${i} { bottom: ${point.height || "0%"}; }
-        `).join('\n')}
-    `;
-
     return (
         <motion.div
             variants={container}
@@ -68,8 +76,6 @@ export default function DashboardContent({ stats }: DashboardContentProps) {
             animate="show"
             className="space-y-6 pb-6 bg-transparent text-white"
         >
-            <style dangerouslySetInnerHTML={{ __html: dynamicStyles }} />
-
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
@@ -102,10 +108,10 @@ export default function DashboardContent({ stats }: DashboardContentProps) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Telemetry Charts - Apple/Linear Style Side-by-Side to optimize vertical space */}
+                {/* Telemetry Charts - Modern Recharts side by side */}
                 <motion.div variants={item} className="lg:col-span-2 space-y-6">
                     <Card className="border-[#3A3A3A] shadow-xl bg-[#1A1A1A] rounded-2xl overflow-hidden">
-                        <CardHeader className="pb-4 border-b border-[#3A3A3A]/50 flex flex-row items-center justify-between">
+                        <CardHeader className="pb-4 border-b border-[#3A3A3A]/50 flex flex-row items-center justify-between select-none">
                             <div className="flex items-center space-x-2">
                                 <Activity className="h-4.5 w-4.5 text-[#7C3AED]" />
                                 <h3 className="font-black text-xs uppercase tracking-wider text-white">Telemetría del Negocio</h3>
@@ -119,69 +125,112 @@ export default function DashboardContent({ stats }: DashboardContentProps) {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Bar Chart: Monthly Income */}
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center select-none">
                                         <div className="flex items-center space-x-2">
                                             <TrendingUp className="h-4 w-4 text-[#2ECC71]" />
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ingresos Mensuales ($)</span>
                                         </div>
                                         <span className="text-xs font-black text-[#7C3AED]">${maxIncomeVal.toLocaleString()} Max</span>
                                     </div>
-                                    <div className="h-32 flex items-end justify-between gap-2.5 pt-4 border-b border-[#3A3A3A]/50 px-1">
-                                        {monthlyIncome.map((bar, i) => (
-                                            <div key={bar.month} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-                                                <div className="w-full bg-[#252525] rounded-t-lg h-full flex items-end relative overflow-hidden">
-                                                    <div 
-                                                        className={cn(
-                                                            "w-full bg-[#7C3AED] rounded-t-lg transition-all duration-500 group-hover:opacity-90 relative",
-                                                            `dynamic-bar-h-${i}`
-                                                        )}
-                                                    >
-                                                        <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
-                                                    </div>
-                                                    {/* Tooltip */}
-                                                    <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-[#252525] text-white text-[9px] px-2 py-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-black border border-[#3A3A3A] shrink-0 z-10">
-                                                        ${bar.income}
-                                                    </span>
-                                                </div>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{bar.month}</span>
-                                            </div>
-                                        ))}
+                                    <div className="h-44 w-full pt-4 border-b border-[#3A3A3A]/20">
+                                        {mounted ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={monthlyIncome}>
+                                                    <XAxis 
+                                                        dataKey="month" 
+                                                        stroke="#64748B" 
+                                                        fontSize={9} 
+                                                        tickLine={false} 
+                                                        axisLine={false} 
+                                                    />
+                                                    <YAxis 
+                                                        stroke="#64748B" 
+                                                        fontSize={9} 
+                                                        tickLine={false} 
+                                                        axisLine={false} 
+                                                        tickFormatter={(val) => `$${val}`}
+                                                        width={35}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: '#1E1E1E', 
+                                                            borderColor: '#3A3A3A', 
+                                                            borderRadius: '12px' 
+                                                        }} 
+                                                        itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }} 
+                                                        labelStyle={{ color: '#888', fontSize: '10px', fontWeight: 'bold' }} 
+                                                        formatter={(value) => [`$${value}`, 'Ingreso']}
+                                                        cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                                                    />
+                                                    <Bar 
+                                                        dataKey="income" 
+                                                        fill="#7C3AED" 
+                                                        radius={[4, 4, 0, 0]} 
+                                                    />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full w-full bg-[#252525]/30 animate-pulse rounded-xl" />
+                                        )}
                                     </div>
                                 </div>
 
                                 {/* Line Chart: Booking Fluctuation */}
                                 <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
+                                    <div className="flex justify-between items-center select-none">
                                         <div className="flex items-center space-x-2">
                                             <CalendarCheck className="h-4 w-4 text-[#7C3AED]" />
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fluctuación de Citas Semanal</span>
                                         </div>
-                                        <span className="text-xs font-black text-[#7C3AED]">{maxTrendVal} Citas Max</span>
+                                        <span className="text-xs font-black text-[#7C3AED]">{maxTrendVal} Max</span>
                                     </div>
-                                    <div className="h-32 flex items-end justify-between gap-2.5 pt-4 border-b border-[#3A3A3A]/50 px-1">
-                                        {appointmentTrend.map((point, i) => (
-                                            <div key={point.day} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
-                                                <div className="w-full h-full flex flex-col justify-end items-center relative">
-                                                    {/* Visual grid line */}
-                                                    <div className="absolute inset-y-0 w-px bg-[#252525] left-1/2 -translate-x-1/2 border-dashed" />
-                                                    {/* Stylized dot */}
-                                                    <div 
-                                                        className={cn(
-                                                            "absolute h-3 w-3 rounded-full bg-[#7C3AED] border-2 border-[#1A1A1A] z-10 transition-all duration-300 group-hover:scale-125 shadow-[0_0_8px_rgba(124,58,237,0.4)]",
-                                                            `dynamic-point-b-${i}`
-                                                        )}
-                                                    >
-                                                        {/* Pulse Ring for high performance emphasis */}
-                                                        <span className="absolute -inset-1 rounded-full bg-[#7C3AED]/30 animate-ping pointer-events-none" />
-                                                    </div>
-                                                    {/* Tooltip */}
-                                                    <span className="absolute -top-3 bg-[#252525] text-white text-[9px] px-2 py-1 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-black border border-[#3A3A3A] shrink-0 z-20">
-                                                        {point.count}
-                                                    </span>
-                                                </div>
-                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{point.day}</span>
-                                            </div>
-                                        ))}
+                                    <div className="h-44 w-full pt-4 border-b border-[#3A3A3A]/20">
+                                        {mounted ? (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={appointmentTrend}>
+                                                    <CartesianGrid 
+                                                        strokeDasharray="3 3" 
+                                                        stroke="#222" 
+                                                        vertical={false} 
+                                                    />
+                                                    <XAxis 
+                                                        dataKey="day" 
+                                                        stroke="#64748B" 
+                                                        fontSize={9} 
+                                                        tickLine={false} 
+                                                        axisLine={false} 
+                                                    />
+                                                    <YAxis 
+                                                        stroke="#64748B" 
+                                                        fontSize={9} 
+                                                        tickLine={false} 
+                                                        axisLine={false} 
+                                                        width={20}
+                                                        allowDecimals={false}
+                                                    />
+                                                    <Tooltip 
+                                                        contentStyle={{ 
+                                                            backgroundColor: '#1E1E1E', 
+                                                            borderColor: '#3A3A3A', 
+                                                            borderRadius: '12px' 
+                                                        }} 
+                                                        itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }} 
+                                                        labelStyle={{ color: '#888', fontSize: '10px', fontWeight: 'bold' }} 
+                                                        formatter={(value) => [value, 'Citas']} 
+                                                    />
+                                                    <Line 
+                                                        type="monotone" 
+                                                        dataKey="count" 
+                                                        stroke="#10B981" 
+                                                        strokeWidth={2.5} 
+                                                        dot={{ r: 3, stroke: '#1A1A1A', strokeWidth: 1.5, fill: '#10B981' }} 
+                                                        activeDot={{ r: 5 }} 
+                                                    />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        ) : (
+                                            <div className="h-full w-full bg-[#252525]/30 animate-pulse rounded-xl" />
+                                        )}
                                     </div>
                                 </div>
                             </div>

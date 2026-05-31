@@ -218,14 +218,43 @@ export default function Navbar({ config }: NavbarProps) {
                         </div>
                     </div>
 
-                    {/* Mobile Menu Toggle */}
-                    <button
-                        className="lg:hidden h-9 w-9 rounded-xl bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center"
-                        onClick={toggleMenu}
-                        aria-label={isOpen ? "Close menu" : "Open menu"}
-                    >
-                        {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                    </button>
+                    {/* Mobile Language Switcher + Hamburger container */}
+                    <div className="flex items-center space-x-2">
+                        {/* Mobile Language Switcher (ES/EN) */}
+                        <div className="flex lg:hidden bg-white border-2 border-black p-0.5 rounded-xl shadow-[2px_2px_0px_0px_#0F172A] scale-90">
+                            <button
+                                onClick={() => changeLocale("es")}
+                                className={cn(
+                                    "text-[10px] font-black px-2.5 py-1 rounded-lg transition-all",
+                                    activeLocale === 'es' 
+                                        ? "bg-accent text-foreground border-2 border-transparent" 
+                                        : "text-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                ES
+                            </button>
+                            <button
+                                onClick={() => changeLocale("en")}
+                                className={cn(
+                                    "text-[10px] font-black px-2.5 py-1 rounded-lg transition-all",
+                                    activeLocale === 'en' 
+                                        ? "bg-accent text-foreground border-2 border-transparent" 
+                                        : "text-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                EN
+                            </button>
+                        </div>
+
+                        {/* Mobile Menu Toggle */}
+                        <button
+                            className="lg:hidden h-9 w-9 rounded-xl bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] flex items-center justify-center"
+                            onClick={toggleMenu}
+                            aria-label={isOpen ? "Close menu" : "Open menu"}
+                        >
+                            {isOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+                        </button>
+                    </div>
                 </div>
             </motion.nav>
 

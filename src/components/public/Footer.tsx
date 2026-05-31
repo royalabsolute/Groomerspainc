@@ -87,7 +87,7 @@ export default function Footer({ config, locale }: FooterProps) {
                                 <li><Link href="/" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('home')}</Link></li>
                                 <li><Link href="/#cotizar" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('services')}</Link></li>
                                 <li><Link href="/#gallery" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('gallery')}</Link></li>
-                                <li><Link href="/#cotizar" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('contact')}</Link></li>
+                                <li><Link href="/#contacto" className="hover:text-primary hover:underline decoration-[3px] underline-offset-4 transition-all">{tNav('contact')}</Link></li>
                             </ul>
                         </div>
 

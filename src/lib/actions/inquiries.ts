@@ -6,9 +6,37 @@ import fs from "fs";
 import path from "path";
 import { writeFile } from "fs/promises";
 import { isZipCodeSupported } from "@/lib/pricing";
+import { headers } from "next/headers";
+
+// Rate limiter in memory: Map of IP address -> array of request timestamps (ms)
+const rateLimitMap = new Map<string, number[]>();
 
 export async function submitInquiry(data: any) {
     try {
+        let ip = "127.0.0.1";
+        try {
+            const headersList = await headers();
+            ip = headersList.get("x-forwarded-for")?.split(",")[0] || 
+                 headersList.get("x-real-ip") || 
+                 "127.0.0.1";
+        } catch (e) {
+            console.warn("Could not retrieve IP from headers, using fallback.", e);
+        }
+
+        const now = Date.now();
+        const oneHourAgo = now - 60 * 60 * 1000; // 1 hour in ms
+
+        const clientRequests = rateLimitMap.get(ip) || [];
+        // Filter out requests older than 1 hour
+        const recentRequests = clientRequests.filter(timestamp => timestamp > oneHourAgo);
+
+        if (recentRequests.length >= 3) {
+            return { success: false, error: "Rate limit exceeded" };
+        }
+
+        // Add current request timestamp
+        recentRequests.push(now);
+        rateLimitMap.set(ip, recentRequests);
         let ownerName = "";
         let ownerEmail = "";
         let ownerPhone = "";
@@ -324,14 +352,47 @@ export async function sendBilingualQuoteEmail(id: string) {
     try {
         const quote = await (db as any).quoteRequest.findUnique({
             where: { id },
-            include: { services: true }
+            include: {
+                pets: {
+                    include: {
+                        services: true
+                    }
+                }
+            }
         });
         if (!quote) throw new Error("Quote not found");
 
-        const serviceItems = quote.services || [];
+        const petsList = quote.pets || [];
+        const petNames = petsList.map((p: any) => p.name).join(", ") || "N/A";
+        const petWeights = petsList.map((p: any) => `${p.name}: ${p.weightLbs} lbs`).join(", ") || "N/A";
 
-        const listEs = serviceItems.map((s: any) => `<li>${s.nameEs} - <strong>$${Number(s.basePrice).toFixed(2)}</strong></li>`).join("");
-        const listEn = serviceItems.map((s: any) => `<li>${s.nameEn} - <strong>$${Number(s.basePrice).toFixed(2)}</strong></li>`).join("");
+        // Build Spanish breakdown
+        let listEs = "";
+        petsList.forEach((pet: any, idx: number) => {
+            const petServices = pet.services || [];
+            const servicesListEs = petServices.map((s: any) => `<li>${s.nameEs} - <strong>$${Number(s.basePrice).toFixed(2)}</strong></li>`).join("");
+            listEs += `
+            <div style="margin-bottom: 12px; border-left: 4px solid #7C3AED; padding-left: 10px;">
+                <p style="margin: 0 0 4px; font-weight: bold; font-size: 14px;">Perro #${idx + 1}: ${pet.name} (${pet.breed}, ${pet.weightLbs} lbs)</p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #333;">
+                    ${servicesListEs || `<li>Sin servicios específicos</li>`}
+                </ul>
+            </div>`;
+        });
+
+        // Build English breakdown
+        let listEn = "";
+        petsList.forEach((pet: any, idx: number) => {
+            const petServices = pet.services || [];
+            const servicesListEn = petServices.map((s: any) => `<li>${s.nameEn} - <strong>$${Number(s.basePrice).toFixed(2)}</strong></li>`).join("");
+            listEn += `
+            <div style="margin-bottom: 12px; border-left: 4px solid #7C3AED; padding-left: 10px;">
+                <p style="margin: 0 0 4px; font-weight: bold; font-size: 14px;">Pet #${idx + 1}: ${pet.name} (${pet.breed}, ${pet.weightLbs} lbs)</p>
+                <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #333;">
+                    ${servicesListEn || `<li>No specific services</li>`}
+                </ul>
+            </div>`;
+        });
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://groomersincpetspa.com";
         const acceptUrl = `${siteUrl}/es/quote/${quote.id}/accept`; // links to acceptance page
@@ -350,17 +411,15 @@ export async function sendBilingualQuoteEmail(id: string) {
             <!-- Spanish Version -->
             <div style="margin-bottom: 30px; border-bottom: 1px dashed #DDD; padding-bottom: 24px;">
                 <p>¡Hola <strong>${quote.ownerName}</strong>!</p>
-                <p>Tu cotización para consentir a <strong>${quote.petName}</strong> ha sido revisada por nuestro especialista de spa móvil. A continuación verás el desglose final oficial:</p>
+                <p>Tu cotización para consentir a <strong>${petNames}</strong> ha sido revisada por nuestro especialista de spa móvil. A continuación verás el desglose final oficial:</p>
                 <div style="background: #FAFAFA; border: 2px solid #000; border-radius: 12px; padding: 16px; margin: 16px 0;">
-                    <ul style="margin: 0 0 12px; padding-left: 20px; font-size: 14px;">
-                        ${listEs}
-                    </ul>
-                    <p style="margin: 0; font-size: 16px; font-weight: bold; color: #7C3AED;">
+                    ${listEs}
+                    <p style="margin: 12px 0 0; font-size: 16px; font-weight: bold; color: #7C3AED;">
                         Precio Final Oficial: $${price.toFixed(2)}
                     </p>
                 </div>
                 <p style="font-size: 12px; color: #666;">
-                    * Este precio incluye el recargo por traslado y la base por peso (${quote.petWeightLbs} lbs).
+                    * Este precio incluye el recargo por traslado y la base por peso (${petWeights}).
                 </p>
                 <div style="text-align: center; margin-top: 20px;">
                     <a href="${acceptUrl}" style="display: inline-block; padding: 14px 28px; background: #2ECC71; color: #000; font-weight: 900; text-decoration: none; border-radius: 12px; border: 3px solid #000; box-shadow: 4px 4px 0 #000; text-transform: uppercase; font-size: 14px;">
@@ -372,17 +431,15 @@ export async function sendBilingualQuoteEmail(id: string) {
             <!-- English Version -->
             <div>
                 <p>Hello <strong>${quote.ownerName}</strong>!</p>
-                <p>Your spa quote to pamper <strong>${quote.petName}</strong> has been reviewed by our mobile spa specialist. Here is the official final price breakdown:</p>
+                <p>Your spa quote to pamper <strong>${petNames}</strong> has been reviewed by our mobile spa specialist. Here is the official final price breakdown:</p>
                 <div style="background: #FAFAFA; border: 2px solid #000; border-radius: 12px; padding: 16px; margin: 16px 0;">
-                    <ul style="margin: 0 0 12px; padding-left: 20px; font-size: 14px;">
-                        ${listEn}
-                    </ul>
-                    <p style="margin: 0; font-size: 16px; font-weight: bold; color: #7C3AED;">
+                    ${listEn}
+                    <p style="margin: 12px 0 0; font-size: 16px; font-weight: bold; color: #7C3AED;">
                         Official Final Price: $${price.toFixed(2)}
                     </p>
                 </div>
                 <p style="font-size: 12px; color: #666;">
-                    * This price includes travel surcharge and weight-based rate (${quote.petWeightLbs} lbs).
+                    * This price includes travel surcharge and weight-based rate (${petWeights}).
                 </p>
                 <div style="text-align: center; margin-top: 20px;">
                     <a href="${acceptUrl}" style="display: inline-block; padding: 14px 28px; background: #2ECC71; color: #000; font-weight: 900; text-decoration: none; border-radius: 12px; border: 3px solid #000; box-shadow: 4px 4px 0 #000; text-transform: uppercase; font-size: 14px;">
@@ -446,3 +503,94 @@ export async function completeInquiryPayment(id: string, amount: number, descrip
         return { success: false, error: "Failed to complete payment" };
     }
 }
+
+export async function completeInquiryWithLegal(formData: FormData) {
+    try {
+        const id = formData.get("id") as string;
+        const groomerNotes = formData.get("groomerNotes") as string || "";
+        const file = formData.get("contract") as File;
+
+        if (!id) {
+            return { success: false, error: "ID de cotización requerido" };
+        }
+        if (!file || file.size === 0) {
+            return { success: false, error: "Contrato firmado es obligatorio" };
+        }
+
+        // Subir archivo localmente
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadDir = path.join(process.cwd(), "public", "uploads", "contracts");
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, "-");
+        const filename = `${Date.now()}-${safeName}`;
+        const filePath = path.join(uploadDir, filename);
+        await writeFile(filePath, buffer);
+        const contractUrl = `/api/uploads/contracts/${filename}`;
+
+        // Obtener cotización para calcular precio final
+        const quote = await (db as any).quoteRequest.findUnique({
+            where: { id },
+            include: { pets: true }
+        });
+        if (!quote) {
+            return { success: false, error: "Cita no encontrada" };
+        }
+
+        const amount = Number(quote.finalAdminPrice || quote.systemEstimatedPrice || 0);
+        const petNames = quote.pets?.map((p: any) => p.name).join(", ") || "mascota";
+        const description = `Servicio de Estética para ${quote.ownerName} (${petNames})`;
+
+        // Buscar transacción existente de tipo INCOME para esta cita
+        const existingTx = await (db as any).transaction.findFirst({
+            where: {
+                inquiryId: id,
+                type: "INCOME"
+            }
+        });
+
+        const txOperation = existingTx
+            ? (db as any).transaction.update({
+                where: { id: existingTx.id },
+                data: {
+                    amount,
+                    description,
+                    date: new Date()
+                }
+            })
+            : (db as any).transaction.create({
+                data: {
+                    type: "INCOME",
+                    amount,
+                    description,
+                    inquiryId: id,
+                    date: new Date()
+                }
+            });
+
+        // Transacción de base de datos atómica
+        await (db as any).$transaction([
+            (db as any).quoteRequest.update({
+                where: { id },
+                data: {
+                    status: "COMPLETED",
+                    contractUrl,
+                    groomerNotes
+                }
+            }),
+            txOperation
+        ]);
+
+        revalidatePath("/admin/inquiries");
+        revalidatePath("/admin/finanzas");
+        revalidatePath("/admin/dashboard");
+
+        return { success: true, contractUrl };
+    } catch (error: any) {
+        console.error("Error in completeInquiryWithLegal Server Action:", error);
+        return { success: false, error: error.message || "Error del servidor" };
+    }
+}
+

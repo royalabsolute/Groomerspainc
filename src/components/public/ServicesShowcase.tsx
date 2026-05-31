@@ -3,11 +3,18 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    Bath, Scissors, Sparkles, Droplets, Check, ChevronDown, 
-    ShieldCheck, Heart, Clock, Star 
+import {
+    Scissors,
+    Sparkles,
+    Droplets,
+    ChevronDown,
+    ShieldCheck,
+    ArrowRight,
+    DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ServiceItem {
     id: string;
@@ -23,243 +30,286 @@ interface ServicesShowcaseProps {
     locale: string;
 }
 
-export default function ServicesShowcase({ initialServices, locale }: ServicesShowcaseProps) {
+// ─── Category config (purely visual — no hardcoded service names) ─────────────
+
+type CategoryKey = "MAIN_GROOMING" | "ADDON_TREATMENT" | "SPECIAL_SHAMPOO";
+
+const CATEGORY_CONFIG: Record<
+    CategoryKey,
+    {
+        icon: React.ElementType;
+        bg: string;
+        border: string;
+        shadow: string;
+        activeBg: string;
+        pillBg: string;
+        labelEs: string;
+        labelEn: string;
+        subtitleEs: string;
+        subtitleEn: string;
+    }
+> = {
+    MAIN_GROOMING: {
+        icon: Scissors,
+        bg: "bg-[#FEF08A]",
+        border: "border-black",
+        shadow: "shadow-[6px_6px_0px_0px_#000]",
+        activeBg: "bg-[#FEF08A]/80",
+        pillBg: "bg-[#FEF08A]",
+        labelEs: "Servicio Principal",
+        labelEn: "Main Grooming",
+        subtitleEs: "Cortes, baños y peluquería completa",
+        subtitleEn: "Haircuts, baths & full styling",
+    },
+    ADDON_TREATMENT: {
+        icon: Sparkles,
+        bg: "bg-[#BFDBFE]",
+        border: "border-black",
+        shadow: "shadow-[6px_6px_0px_0px_#000]",
+        activeBg: "bg-[#BFDBFE]/80",
+        pillBg: "bg-[#BFDBFE]",
+        labelEs: "Tratamiento / Add-on",
+        labelEn: "Treatment / Add-on",
+        subtitleEs: "Limpiezas especializadas y extras",
+        subtitleEn: "Specialized cleanings & extras",
+    },
+    SPECIAL_SHAMPOO: {
+        icon: Droplets,
+        bg: "bg-[#BCF0DA]",
+        border: "border-black",
+        shadow: "shadow-[6px_6px_0px_0px_#000]",
+        activeBg: "bg-[#BCF0DA]/80",
+        pillBg: "bg-[#BCF0DA]",
+        labelEs: "Baño Especial",
+        labelEn: "Special Bath",
+        subtitleEs: "Champús medicados y terapéuticos",
+        subtitleEn: "Medicated & therapeutic shampoos",
+    },
+};
+
+// Ordered display sequence
+const CATEGORY_ORDER: CategoryKey[] = [
+    "MAIN_GROOMING",
+    "ADDON_TREATMENT",
+    "SPECIAL_SHAMPOO",
+];
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function ServicesShowcase({
+    initialServices,
+    locale,
+}: ServicesShowcaseProps) {
     const t = useTranslations("Index");
-    const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
+    const [openCategory, setOpenCategory] = useState<CategoryKey | null>(null);
 
-    // Dynamic icon mapper based on the service name or category
-    const getServiceIcon = (nameEs: string, category: string) => {
-        const lower = nameEs.toLowerCase();
-        if (lower.includes("baño") || lower.includes("bath")) return Bath;
-        if (lower.includes("grooming") || lower.includes("corte") || lower.includes("peluquería")) return Scissors;
-        if (lower.includes("spa") || lower.includes("deluxe") || lower.includes("relajante")) return Sparkles;
-        if (lower.includes("champú") || lower.includes("shampoo") || lower.includes("hidratación")) return Droplets;
-        if (category === "MAIN_GROOMING") return Scissors;
-        if (category === "ADDON_TREATMENT") return Sparkles;
-        return Heart;
+    const toggleCategory = (cat: CategoryKey) => {
+        setOpenCategory((prev) => (prev === cat ? null : cat));
     };
 
-    // Card background color mapper to make the grid pop-art styled
-    const getCardBg = (index: number) => {
-        const colors = [
-            "bg-[#FEF08A]", // Soft Yellow
-            "bg-[#BFDBFE]", // Soft Blue
-            "bg-[#BCF0DA]", // Soft Green
-            "bg-[#FBCFE8]", // Soft Pink
-            "bg-[#DDD6FE]"  // Soft Violet
-        ];
-        return colors[index % colors.length];
-    };
-
-    // Predefined premium descriptive contents to enrich the database items
-    const getServiceDetails = (nameEs: string) => {
-        const lower = nameEs.toLowerCase();
-        
-        if (lower.includes("baño básico") || lower.includes("basic bath")) {
-            return {
-                description: locale === "es" 
-                    ? "Un tratamiento de limpieza profunda y refrescante para purificar el pelaje y la piel de tu mascota."
-                    : "A deep, refreshing cleansing treatment to purify your pet's coat and skin.",
-                inclusions: locale === "es"
-                    ? ["Champú orgánico natural", "Secado a mano termorregulado", "Limpieza de oídos suave", "Perfume hipoalergénico"]
-                    : ["Natural organic shampoo", "Temperature-regulated hand blow dry", "Gentle ear cleaning", "Hypoallergenic cologne"]
-            };
-        }
-        
-        if (lower.includes("grooming completo") || lower.includes("full grooming")) {
-            return {
-                description: locale === "es"
-                    ? "Nuestro servicio estrella diseñado para un estilizado total. Incluye baño purificante y corte de pelo profesional según la raza."
-                    : "Our signature styling package. Includes a purifying bath and a professional breed-specific haircut.",
-                inclusions: locale === "es"
-                    ? ["Corte de pelo estilizado", "Champú de avena calmante", "Limpieza profunda de oídos", "Corte y limado de uñas"]
-                    : ["Styled custom haircut", "Soothing oatmeal shampoo", "Deep ear sanitization", "Nail trimming & grinding"]
-            };
-        }
-        
-        if (lower.includes("spa deluxe") || lower.includes("spa de lujo")) {
-            return {
-                description: locale === "es"
-                    ? "La experiencia definitiva de bienestar y relajación. Tratamientos de hidratación profunda y cuidado premium."
-                    : "The ultimate wellness and relaxation package. Features deep hydration therapies and premium coat care.",
-                inclusions: locale === "es"
-                    ? ["Masaje relajante terapéutico", "Hidratación de almohadillas con bálsamo", "Cepillado de dientes", "Champú de queratina premium"]
-                    : ["Therapeutic relaxing massage", "Nail & paw balm hydration", "Teeth brushing & fresh breath", "Premium keratin shampoo"]
-            };
-        }
-
-        // Generic fallback for custom services added by admin
-        return {
-            description: locale === "es"
-                ? "Servicio personalizado adaptado a las necesidades específicas de tu mascota, garantizando el mejor cuidado profesional."
-                : "Personalized service tailored to your pet's specific needs, ensuring the best professional care.",
-            inclusions: locale === "es"
-                ? ["Champú premium adaptado", "Secado profesional a mano", "Limpieza e higiene de oídos", "Perfume protector de pelaje"]
-                : ["Tailored premium shampoo", "Hand-dry professional blow", "Ear sanitization & cleaning", "Coat protection cologne"]
-        };
-    };
-
-    const handleCardClick = (id: string) => {
-        setExpandedServiceId(expandedServiceId === id ? null : id);
-    };
+    // Group real DB services by category
+    const grouped = CATEGORY_ORDER.reduce<Record<CategoryKey, ServiceItem[]>>(
+        (acc, cat) => {
+            acc[cat] = initialServices.filter((s) => s.category === cat);
+            return acc;
+        },
+        { MAIN_GROOMING: [], ADDON_TREATMENT: [], SPECIAL_SHAMPOO: [] }
+    );
 
     return (
-        <section id="servicios" className="w-full py-20 px-4 md:px-8 bg-[#FDFCF8] relative overflow-hidden">
-            <div className="container max-w-6xl mx-auto space-y-12">
-                
-                {/* Header */}
+        <section
+            id="servicios"
+            className="w-full py-16 md:py-24 px-4 md:px-8 bg-[#FDFCF8] relative overflow-hidden"
+        >
+            <div className="container max-w-5xl mx-auto space-y-10 md:space-y-14">
+
+                {/* ── Header ───────────────────────────────────────────── */}
                 <div className="text-center space-y-4 max-w-2xl mx-auto">
                     <div className="inline-flex bg-accent text-foreground text-xs font-black uppercase tracking-widest px-4 py-1.5 border-[3px] border-black rounded-xl shadow-[3px_3px_0px_0px_#000] -rotate-1">
                         {locale === "es" ? "CUIDADO PROFESIONAL" : "PROFESSIONAL CARE"}
                     </div>
                     <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-foreground">
-                        {t("servicesTitle")} <span className="text-primary underline decoration-primary decoration-[6px] underline-offset-8">{t("servicesTitleHighlight")}</span>
+                        {t("servicesTitle")}{" "}
+                        <span className="text-primary underline decoration-primary decoration-[6px] underline-offset-8">
+                            {t("servicesTitleHighlight")}
+                        </span>
                     </h2>
                     <p className="text-base md:text-xl font-bold text-muted-foreground leading-relaxed">
-                        {t("servicesSubtitle")}
+                        {locale === "es"
+                            ? "Elige la categoría que necesita tu mascota"
+                            : "Choose the category your pet needs"}
                     </p>
                 </div>
 
-                {/* Grid Container */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {initialServices.map((service, index) => {
-                        const isExpanded = expandedServiceId === service.id;
-                        const Icon = getServiceIcon(service.nameEs, service.category);
-                        const cardBg = getCardBg(index);
-                        const details = getServiceDetails(service.nameEs);
-                        const displayName = locale === "es" ? service.nameEs : service.nameEn;
+                {/* ── Accordion List ───────────────────────────────────── */}
+                <div className="flex flex-col gap-5">
+                    {CATEGORY_ORDER.map((cat, idx) => {
+                        const cfg = CATEGORY_CONFIG[cat];
+                        const Icon = cfg.icon;
+                        const isOpen = openCategory === cat;
+                        const services = grouped[cat];
+                        const label = locale === "es" ? cfg.labelEs : cfg.labelEn;
+                        const subtitle =
+                            locale === "es" ? cfg.subtitleEs : cfg.subtitleEn;
 
                         return (
                             <motion.div
-                                key={service.id}
-                                layout="position"
+                                key={cat}
+                                layout
                                 className={cn(
-                                    "border-4 border-black bg-white rounded-3xl overflow-hidden transition-all duration-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
-                                    isExpanded 
-                                        ? "ring-4 ring-primary/20 -translate-y-1 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]" 
-                                        : "hover:-translate-y-1 hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
+                                    "border-4 border-black rounded-3xl overflow-hidden transition-shadow duration-300",
+                                    isOpen
+                                        ? "shadow-[8px_8px_0px_0px_#000]"
+                                        : "shadow-[6px_6px_0px_0px_#000] hover:shadow-[8px_8px_0px_0px_#000]"
                                 )}
                             >
-                                {/* Card Top Banner with Color Accent */}
-                                <div className={cn("h-4 border-b-4 border-black", cardBg)} />
+                                {/* ─ Giant Toggle Button ─ */}
+                                <button
+                                    onClick={() => toggleCategory(cat)}
+                                    className={cn(
+                                        "w-full flex items-center justify-between gap-4 p-6 md:p-8 transition-colors duration-200 cursor-pointer",
+                                        isOpen ? cfg.activeBg : cfg.bg,
+                                        "hover:brightness-95"
+                                    )}
+                                    aria-expanded={isOpen}
+                                >
+                                    <div className="flex items-center gap-4 md:gap-6">
+                                        {/* Icon badge */}
+                                        <div className="w-14 h-14 md:w-20 md:h-20 bg-white border-[3px] border-black rounded-2xl flex items-center justify-center shrink-0 shadow-[3px_3px_0px_0px_#000]">
+                                            <Icon className="w-7 h-7 md:w-10 md:h-10 stroke-2" />
+                                        </div>
 
-                                {/* Card Core Info */}
-                                <div className="p-6 space-y-4">
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex items-center space-x-3">
-                                            {/* Neo-brutalist Icon Box */}
-                                            <div className="w-12 h-12 bg-white border-3 border-black rounded-2xl flex items-center justify-center text-foreground shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] shrink-0">
-                                                <Icon className="w-6 h-6 stroke-[2.5]" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-black text-xl md:text-2xl uppercase tracking-tight text-foreground leading-tight">
-                                                    {displayName}
-                                                </h3>
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
-                                                    {service.category === "MAIN_GROOMING" 
-                                                        ? (locale === "es" ? "Peluquería Principal" : "Main Grooming")
-                                                        : (locale === "es" ? "Tratamiento Adicional" : "Add-on Treatment")
-                                                    }
-                                                </p>
-                                            </div>
+                                        <div className="text-left">
+                                            {/* Index pill */}
+                                            <span className="inline-block text-[10px] font-black uppercase tracking-widest bg-white border-2 border-black px-2.5 py-0.5 rounded-lg mb-1.5">
+                                                {String(idx + 1).padStart(2, "0")}
+                                            </span>
+                                            <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tight text-foreground leading-none">
+                                                {label}
+                                            </h3>
+                                            <p className="text-xs md:text-sm font-bold text-foreground/70 mt-1">
+                                                {subtitle}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {/* Quick Specs */}
-                                    <div className="flex items-center justify-between pt-2 border-t-2 border-dashed border-black/10">
-                                        <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-600">
-                                            <Clock className="w-4 h-4 text-primary shrink-0" />
-                                            <span>
-                                                {service.category === "MAIN_GROOMING"
-                                                    ? (locale === "es" ? "60-90 min" : "60-90 mins")
-                                                    : (locale === "es" ? "15-30 min" : "15-30 mins")
-                                                }
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        {/* Service count badge */}
+                                        {services.length > 0 && (
+                                            <span className="hidden sm:flex items-center gap-1.5 bg-white border-2 border-black rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-wider shadow-[2px_2px_0px_0px_#000]">
+                                                {services.length}{" "}
+                                                {locale === "es" ? "servicios" : "services"}
                                             </span>
-                                        </div>
-                                        <div className="flex items-center space-x-1 text-xs font-bold text-slate-600">
-                                            <Star className="w-4 h-4 text-accent fill-accent shrink-0" />
-                                            <span>5.0</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Button & Base Price */}
-                                    <div className="flex items-center justify-between gap-4 pt-2">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">
-                                                {t("priceBase")}
-                                            </span>
-                                            <span className="text-2xl font-black text-primary">
-                                                ${service.basePrice}
-                                            </span>
-                                        </div>
-
-                                        <button
-                                            onClick={() => handleCardClick(service.id)}
-                                            className={cn(
-                                                "px-4 py-2.5 rounded-xl border-[3px] border-black font-black text-xs uppercase tracking-wider shadow-[3px_3px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer flex items-center space-x-1.5",
-                                                isExpanded ? "bg-primary text-white" : "bg-accent text-foreground"
-                                            )}
+                                        )}
+                                        <motion.div
+                                            animate={{ rotate: isOpen ? 180 : 0 }}
+                                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                                            className="w-10 h-10 md:w-12 md:h-12 bg-white border-[3px] border-black rounded-xl flex items-center justify-center shadow-[3px_3px_0px_0px_#000]"
                                         >
-                                            <span>{isExpanded ? (locale === "es" ? "Menos" : "Less") : (locale === "es" ? "Detalles" : "Details")}</span>
-                                            <ChevronDown className={cn("w-4 h-4 stroke-3 transition-transform duration-300", isExpanded && "rotate-180")} />
-                                        </button>
+                                            <ChevronDown className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
+                                        </motion.div>
                                     </div>
+                                </button>
 
-                                    {/* Animated Expansion */}
-                                    <AnimatePresence initial={false}>
-                                        {isExpanded && (
-                                            <motion.div
-                                                initial={{ height: 0, opacity: 0 }}
-                                                animate={{ height: "auto", opacity: 1 }}
-                                                exit={{ height: 0, opacity: 0 }}
-                                                transition={{ duration: 0.3, ease: "easeInOut" }}
-                                                className="overflow-hidden"
-                                            >
-                                                <div className="pt-4 mt-4 border-t-4 border-black space-y-4">
-                                                    {/* Description */}
-                                                    <p className="text-xs font-bold text-slate-600 leading-relaxed bg-[#FDFCF8] border-2 border-black rounded-xl p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                                        {details.description}
+                                {/* ─ Expanded Content ─ */}
+                                <AnimatePresence initial={false}>
+                                    {isOpen && (
+                                        <motion.div
+                                            key="content"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="bg-white border-t-4 border-black p-6 md:p-8">
+                                                {services.length === 0 ? (
+                                                    <p className="text-sm font-bold text-muted-foreground text-center py-6">
+                                                        {locale === "es"
+                                                            ? "No hay servicios activos en esta categoría."
+                                                            : "No active services in this category."}
                                                     </p>
+                                                ) : (
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        {services.map((service, sIdx) => {
+                                                            const displayName =
+                                                                locale === "es"
+                                                                    ? service.nameEs
+                                                                    : service.nameEn;
 
-                                                    {/* Inclusions list */}
-                                                    <div className="space-y-2">
-                                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                            {locale === "es" ? "INCLUYE EN LA UNIDAD MÓVIL:" : "INCLUDED IN MOBILE UNIT:"}
-                                                        </h4>
-                                                        <ul className="grid grid-cols-1 gap-2">
-                                                            {details.inclusions.map((inclusion, idx) => (
-                                                                <li key={idx} className="flex items-center space-x-2 text-xs font-black text-slate-700">
-                                                                    <div className="w-4 h-4 rounded-md bg-secondary border border-black flex items-center justify-center shrink-0">
-                                                                        <Check className="w-3 h-3 text-primary stroke-3" />
+                                                            return (
+                                                                <motion.div
+                                                                    key={service.id}
+                                                                    initial={{ opacity: 0, y: 12 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    transition={{
+                                                                        delay: sIdx * 0.06,
+                                                                        duration: 0.25,
+                                                                    }}
+                                                                    className={cn(
+                                                                        "flex items-center justify-between gap-4 p-4 md:p-5 rounded-2xl border-[3px] border-black shadow-[3px_3px_0px_0px_#000]",
+                                                                        cfg.pillBg
+                                                                    )}
+                                                                >
+                                                                    {/* Name */}
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <div className="w-8 h-8 bg-white border-2 border-black rounded-lg flex items-center justify-center shrink-0">
+                                                                            <Icon className="w-4 h-4 stroke-2" />
+                                                                        </div>
+                                                                        <span className="font-black text-sm md:text-base uppercase tracking-tight text-foreground truncate">
+                                                                            {displayName}
+                                                                        </span>
                                                                     </div>
-                                                                    <span>{inclusion}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
 
-                                                    {/* Quick CTA to Wizard */}
+                                                                    {/* Price */}
+                                                                    <div className="flex items-center gap-2 shrink-0">
+                                                                        <div className="flex items-center gap-0.5 bg-white border-2 border-black rounded-xl px-3 py-1.5 shadow-[2px_2px_0px_0px_#000]">
+                                                                            <DollarSign className="w-3.5 h-3.5 stroke-[2.5] text-primary" />
+                                                                            <span className="font-black text-base md:text-lg text-primary leading-none">
+                                                                                {service.basePrice % 1 === 0
+                                                                                    ? service.basePrice.toFixed(0)
+                                                                                    : service.basePrice.toFixed(2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {/* CTA to quote wizard */}
+                                                <div className="mt-6 flex justify-center">
                                                     <button
                                                         onClick={() => {
-                                                            const element = document.getElementById("cotizar");
-                                                            if (element) {
-                                                                element.scrollIntoView({ behavior: "smooth" });
-                                                            }
+                                                            const el = document.getElementById("cotizar");
+                                                            if (el)
+                                                                el.scrollIntoView({ behavior: "smooth" });
                                                         }}
-                                                        className="w-full py-2.5 bg-primary hover:bg-black text-white font-black text-xs uppercase tracking-wider rounded-xl border-[3px] border-black shadow-[3px_3px_0_0_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_#000] transition-all cursor-pointer flex items-center justify-center space-x-1.5"
+                                                        className="inline-flex items-center gap-2 bg-primary text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer"
                                                     >
                                                         <ShieldCheck className="w-4 h-4" />
-                                                        <span>{t("bookNow")}</span>
+                                                        {locale === "es"
+                                                            ? "Reservar Cita"
+                                                            : "Book Appointment"}
+                                                        <ArrowRight className="w-4 h-4" />
                                                     </button>
                                                 </div>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </motion.div>
                         );
                     })}
                 </div>
+
+                {/* ── Bottom note ───────────────────────────────────────── */}
+                <p className="text-center text-xs font-bold text-foreground/50 uppercase tracking-widest">
+                    {locale === "es"
+                        ? "* Los precios son estimados. El precio final se confirma según el tamaño y condición del pelaje."
+                        : "* Prices are estimates. Final price confirmed based on size & coat condition."}
+                </p>
             </div>
         </section>
     );

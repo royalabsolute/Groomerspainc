@@ -573,9 +573,9 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={dateInputId} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Calendar className="h-4 w-4 text-[#06B6D4]" /> {t("bookingDate")}</Label>
+                                                        <Label htmlFor={`quote-${uniqueId}-date`} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Calendar className="h-4 w-4 text-[#06B6D4]" /> {t("bookingDate")}</Label>
                                                         <Input 
-                                                            id={dateInputId} 
+                                                            id={`quote-${uniqueId}-date`} 
                                                             type="date" 
                                                             min={new Date().toISOString().split('T')[0]}
                                                             {...form.register("appointmentDate")} 
@@ -584,9 +584,9 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                         {form.formState.errors.appointmentDate && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.appointmentDate.message}</p>}
                                                     </div>
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={timeSelectId} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Clock className="h-4 w-4 text-[#06B6D4]" /> {t("bookingTime")}</Label>
+                                                        <Label htmlFor={`quote-${uniqueId}-time`} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Clock className="h-4 w-4 text-[#06B6D4]" /> {t("bookingTime")}</Label>
                                                         <select
-                                                            id={timeSelectId}
+                                                            id={`quote-${uniqueId}-time`}
                                                             {...form.register("appointmentTime")}
                                                             className="flex h-12 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-slate-800"
                                                         >

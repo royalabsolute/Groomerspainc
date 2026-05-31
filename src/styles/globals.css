@@ -219,18 +219,19 @@ body::-webkit-scrollbar-thumb,
 }
 
 /* Custom scrollbar hiding utilities for Tailwind v4 */
+/* Note: scrollbar-width is for Firefox/Chrome 121+; Safari is covered by ::-webkit-scrollbar below */
 @utility scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox, Chrome 121+ */
   &::-webkit-scrollbar {
-    display: none;
+    display: none; /* Safari, Chrome < 121 */
   }
 }
 
 @utility scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox, Chrome 121+ */
   &::-webkit-scrollbar {
-    display: none;
+    display: none; /* Safari, Chrome < 121 */
   }
 }

@@ -171,7 +171,7 @@ export default function ServicesShowcase({
                                         isOpen ? cfg.activeBg : cfg.bg,
                                         "hover:brightness-95"
                                     )}
-                                    aria-expanded={isOpen}
+                                    aria-expanded={isOpen ? "true" : "false"}
                                 >
                                     <div className="flex items-center gap-4 md:gap-6">
                                         {/* Icon badge */}

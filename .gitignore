@@ -46,3 +46,6 @@ next-env.d.ts
 # Databases
 /prisma/*.db
 /prisma/*.db-journal
+
+# Editor Configurations
+.cursor/

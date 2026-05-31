@@ -181,7 +181,7 @@ export default function MobileHome({ config, locale, services, galleryItems, tra
             {/* 📱 FIXED MOBILE TOP BAR */}
             <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b-[3.5px] border-black px-5 py-3 flex items-center justify-between shadow-[0_4px_0_0_rgba(0,0,0,1)]">
                 <div className="flex items-center space-x-2">
-                    <div className="relative w-8 h-8 rounded-lg overflow-hidden border-2 border-black bg-accent flex items-center justify-center p-1">
+                    <div className="relative w-8 h-8 flex items-center justify-center">
                         <Image src="/favicon.svg" alt="Logo" width={24} height={24} className="object-contain" />
                     </div>
                     <span className="font-black text-lg tracking-tight uppercase">Groomers, INC.</span>

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Wand2, Upload, Save, X, ImageIcon } from "lucide-react";
+import { Wand2, Upload, Save, X, ImageIcon, Calendar, Sparkles } from "lucide-react";
 import { createTransformation, updateTransformation } from "@/lib/actions/transformations";
 import { translateText } from "@/lib/actions/translate";
 import { useTranslations } from "next-intl";
@@ -206,7 +206,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                     {/* Date & Visibility */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label className="font-bold text-slate-300">📅 {t("serviceDate")}</Label>
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><Calendar className="h-4 w-4 text-[#7C3AED] shrink-0" /> <span>{t("serviceDate")}</span></Label>
                             <Input 
                                 type="date" 
                                 value={serviceDate} 
@@ -224,7 +224,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                                     id="visible-switch"
                                 />
                                 <label htmlFor="visible-switch" className="text-sm font-semibold text-slate-300 cursor-pointer">
-                                    {visible ? `✔ ${t("visibleStatus")}` : `● ${t("hiddenStatus")}`}
+                                    {visible ? `${t("visibleStatus")}` : `${t("hiddenStatus")}`}
                                 </label>
                             </div>
                         </div>
@@ -233,7 +233,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                     {/* Description - Bilingual Input */}
                     <div className="space-y-4">
                         <div className="space-y-2 relative">
-                            <Label className="font-bold text-slate-300">🇪🇸 {t("descriptionEs")}</Label>
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><span className="text-[10px] bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">ES</span> <span>{t("descriptionEs")}</span></Label>
                             <Textarea
                                 value={descriptionEs}
                                 onChange={(e) => setDescriptionEs(e.target.value)}
@@ -255,7 +255,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                         </div>
 
                         <div className="space-y-2 relative">
-                            <Label className="font-bold text-slate-300">🇺🇸 {t("descriptionEn")}</Label>
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><span className="text-[10px] bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded uppercase tracking-wider font-extrabold">EN</span> <span>{t("descriptionEn")}</span></Label>
                             <Textarea
                                 value={descriptionEn}
                                 onChange={(e) => setDescriptionEn(e.target.value)}
@@ -281,7 +281,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Before */}
                         <div className="space-y-2">
-                            <Label className="font-bold text-slate-300">📸 {t("beforePhoto")}</Label>
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><ImageIcon className="h-4 w-4 text-slate-400 shrink-0" /> <span>{t("beforePhoto")}</span></Label>
                             <label className="block cursor-pointer">
                                 <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#7C3AED]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
                                     {beforePreview ? (
@@ -309,7 +309,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
 
                         {/* After */}
                         <div className="space-y-2">
-                            <Label className="font-bold text-slate-300">✨ {t("afterPhoto")}</Label>
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-[#7C3AED] shrink-0" /> <span>{t("afterPhoto")}</span></Label>
                             <label className="block cursor-pointer">
                                 <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#7C3AED]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
                                     {afterPreview ? (

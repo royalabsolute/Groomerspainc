@@ -49,13 +49,13 @@ export default function Navbar({ config }: NavbarProps) {
                 window.requestAnimationFrame(() => {
                     setScrolled(window.scrollY > 50);
 
-                    const sections = ["cotizar", "gallery"];
+                    const sections = ["cotizar", "gallery", "contacto"];
                     let current = "";
 
                     const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100;
 
                     if (isAtBottom) {
-                        current = "cotizar";
+                        current = "contacto";
                     } else if (window.scrollY < 100) {
                         current = "home";
                     } else {
@@ -63,7 +63,7 @@ export default function Navbar({ config }: NavbarProps) {
                             const element = document.getElementById(section);
                             if (element) {
                                 const rect = element.getBoundingClientRect();
-                                if (rect.top <= 150 && rect.bottom >= 150) {
+                                if (rect.top <= 180 && rect.bottom >= 180) {
                                     current = section;
                                     break;
                                 }
@@ -100,7 +100,7 @@ export default function Navbar({ config }: NavbarProps) {
         { href: "/#cotizar", id: "services", label: t("services") },
         ...(config?.transformationsEnabled ? [{ href: "/transformaciones", id: "transformations", label: t("transformations") }] : []),
         { href: "/#gallery", id: "gallery", label: t("gallery") },
-        { href: "/#cotizar", id: "contact", label: t("contact") },
+        { href: "/#contacto", id: "contact", label: t("contact") },
     ];
 
     const changeLocale = (newLocale: "es" | "en") => {
@@ -114,8 +114,11 @@ export default function Navbar({ config }: NavbarProps) {
         if (pathname !== "/" && pathname !== "/es" && pathname !== "/en") {
             return false;
         }
-        if (linkId === "services" || linkId === "contact") {
+        if (linkId === "services") {
             return activeSection === "cotizar";
+        }
+        if (linkId === "contact") {
+            return activeSection === "contacto";
         }
         return activeSection === linkId || (linkId === 'home' && activeSection === '');
     };

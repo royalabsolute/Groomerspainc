@@ -71,7 +71,7 @@ export default function HeroSection({ config, locale }: HeroSectionProps) {
                                     : "Your best friend deserves to"
                                 }
                                 <span className="block text-primary">{
-                                    locale === 'es' ? "¡ESPECTACULAR! 🐾" : "LOOK AMAZING! 🐾"
+                                    locale === 'es' ? "¡ESPECTACULAR!" : "LOOK AMAZING!"
                                 }</span>
                             </p>
 
@@ -84,18 +84,15 @@ export default function HeroSection({ config, locale }: HeroSectionProps) {
                             <div className="flex flex-wrap gap-6 pt-4">
                                 <Button 
                                     size="lg" 
-                                    className="h-16 px-10 text-lg font-black bg-primary text-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#0F172A] transition-all"
-                                    asChild
+                                    className="h-16 px-10 text-lg font-black bg-primary text-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#0F172A] transition-all cursor-pointer"
+                                    onClick={() => {
+                                        const element = document.getElementById("cotizar");
+                                        if (element) {
+                                            element.scrollIntoView({ behavior: "smooth" });
+                                        }
+                                    }}
                                 >
-                                    <Link href="/#cotizar">{t('bookNow')}</Link>
-                                </Button>
-                                <Button 
-                                    size="lg" 
-                                    variant="outline"
-                                    className="h-16 px-10 text-lg font-black bg-white border-[3px] border-black rounded-2xl shadow-[6px_6px_0px_0px_#0F172A] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#0F172A] transition-all hover:bg-secondary/10"
-                                    asChild
-                                >
-                                    <Link href="/#cotizar">{t('viewServices')}</Link>
+                                    {t('bookNow')}
                                 </Button>
                             </div>
                         </m.div>

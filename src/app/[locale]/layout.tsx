@@ -76,10 +76,6 @@ export default async function RootLayout({
     const messages = await getMessages();
     const config = await getConfig();
 
-    const headersList = await headers();
-    const userAgent = headersList.get('user-agent') || '';
-    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
-
     return (
         <html lang={locale} className={`${fredoka.variable} overflow-x-hidden`} suppressHydrationWarning>
             <head>
@@ -89,11 +85,7 @@ export default async function RootLayout({
                 <NextIntlClientProvider messages={messages}>
                     <RealtimeListener />
                     <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
-                        {!isMobile && (
-                            <div className="hidden md:block">
-                                <Navbar config={config} />
-                            </div>
-                        )}
+                        <Navbar config={config} />
                         <main className="flex-1 w-full overflow-x-hidden">{children}</main>
                     </div>
                     <Toaster richColors position="top-right" />

@@ -341,7 +341,7 @@ export async function sendBilingualQuoteEmail(id: string) {
         const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 4px solid #000; border-radius: 16px; background: #FFF; color: #111; box-shadow: 6px 6px 0 #7C3AED;">
             <div style="text-align: center; border-bottom: 3px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
-                <h1 style="margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase;">🐾 Groomers Inc.</h1>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase;">Groomers Inc.</h1>
                 <p style="margin: 4px 0 0; font-size: 12px; font-weight: bold; color: #7C3AED; text-transform: uppercase; letter-spacing: 2px;">
                     Florida Mobile Pet Grooming Spa
                 </p>
@@ -396,7 +396,7 @@ export async function sendBilingualQuoteEmail(id: string) {
         const { sendEmail } = await import('@/lib/email');
         await sendEmail({
             to: quote.ownerEmail,
-            subject: `🐾 Tu Cotización Oficial de GroomingPet / Your Official GroomingPet Spa Quote`,
+            subject: `Tu Cotización Oficial de GroomingPet / Your Official GroomingPet Spa Quote`,
             html: emailHtml
         });
 

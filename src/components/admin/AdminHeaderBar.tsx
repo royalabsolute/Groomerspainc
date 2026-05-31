@@ -74,7 +74,7 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
             if (!notifiedIdsRef.current.includes(inq.id)) {
                 notifiedIdsRef.current.push(inq.id);
                 
-                new Notification("GroomingPet: Nueva Solicitud 🐾", {
+                new Notification("GroomingPet: Nueva Solicitud", {
                     body: `Cliente: ${inq.name} - Mascota(s): ${inq.petName || "N/A"}`,
                     icon: "/favicon.svg"
                 });

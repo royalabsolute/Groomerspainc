@@ -193,8 +193,8 @@ export default function TransformationsSection({ items, locale }: Transformation
                             <div className="px-6 md:px-8 pb-8 pt-2 space-y-5 relative z-10">
                                 {/* Pet Name Card Heading */}
                                 <div className="flex items-center justify-between gap-4 flex-wrap">
-                                    <h3 className="font-black text-3xl sm:text-4xl tracking-tight uppercase [text-shadow:2px_2px_0_#000,2px_-2px_0_#000,-2px_2px_0_#000,-2px_-2px_0_#000] text-white wrap-break-word w-full sm:w-auto">
-                                        ✨ {item.petName}
+                                    <h3 className="font-black text-3xl sm:text-4xl tracking-tight uppercase [text-shadow:2px_2px_0_#000,2px_-2px_0_#000,-2px_2px_0_#000,-2px_-2px_0_#000] text-white wrap-break-word w-full sm:w-auto flex items-center gap-2">
+                                        <Sparkles className="h-7 w-7 text-accent shrink-0" /> {item.petName}
                                     </h3>
                                     
                                     {/* Service Date Badge */}

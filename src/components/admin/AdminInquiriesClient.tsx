@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { 
     Mail, Phone, Calendar, User, Search, Trash2, CheckCircle2, Clock, 
     Sparkles, Image as ImageIcon, DollarSign, X, ShieldCheck, Footprints,
-    MessageSquare, Send, Award, Droplets
+    MessageSquare, Send, Award, Droplets, Dog, MapPin, Tag
 } from "lucide-react";
 import { 
     deleteInquiry, 
@@ -210,8 +210,8 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
         // Pre-written professional message
         const isEn = !!item.discountCode; // simple heuristic for demo
         const msg = isEn 
-            ? `Hello ${item.name}! Your quote to pamper ${item.petName} is ready. 🐾\n\nIncluded: ${serviceNames || "Grooming"}\nOfficial Price: $${price.toFixed(2)}\n\nAccept & Book your spot here: ${acceptUrl}\n\nThank you!`
-            : `¡Hola ${item.name}! El estimado para consentir a ${item.petName} está listo. 🐾\n\nIncluye: ${serviceNames || "Grooming"}\nPrecio Oficial: $${price.toFixed(2)}\n\nAcepta y Confirma tu cita aquí: ${acceptUrl}\n\n¡Gracias!`;
+            ? `Hello ${item.name}! Your quote to pamper ${item.petName} is ready. [GroomingPet]\n\nIncluded: ${serviceNames || "Grooming"}\nOfficial Price: $${price.toFixed(2)}\n\nAccept & Book your spot here: ${acceptUrl}\n\nThank you!`
+            : `¡Hola ${item.name}! El estimado para consentir a ${item.petName} está listo. [GroomingPet]\n\nIncluye: ${serviceNames || "Grooming"}\nPrecio Oficial: $${price.toFixed(2)}\n\nAcepta y Confirma tu cita aquí: ${acceptUrl}\n\n¡Gracias!`;
 
         return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     };
@@ -387,15 +387,15 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         </div>
 
                                         {/* Contact Card */}
-                                        <div className="bg-[#252525]/60 border border-[#3A3A3A] rounded-xl p-4 space-y-1 text-xs text-slate-300">
-                                            <p className="font-bold">📧 {item.email}</p>
-                                            <p className="font-bold">📞 {item.phone}</p>
-                                            <p className="text-slate-400 pt-1 border-t border-[#3D3D3D] mt-1.5">📍 {item.address} (ZIP: {item.zipCode})</p>
+                                        <div className="bg-[#252525]/60 border border-[#3A3A3A] rounded-xl p-4 space-y-2 text-xs text-slate-300">
+                                            <p className="font-bold flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {item.email}</p>
+                                            <p className="font-bold flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {item.phone}</p>
+                                            <p className="text-slate-400 pt-1.5 border-t border-[#3D3D3D] mt-1.5 flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" /> <span>{item.address} (ZIP: {item.zipCode})</span></p>
                                         </div>
 
                                         {/* Pet spec */}
-                                        <div className="bg-[#202020] border border-[#2D2D2D] rounded-xl p-3 flex justify-between text-xs text-slate-400">
-                                            <span>🐶 <strong>{item.petName}</strong> ({item.breed})</span>
+                                        <div className="bg-[#202020] border border-[#2D2D2D] rounded-xl p-3 flex justify-between items-center text-xs text-slate-400">
+                                            <span className="flex items-center gap-1.5"><Dog className="h-3.5 w-3.5 text-[#06B6D4] shrink-0" /> <span><strong>{item.petName}</strong> ({item.breed})</span></span>
                                             <span className="text-[#F53F85] font-black">{item.petWeight} lbs</span>
                                         </div>
 
@@ -444,14 +444,14 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                 
                                 {/* 1. Owner & Address Grid */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-1.5 shadow-[4px_4px_0_0_#000]">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2">👤 Cliente</h4>
+                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-2 shadow-[4px_4px_0_0_#000]">
+                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2 flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-[#7C3AED]" /> <span>Cliente</span></h4>
                                         <p className="font-black text-black">{selectedItem.name}</p>
-                                        <p className="text-xs font-bold text-slate-600">✉️ {selectedItem.email}</p>
-                                        <p className="text-xs font-bold text-slate-600">📞 {selectedItem.phone}</p>
+                                        <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {selectedItem.email}</p>
+                                        <p className="text-xs font-bold text-slate-600 flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" /> {selectedItem.phone}</p>
                                     </div>
-                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-1.5 shadow-[4px_4px_0_0_#000]">
-                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2">📍 Destino</h4>
+                                    <div className="bg-white border-3 border-black rounded-xl p-4 space-y-2 shadow-[4px_4px_0_0_#000]">
+                                        <h4 className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest border-b-2 border-black/10 pb-1.5 mb-2 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#7C3AED]" /> <span>Destino</span></h4>
                                         <p className="font-black text-black">{selectedItem.address}</p>
                                         <p className="text-xs font-bold text-slate-600">Florida (ZIP: {selectedItem.zipCode})</p>
                                     </div>
@@ -460,7 +460,7 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                 {/* 2 & 3 & 4. Loop over each Pet in the list */}
                                 <div className="space-y-4">
                                     <h4 className="text-[11px] font-black text-[#7C3AED] uppercase tracking-widest border-b-3 border-black pb-1.5 flex items-center gap-2">
-                                        🐶 Mascotas y Servicios Solicitados ({selectedItem.pets?.length || 0})
+                                        <Dog className="h-4 w-4 text-[#7C3AED]" /> Mascotas y Servicios Solicitados ({selectedItem.pets?.length || 0})
                                     </h4>
                                     {(selectedItem.pets && selectedItem.pets.length > 0 ? selectedItem.pets : [
                                         {
@@ -485,8 +485,8 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                         return (
                                             <div key={pet.id} className="bg-white border-3 border-black rounded-xl p-4 space-y-4 shadow-[4px_4px_0_0_#000]">
                                                 <div className="flex justify-between items-center border-b-2 border-black/10 pb-2">
-                                                    <span className="font-black text-xs uppercase tracking-widest text-[#7C3AED]">
-                                                        🐕 Perro #{idx + 1}: {pet.name}
+                                                    <span className="font-black text-xs uppercase tracking-widest text-[#7C3AED] flex items-center gap-1.5">
+                                                        <Dog className="h-3.5 w-3.5 text-[#7C3AED]" /> Perro #{idx + 1}: {pet.name}
                                                     </span>
                                                     <span className={cn(
                                                         "text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border-2 border-black shadow-[1px_1px_0_0_#000]",
@@ -501,9 +501,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-bold">
                                                     {/* Specs */}
                                                     <div className="space-y-2">
-                                                        <div>🏷️ <span className="text-slate-500">Raza:</span> <strong className="text-black">{pet.breed}</strong></div>
-                                                        <div>⚖️ <span className="text-slate-500">Peso:</span> <strong className="text-[#F53F85]">{pet.weight} lbs</strong></div>
-                                                        <div>🎂 <span className="text-slate-500">Edad:</span> <strong className="text-black">{pet.age}</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Tag className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="text-slate-500">Raza:</span> <strong className="text-black">{pet.breed}</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Footprints className="h-3.5 w-3.5 text-[#F53F85] shrink-0" /> <span className="text-slate-500">Peso:</span> <strong className="text-[#F53F85]">{pet.weight} lbs</strong></div>
+                                                        <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" /> <span className="text-slate-500">Edad:</span> <strong className="text-black">{pet.age}</strong></div>
                                                         
                                                         {/* Pet services list */}
                                                         <div className="pt-2 border-t-2 border-black/10 space-y-2 mt-2">
@@ -586,8 +586,8 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
 
                                     {/* Adjust Price form */}
                                     <form onSubmit={handleSavePrice} className="space-y-3 pt-4 border-t-3 border-black border-dashed">
-                                        <Label htmlFor="finalPrice" className="text-xs font-black uppercase tracking-wider text-neutral-800 block">
-                                            💰 Corregir Tarifa Oficial Final ($)
+                                        <Label htmlFor="finalPrice" className="text-xs font-black uppercase tracking-wider text-neutral-800 flex items-center gap-1.5">
+                                            <DollarSign className="h-4 w-4 text-[#2ECC71]" /> <span>Corregir Tarifa Oficial Final ($)</span>
                                         </Label>
                                         <div className="flex gap-2">
                                             <Input 
@@ -661,9 +661,9 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
                                             type="button"
                                             size="sm"
                                             onClick={() => handleStatusUpdate(selectedItem.id, "COMPLETED")}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1"
                                         >
-                                            ✓ Finalizar e Marcar Pago
+                                            <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar e Marcar Pago
                                         </Button>
                                     )}
                                     {selectedItem.status !== "REJECTED" ? (

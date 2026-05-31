@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/navigation";
-import { Instagram, X, Lock } from "lucide-react";
+import { Instagram, X, Lock, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { DogCollage } from "./DogCollage";
 import { CloudDoodle, StripedCloudDoodle, DiagonalLinesDoodle, CyanPlusDoodle } from "./Doodles";
@@ -30,7 +30,7 @@ export default function Footer({ config, locale }: FooterProps) {
     const tNav = useTranslations("Navigation");
 
     return (
-        <footer className="mt-40 pb-12 px-4 md:px-8 relative overflow-visible">
+        <footer id="contacto" className="mt-40 pb-12 px-4 md:px-8 relative overflow-visible">
             {/* Perro 2 sitting on top of the footer card */}
             <div className="absolute top-[-310px] left-[5%] md:left-[10%] w-[350px] h-[350px] z-30 pointer-events-none hidden sm:block">
                 <DogCollage src="/assets/perro_2.svg" variant="B" />
@@ -71,8 +71,8 @@ export default function Footer({ config, locale }: FooterProps) {
                         </p>
                         
                         <div className="inline-flex flex-col bg-secondary border-[3px] border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#0F172A] font-black uppercase text-sm tracking-widest gap-2 rotate-1">
-                            <p className="flex items-center gap-2">📍 {config?.address || "123 Miami Ave, Miami, FL 33101"}</p>
-                            <p className="flex items-center gap-2">📞 {config?.phone || "(305) 555-0123"}</p>
+                            <p className="flex items-center gap-2"><MapPin className="h-4.5 w-4.5 text-primary shrink-0" /> {config?.address || "123 Miami Ave, Miami, FL 33101"}</p>
+                            <p className="flex items-center gap-2"><Phone className="h-4.5 w-4.5 text-accent shrink-0" /> {config?.phone || "(305) 555-0123"}</p>
                         </div>
                     </div>
 
@@ -147,7 +147,7 @@ export default function Footer({ config, locale }: FooterProps) {
                     </div>
                     
                     <div className="text-sm font-black text-foreground uppercase tracking-widest text-center md:text-right bg-accent px-5 py-3 border-[3px] border-black rounded-xl rotate-1 shadow-[4px_4px_0px_0px_#0F172A]">
-                        &copy; {new Date().getFullYear()} GroomingPet. <br className="md:hidden" /> {t('Footer.rights')} 🫧 Miami
+                        &copy; {new Date().getFullYear()} GroomingPet. <br className="md:hidden" /> {t('Footer.rights')} Miami
                     </div>
                 </div>
             </div>

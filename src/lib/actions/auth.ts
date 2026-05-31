@@ -34,7 +34,7 @@ export async function forgotPassword(email: string) {
         const { sendEmail } = await import('@/lib/email');
         await sendEmail({
             to: email,
-            subject: "🐾 GroomingPet - Recuperación de Contraseña",
+            subject: "GroomingPet - Recuperación de Contraseña",
             html: `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -50,7 +50,7 @@ export async function forgotPassword(email: string) {
   <tr>
     <td style="background:#7C3AED;border-bottom:4px solid #000000;padding:32px 30px 28px;text-align:center;">
       <div style="display:inline-block;background:#121212;color:#ffffff;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:3px;padding:5px 16px;border:2px solid #000000;border-radius:100px;box-shadow:3px 3px 0 #000000;margin-bottom:20px;">
-        🔐 &nbsp;SEGURIDAD &nbsp;·&nbsp; Recuperar Acceso
+        SEGURIDAD &nbsp;·&nbsp; Recuperar Acceso
       </div>
       <h1 style="margin:0;font-size:28px;font-weight:900;color:#ffffff;text-transform:uppercase;letter-spacing:-1px;line-height:1.1;">
         ¿OLVIDASTE TU CLAVE?

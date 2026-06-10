@@ -36,7 +36,10 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN apt-get update && apt-get install -y openssl unzip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl unzip ffmpeg python3 curl && \
+    curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 --gid 1001 nextjs

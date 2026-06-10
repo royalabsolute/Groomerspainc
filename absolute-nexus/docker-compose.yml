@@ -22,3 +22,4 @@ services:
       - RCON_PASSWORD=tu_contraseña_segura
     volumes:
       - /var/minecraft/server:/var/minecraft/server
+      - /var/nexus/music:/app/music_storage

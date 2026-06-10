@@ -20,6 +20,7 @@ import AppSidebar from "@/components/AppSidebar";
 import SecondaryPanel from "@/components/SecondaryPanel";
 import ContentArea from "@/components/ContentArea";
 import RightPanel from "@/components/RightPanel";
+import MusicPlayer, { SongData } from "@/components/MusicPlayer";
 
 export default function NexusDashboard() {
   // ── Server state (shared between ContentArea and RightPanel) ──────────────
@@ -30,6 +31,20 @@ export default function NexusDashboard() {
   const [cpuUsage, setCpuUsage] = useState(0);
   const [ramUsage, setRamUsage] = useState(0);
   const [diskUsage, setDiskUsage] = useState(45.2);
+
+  // ── Music Player States ────────────────────────────────────────────────────
+  const [currentSong, setCurrentSong] = useState<SongData | null>({
+    id: "lofi-focus",
+    title: "Lofi Focus Beat",
+    artist: "Absolute Nexus Music",
+    duration: 180,
+    thumbnail: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=120&auto=format&fit=crop&q=60",
+    type: "LOCAL",
+  });
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackProgress, setPlaybackProgress] = useState(45);
+  const [volume, setVolume] = useState(50);
+  const [isSyncActive, setIsSyncActive] = useState(false);
 
   // ── Polling: logs + status ─────────────────────────────────────────────────
   useEffect(() => {
@@ -93,10 +108,57 @@ export default function NexusDashboard() {
     return () => clearInterval(interval);
   }, [serverStatus]);
 
+  // ── Music Track Progression Timer ──────────────────────────────────────────
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isPlaying && currentSong) {
+      timer = setInterval(() => {
+        setPlaybackProgress((prev) => {
+          if (prev >= currentSong.duration) {
+            setIsPlaying(false);
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying, currentSong]);
+
+  const handlePlaySong = (song: SongData) => {
+    setCurrentSong(song);
+    setPlaybackProgress(0);
+    setIsPlaying(true);
+  };
+
+  const handleTogglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (seconds: number) => {
+    setPlaybackProgress(seconds);
+  };
+
+  const handleVolumeChange = (vol: number) => {
+    setVolume(vol);
+  };
+
+  const handleToggleSync = () => {
+    setIsSyncActive(!isSyncActive);
+  };
+
+  const handleSkipBack = () => {
+    setPlaybackProgress(0);
+  };
+
+  const handleSkipForward = () => {
+    setPlaybackProgress(0);
+  };
+
   // ── Layout ─────────────────────────────────────────────────────────────────
   return (
     <NavigationProvider>
-      <div className="flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans">
+      <div className="flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans pb-24">
 
         {/* ── Col 1: App Switcher (72px) ── */}
         <AppSidebar />
@@ -115,6 +177,10 @@ export default function NexusDashboard() {
           cpuUsage={cpuUsage}
           ramUsage={ramUsage}
           diskUsage={diskUsage}
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          onPlaySong={handlePlaySong}
+          onTogglePlay={handleTogglePlay}
         />
 
         {/* ── Col 4: Dynamic Right Panel (240px) ── */}
@@ -126,6 +192,20 @@ export default function NexusDashboard() {
         />
 
       </div>
+
+      <MusicPlayer
+        currentSong={currentSong}
+        isPlaying={isPlaying}
+        playbackProgress={playbackProgress}
+        volume={volume}
+        isSyncActive={isSyncActive}
+        onTogglePlay={handleTogglePlay}
+        onSeek={handleSeek}
+        onVolumeChange={handleVolumeChange}
+        onToggleSync={handleToggleSync}
+        onSkipBack={handleSkipBack}
+        onSkipForward={handleSkipForward}
+      />
     </NavigationProvider>
   );
 }

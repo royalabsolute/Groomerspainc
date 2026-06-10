@@ -26,6 +26,10 @@ conn.on('ready', () => {
     'npx prisma generate',
     'npm run build',
     'pm2 restart groomingpet',
+    'cd absolute-nexus',
+    'docker compose down || true',
+    'docker compose build --no-cache',
+    'docker compose up -d',
     'pm2 status'
   ].join(' && ');
 

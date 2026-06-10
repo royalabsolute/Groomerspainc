@@ -16,6 +16,7 @@ import {
   Mic,
   MicOff,
   Headphones,
+  Users,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG, Channel } from "@/context/NavigationContext";
 import { signOut } from "next-auth/react";

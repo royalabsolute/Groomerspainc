@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/navigation";
-import { Instagram, X, Lock, MapPin, Phone } from "lucide-react";
+import { Instagram, X, Lock, MapPin, Phone, Mail } from "lucide-react";
 import Image from "next/image";
 import { DogCollage } from "./DogCollage";
 import { CloudDoodle, StripedCloudDoodle, DiagonalLinesDoodle, CyanPlusDoodle } from "./Doodles";
@@ -51,10 +51,10 @@ export default function Footer({ config, locale }: FooterProps) {
             <div className="container max-w-7xl mx-auto bg-white border-4 border-black rounded-4xl shadow-[12px_12px_0px_0px_#0F172A] p-8 md:p-12 relative z-10 flex flex-col gap-10">
                 
                 {/* Top Section: Branding & Links */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-8 md:gap-16">
                     
                     {/* Left: Branding & Info */}
-                    <div className="lg:col-span-5 space-y-8">
+                    <div className="md:col-span-5 space-y-8">
                         <Link href="/" className="inline-block hover:scale-105 hover:translate-y-[-2px] transition-all -rotate-1">
                             <div className="relative h-32 w-64 sm:h-40 sm:w-80 md:h-48 md:w-96">
                                 <Image
@@ -70,14 +70,15 @@ export default function Footer({ config, locale }: FooterProps) {
                             {locale === 'es' ? (config?.footerDescEs || t('Footer.description')) : (config?.footerDescEn || t('Footer.description'))}
                         </p>
                         
-                        <div className="inline-flex flex-col bg-secondary border-[3px] border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#0F172A] font-black uppercase text-sm tracking-widest gap-2 rotate-1">
+                        <div className="flex md:inline-flex flex-col bg-secondary border-[3px] border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#0F172A] font-black uppercase text-sm tracking-widest gap-2 rotate-1">
                             <p className="flex items-center gap-2"><MapPin className="h-4.5 w-4.5 text-primary shrink-0" /> {config?.address || "123 Miami Ave, Miami, FL 33101"}</p>
                             <p className="flex items-center gap-2"><Phone className="h-4.5 w-4.5 text-accent shrink-0" /> {config?.phone || "(305) 555-0123"}</p>
+                            <p className="flex items-center gap-2"><Mail className="h-4.5 w-4.5 text-info shrink-0" /> {config?.email || "hola@groomingpet.com"}</p>
                         </div>
                     </div>
 
                     {/* Right: Links */}
-                    <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-8">
+                    <div className="md:col-span-7 flex flex-col md:grid md:grid-cols-3 gap-8">
                         {/* Column 1 */}
                         <div className="space-y-6">
                             <h3 className="font-black text-lg uppercase tracking-widest bg-primary text-white inline-block px-4 py-1.5 border-[3px] border-black rounded-xl shadow-[4px_4px_0px_0px_#0F172A] -rotate-2">

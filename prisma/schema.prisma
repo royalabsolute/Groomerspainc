@@ -140,6 +140,10 @@ model SiteConfig {
   workingHoursEnd           String? @default("18:00")
   workingDays               String? @default("1,2,3,4,5")
   blockedDates              String?
+  weightTier1Price          Float?  @default(45.0)
+  weightTier2Price          Float?  @default(60.0)
+  weightTier3Price          Float?  @default(75.0)
+  weightTier4Price          Float?  @default(95.0)
 }
 
 model Transformation {
@@ -150,6 +154,7 @@ model Transformation {
   serviceDate           DateTime
   beforePhotoUrl        String   // Ruta local NVMe
   afterPhotoUrl         String   // Ruta local NVMe
+  contractImage         String?  // Documento/Contrato de Evaluación (portafolio)
   technicalDescriptionEs String
   technicalDescriptionEn String
   visible               Boolean  @default(true)
@@ -270,4 +275,15 @@ model PetProfile {
   updatedAt             DateTime      @updatedAt
 
   @@index([quoteRequestId])
+}
+
+model ServiceZone {
+  zipCode       String   @id
+  name          String
+  distanceMiles Float
+  travelFee     Float
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

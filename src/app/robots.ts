@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
             allow: '/',
             disallow: ['/admin/', '/login-admin/', '/api/'],
         },
-        sitemap: 'https://groomingpetmiami.com/sitemap.xml',
+        sitemap: 'https://groomersincathome.com/sitemap.xml',
     };
 }

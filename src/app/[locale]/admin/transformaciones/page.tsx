@@ -14,6 +14,7 @@ export default async function AdminTransformationsPage() {
         serviceDate: t.serviceDate.toISOString(),
         beforePhotoUrl: t.beforePhotoUrl,
         afterPhotoUrl: t.afterPhotoUrl,
+        contractImage: t.contractImage,
         descriptionEs: t.technicalDescriptionEs,
         descriptionEn: t.technicalDescriptionEn,
         visible: t.visible,

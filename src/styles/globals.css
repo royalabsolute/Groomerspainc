@@ -235,3 +235,77 @@ body::-webkit-scrollbar-thumb,
     display: none; /* Safari, Chrome < 121 */
   }
 }
+
+/* ==========================================
+   SERIOUS DARK GIS MAP & LEAFLET OVERRIDES
+   ========================================== */
+.leaflet-container {
+  background: #121212 !important;
+  font-family: var(--font-sans), system-ui, sans-serif !important;
+}
+
+/* Beautiful Transparent Dark Blurred Tooltips */
+.leaflet-tooltip.gis-serious-tooltip,
+.leaflet-tooltip.gis-serious-tooltip-dark {
+  background: rgba(26, 26, 26, 0.95) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #e0e0e0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 6px 10px !important;
+  white-space: nowrap !important;
+}
+
+/* Adjust tooltip arrows for clean look */
+.leaflet-tooltip-top.gis-serious-tooltip::before,
+.leaflet-tooltip-top.gis-serious-tooltip-dark::before {
+  border-top-color: rgba(26, 26, 26, 0.95) !important;
+}
+.leaflet-tooltip-bottom.gis-serious-tooltip::before,
+.leaflet-tooltip-bottom.gis-serious-tooltip-dark::before {
+  border-bottom-color: rgba(26, 26, 26, 0.95) !important;
+}
+.leaflet-tooltip-left.gis-serious-tooltip::before,
+.leaflet-tooltip-left.gis-serious-tooltip-dark::before {
+  border-left-color: rgba(26, 26, 26, 0.95) !important;
+}
+.leaflet-tooltip-right.gis-serious-tooltip::before,
+.leaflet-tooltip-right.gis-serious-tooltip-dark::before {
+  border-right-color: rgba(26, 26, 26, 0.95) !important;
+}
+
+/* Base custom classes to match dark theme */
+.custom-gis-base,
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Zoom controls dark styling */
+.leaflet-bar {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.leaflet-bar a {
+  background-color: #1a1a1a !important;
+  color: #e0e0e0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background-color: #121212 !important;
+  color: #555555 !important;
+}

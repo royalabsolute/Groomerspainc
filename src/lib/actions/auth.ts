@@ -34,7 +34,7 @@ export async function forgotPassword(email: string) {
         const { sendEmail } = await import('@/lib/email');
         await sendEmail({
             to: email,
-            subject: "GroomingPet - Recuperación de Contraseña",
+            subject: "Groomers, INC. — Password Reset",
             html: `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
@@ -50,10 +50,10 @@ export async function forgotPassword(email: string) {
   <tr>
     <td style="background:#7C3AED;border-bottom:4px solid #000000;padding:32px 30px 28px;text-align:center;">
       <div style="display:inline-block;background:#121212;color:#ffffff;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:3px;padding:5px 16px;border:2px solid #000000;border-radius:100px;box-shadow:3px 3px 0 #000000;margin-bottom:20px;">
-        SEGURIDAD &nbsp;·&nbsp; Recuperar Acceso
+        SECURITY &nbsp;·&nbsp; Account Access
       </div>
       <h1 style="margin:0;font-size:28px;font-weight:900;color:#ffffff;text-transform:uppercase;letter-spacing:-1px;line-height:1.1;">
-        ¿OLVIDASTE TU CLAVE?
+        FORGOT YOUR PASSWORD?
       </h1>
     </td>
   </tr>
@@ -61,7 +61,7 @@ export async function forgotPassword(email: string) {
   <tr>
     <td style="padding:40px 30px 10px;text-align:center;">
        <p style="margin:0;font-size:17px;color:#ffffff;line-height:1.6;font-weight:700;">
-         Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de administrador.
+         We received a request to reset the password for your admin account.
        </p>
     </td>
   </tr>
@@ -70,16 +70,16 @@ export async function forgotPassword(email: string) {
     <td style="padding:10px 30px 40px;text-align:center;">
       <div style="margin-bottom:30px;background:#242424;border:3px solid #000000;border-radius:18px;padding:24px;box-shadow:6px 6px 0 #000000;">
         <p style="margin:0 0 20px;font-size:14px;color:#A78BFA;font-weight:600;">
-          Haz clic en el botón de abajo para asignar una nueva contraseña segura.
+          Click the button below to set a new secure password.
         </p>
         <a href="${resetLink}"
           style="display:inline-block;background:#7C3AED;color:#ffffff;font-size:18px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:2px;padding:18px 40px;border:3px solid #000000;border-radius:16px;box-shadow:5px 5px 0 #000000;">
-          CREAR NUEVA CLAVE →
+          RESET PASSWORD →
         </a>
       </div>
-      
+
       <p style="margin:0;font-size:11px;font-weight:700;color:#666666;letter-spacing:1px;text-transform:uppercase;">
-        EL ENLACE SE AUTODESTRUIRÁ EN 1 HORA
+        THIS LINK WILL EXPIRE IN 1 HOUR
       </p>
     </td>
   </tr>
@@ -87,10 +87,10 @@ export async function forgotPassword(email: string) {
   <tr>
     <td style="background:#121212;padding:20px 28px;text-align:center;border-top:4px solid #000000;color:#666666;">
       <p style="margin:0;font-size:12px;font-weight:900;color:#7C3AED;text-transform:uppercase;letter-spacing:4px;">
-        GroomingPet · Security Center
+        Groomers, INC. · Security Center
       </p>
       <p style="margin:4px 0 0;font-size:9px;font-weight:700;color:#444444;letter-spacing:1px;">
-        Si no solicitaste este cambio, puedes ignorar este correo de forma segura.
+        If you did not request this change, you can safely ignore this email.
       </p>
     </td>
   </tr>

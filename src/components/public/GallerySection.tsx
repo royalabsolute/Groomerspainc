@@ -104,15 +104,28 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                         <div 
                             key={idx}
                             onClick={() => setSelectedImage(imgSrc)}
-                            className="snap-center shrink-0 w-[80vw] max-w-[280px] aspect-square relative border-3 border-black rounded-2xl overflow-hidden bg-white shadow-[6px_6px_0px_0px_#1A1A1A] cursor-zoom-in active:scale-95 transition-all"
+                            className="snap-center shrink-0 w-[80vw] max-w-[280px] aspect-4/5 relative border-[3px] border-black bg-white p-3 pb-8 shadow-[6px_6px_0px_0px_#1A1A1A] cursor-zoom-in active:scale-95 transition-all flex flex-col justify-between"
                         >
-                            <Image
-                                src={imgSrc}
-                                alt="Gallery Mobile"
-                                fill
-                                className="object-cover"
-                                sizes="280px"
-                            />
+                            <div className="relative w-full aspect-square border-2 border-black overflow-hidden bg-slate-100">
+                                <Image
+                                    src={imgSrc}
+                                    alt="Gallery Mobile"
+                                    fill
+                                    className="object-cover"
+                                    sizes="280px"
+                                />
+                            </div>
+                            {/* Tape SVG absolute in top center */}
+                            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 z-30 select-none pointer-events-none opacity-85">
+                                <svg width="90" height="28" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2000/svg" className="-rotate-2">
+                                    <path d="M5 2H115L118 15L115 32H5L2 15L5 2Z" fill="#BFDBFE" fillOpacity="0.75" stroke="#000" strokeWidth="2.5" strokeLinejoin="miter"/>
+                                    <line x1="15" y1="8" x2="105" y2="8" stroke="white" strokeWidth="2" strokeOpacity="0.4" strokeDasharray="6 4" />
+                                    <line x1="20" y1="26" x2="100" y2="26" stroke="white" strokeWidth="2" strokeOpacity="0.4" strokeDasharray="6 4" />
+                                </svg>
+                            </div>
+                            <div className="text-center font-black uppercase text-[10px] tracking-wider text-black pt-1">
+                                {t('sweetGuest')}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -184,16 +197,31 @@ export default function GallerySection({ initialItems }: GallerySectionProps) {
                                     </div>
 
                                     <motion.div 
-                                        className="relative w-full h-full border-4 border-black rounded-4xl md:rounded-[3rem] overflow-hidden bg-white group shadow-[15px_15px_0px_0px_#1A1A1A]"
+                                        className="relative w-full h-full border-4 border-black bg-white p-4 pb-12 group shadow-[15px_15px_0px_0px_#1A1A1A] flex flex-col justify-between"
                                         animate={{ boxShadow: style.boxShadow }}
                                     >
-                                        <Image
-                                            src={imgSrc}
-                                            alt="Gallery"
-                                            fill
-                                            className="object-cover transition-transform duration-700 group-hover:scale-110"
-                                            sizes="(max-width: 768px) 100vw, 400px"
-                                        />
+                                        <div className="relative w-full aspect-square border-[3px] border-black overflow-hidden bg-slate-100">
+                                            <Image
+                                                src={imgSrc}
+                                                alt="Gallery"
+                                                fill
+                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                                sizes="(max-width: 768px) 100vw, 400px"
+                                            />
+                                        </div>
+                                        {/* Tape SVG absolute in top center */}
+                                        <div className="absolute top-[-16px] left-1/2 -translate-x-1/2 z-30 select-none pointer-events-none opacity-85 hover:opacity-100 transition-opacity">
+                                            <svg width="120" height="35" viewBox="0 0 120 35" fill="none" xmlns="http://www.w3.org/2050/svg" className="-rotate-2">
+                                                {/* Translucent pastel tape with ripped edges */}
+                                                <path d="M5 2H115L118 15L115 32H5L2 15L5 2Z" fill="#BFDBFE" fillOpacity="0.75" stroke="#000" strokeWidth="2.5" strokeLinejoin="miter"/>
+                                                {/* Tape inner textures */}
+                                                <line x1="15" y1="8" x2="105" y2="8" stroke="white" strokeWidth="2" strokeOpacity="0.4" strokeDasharray="6 4" />
+                                                <line x1="20" y1="26" x2="100" y2="26" stroke="white" strokeWidth="2" strokeOpacity="0.4" strokeDasharray="6 4" />
+                                            </svg>
+                                        </div>
+                                        <div className="text-center font-black uppercase text-xs sm:text-sm tracking-widest text-black pt-2 select-none">
+                                            {t('sweetGuest')}
+                                        </div>
                                         <div className="absolute top-4 left-4 z-10 pointer-events-none">
                                             {getRandomDecoration(idx * 3 + 2)}
                                         </div>

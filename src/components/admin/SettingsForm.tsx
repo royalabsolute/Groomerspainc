@@ -27,6 +27,10 @@ interface SettingsFormProps {
         workingHoursEnd?: string | null;
         workingDays?: string | null;
         blockedDates?: string | null;
+        weightTier1Price?: number | null;
+        weightTier2Price?: number | null;
+        weightTier3Price?: number | null;
+        weightTier4Price?: number | null;
     } | null;
 }
 
@@ -37,10 +41,16 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
         tiktokActive?: boolean;
         instagramActive?: boolean;
         twitterActive?: boolean;
+        weightTier1Price?: number | null;
+        weightTier2Price?: number | null;
+        weightTier3Price?: number | null;
+        weightTier4Price?: number | null;
     }>(initialData || { workingDays: "1,2,3,4,5", workingHoursStart: "09:00", workingHoursEnd: "18:00" });
+    const [newBlockedDate, setNewBlockedDate] = useState("");
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({
         contact: true,
         booking: true,
+        weight: false,
         hero: false,
         footer: false,
         social: false,
@@ -96,6 +106,30 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleAddBlockedDate = () => {
+        if (!newBlockedDate) return;
+        const currentArray = formData.blockedDates 
+            ? formData.blockedDates.split(",").map(d => d.trim()).filter(Boolean) 
+            : [];
+        if (currentArray.includes(newBlockedDate)) {
+            toast.error("Esta fecha ya se encuentra bloqueada");
+            return;
+        }
+        const updated = [...currentArray, newBlockedDate].sort();
+        setFormData(prev => ({ ...prev, blockedDates: updated.join(",") }));
+        setNewBlockedDate("");
+        toast.success("Fecha agregada al bloqueo");
+    };
+
+    const handleRemoveBlockedDate = (dateToRemove: string) => {
+        const currentArray = formData.blockedDates 
+            ? formData.blockedDates.split(",").map(d => d.trim()).filter(Boolean) 
+            : [];
+        const updated = currentArray.filter(d => d !== dateToRemove);
+        setFormData(prev => ({ ...prev, blockedDates: updated.join(",") }));
+        toast.success("Fecha removida del bloqueo");
     };
 
     async function handleSubmit(e: React.FormEvent) {
@@ -174,8 +208,8 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                                 </div>
                                 <div className="space-y-1.5 pt-4 border-t border-[#3A3A3A]">
                                     <Label htmlFor="notificationEmail" className="text-xs font-bold text-[#7C3AED] uppercase tracking-widest">Email de Notificaciones</Label>
-                                    <Input id="notificationEmail" type="email" value="groomersincpetspa@gmail.com" disabled className="h-11 border-[#3A3A3A]/40 bg-[#121212]/50 rounded-xl font-medium text-slate-500 cursor-not-allowed" />
-                                    <p className="text-[10px] text-slate-500 font-medium">Este correo recibirá los mensajes directos de los clientes y está fijado por seguridad.</p>
+                                    <Input id="notificationEmail" type="email" value={formData.notificationEmail || ""} onChange={handleChange} placeholder="groomersincpetspa@gmail.com" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] placeholder-slate-600" />
+                                    <p className="text-[10px] text-slate-500 font-medium">Este correo recibirá las notificaciones de cotizaciones de los clientes.</p>
                                 </div>
                                 
                                 {/* 2-column comparative layout for horarios */}
@@ -229,153 +263,149 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                             className="overflow-hidden border-t border-[#3A3A3A]"
                         >
                             <CardContent className="p-6 space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="workingHoursStart" className="text-xs font-semibold text-slate-400">Hora de Inicio (Laboral)</Label>
-                                        <Input id="workingHoursStart" type="time" value={formData.workingHoursStart || "09:00"} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label htmlFor="workingHoursEnd" className="text-xs font-semibold text-slate-400">Hora de Cierre (Laboral)</Label>
-                                        <Input id="workingHoursEnd" type="time" value={formData.workingHoursEnd || "18:00"} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                    </div>
+                                {(() => {
+                                    // Generamos opciones de 06:00 a 22:00 en intervalos de 30 mins
+                                    const timeOptions: string[] = [];
+                                    for (let h = 6; h <= 22; h++) {
+                                        const hh = h.toString().padStart(2, "0");
+                                        timeOptions.push(`${hh}:00`);
+                                        if (h !== 22) {
+                                            timeOptions.push(`${hh}:30`);
+                                        }
+                                    }
+                                    return (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="workingHoursStart" className="text-xs font-semibold text-slate-400">Hora de Inicio (Laboral)</Label>
+                                                <select 
+                                                    id="workingHoursStart" 
+                                                    title="Hora de Inicio"
+                                                    value={formData.workingHoursStart || "09:00"} 
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, workingHoursStart: e.target.value }))}
+                                                    className="w-full h-11 bg-[#121212] border border-[#3A3A3A] text-white rounded-xl px-3 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] focus:outline-none"
+                                                >
+                                                    {timeOptions.map(t => (
+                                                        <option key={t} value={t} className="bg-[#1A1A1A]">{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label htmlFor="workingHoursEnd" className="text-xs font-semibold text-slate-400">Hora de Cierre (Laboral)</Label>
+                                                <select 
+                                                    id="workingHoursEnd" 
+                                                    title="Hora de Cierre"
+                                                    value={formData.workingHoursEnd || "18:00"} 
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, workingHoursEnd: e.target.value }))}
+                                                    className="w-full h-11 bg-[#121212] border border-[#3A3A3A] text-white rounded-xl px-3 focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] focus:outline-none"
+                                                >
+                                                    {timeOptions.map(t => (
+                                                        <option key={t} value={t} className="bg-[#1A1A1A]">{t}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                                
+                                <div className="space-y-1.5 pt-4 border-t border-[#3A3A3A]/40">
+                                    <Label className="text-xs font-semibold text-slate-400">Días Laborables Habilitados</Label>
+                                    {(() => {
+                                        const activeDays = formData.workingDays ? formData.workingDays.split(",").map(d => d.trim()).filter(Boolean) : ["1", "2", "3", "4", "5"];
+                                        const daysOfWeek = [
+                                            { value: "1", label: "Lunes" },
+                                            { value: "2", label: "Martes" },
+                                            { value: "3", label: "Miércoles" },
+                                            { value: "4", label: "Jueves" },
+                                            { value: "5", label: "Viernes" },
+                                            { value: "6", label: "Sábado" },
+                                            { value: "0", label: "Domingo" }
+                                        ];
+                                        return (
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mt-2">
+                                                {daysOfWeek.map((day) => {
+                                                    const isChecked = activeDays.includes(day.value);
+                                                    return (
+                                                        <button
+                                                            key={day.value}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                let newDays;
+                                                                if (isChecked) {
+                                                                    newDays = activeDays.filter(d => d !== day.value);
+                                                                } else {
+                                                                    newDays = [...activeDays, day.value];
+                                                                }
+                                                                newDays.sort();
+                                                                setFormData(prev => ({ ...prev, workingDays: newDays.join(",") }));
+                                                            }}
+                                                            className={cn(
+                                                                "flex flex-col items-center justify-center p-3 rounded-xl border-2 font-bold transition-all text-xs select-none cursor-pointer",
+                                                                isChecked
+                                                                    ? "bg-[#7C3AED]/20 border-[#7C3AED] text-[#C084FC]"
+                                                                    : "bg-[#121212] border-[#3A3A3A] text-slate-400 hover:border-[#7C3AED]/50"
+                                                            )}
+                                                        >
+                                                            <span>{day.label}</span>
+                                                            <span className={cn("text-[9px] mt-1 uppercase font-black tracking-wider", isChecked ? "text-[#7C3AED]" : "text-slate-600")}>
+                                                                {isChecked ? "Trabaja" : "Libre"}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                    <p className="text-[10px] text-slate-500 font-medium mt-1.5">Haz clic en cada día para activar o desactivar la disponibilidad laboral en el cotizador público.</p>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="workingDays" className="text-xs font-semibold text-slate-400">Días Laborables (0=Dom, 1=Lun... 6=Sab)</Label>
-                                    <Input id="workingDays" value={formData.workingDays || "1,2,3,4,5"} onChange={handleChange} placeholder="Ej: 1,2,3,4,5" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                    <p className="text-[10px] text-slate-500 font-medium mt-1">Por defecto: Lunes a Viernes (1,2,3,4,5). Separa los números con comas.</p>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="blockedDates" className="text-xs font-semibold text-slate-400">Fechas Bloqueadas Manualmente</Label>
-                                    <Input id="blockedDates" value={formData.blockedDates || ""} onChange={handleChange} placeholder="Ej: 2024-12-25, 2024-12-31" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                    <p className="text-[10px] text-slate-500 font-medium mt-1">Bloquea días específicos de mantenimiento o vacaciones. Formato: YYYY-MM-DD, separados por comas.</p>
-                                </div>
-                            </CardContent>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </Card>
 
-            {/* Hero Section */}
-            <Card className="border-[#3A3A3A] shadow-sm overflow-hidden rounded-2xl bg-[#1A1A1A] hover:border-[#7C3AED]/20 transition-all">
-                <div 
-                    onClick={() => toggleSection("hero")}
-                    className="bg-[#151515] px-6 py-4 border-b border-[#3A3A3A] flex items-center justify-between cursor-pointer select-none"
-                >
-                    <div className="flex items-center space-x-2">
-                        <Layout className="h-4 w-4 text-slate-400" />
-                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Sección Hero (Inicio)</h3>
-                    </div>
-                    <span className="text-slate-400 font-bold text-xs">
-                        {openSections.hero ? "▲" : "▼"}
-                    </span>
-                </div>
-                <AnimatePresence initial={false}>
-                    {openSections.hero && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="overflow-hidden border-t border-[#3A3A3A]"
-                        >
-                            <CardContent className="p-6">
-                                {/* 2-column comparative layout for Hero translation comparison */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Left Column - English */}
-                                    <div className="space-y-6">
-                                        <div className="flex items-center gap-1.5 pb-2 border-b border-[#3A3A3A]/40">
-                                            <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest">Inglés (English)</span>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroTitleEn" className="text-xs font-semibold text-slate-400">Title (English)</Label>
-                                            <Input id="heroTitleEn" value={formData.heroTitleEn || ""} onChange={handleChange} placeholder="First Class Care" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroHighlightEn" className="text-xs font-semibold text-slate-400">Highlight Text (EN)</Label>
-                                            <Input id="heroHighlightEn" value={formData.heroHighlightEn || ""} onChange={handleChange} placeholder="First Class" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] italic" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroBadgeEn" className="text-xs font-semibold text-slate-400">Label (English)</Label>
-                                            <Input id="heroBadgeEn" value={formData.heroBadgeEn || ""} onChange={handleChange} placeholder="#1 Service in Miami" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroDescEn" className="text-xs font-semibold text-slate-400">Description (English)</Label>
-                                            <Textarea id="heroDescEn" value={formData.heroDescEn || ""} onChange={handleChange} className="min-h-[120px] bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
+                                <div className="space-y-4 pt-4 border-t border-[#3A3A3A]/40">
+                                    <Label className="text-xs font-semibold text-slate-400">Bloquear Fechas Específicas (Feriados, Mantenimiento, etc.)</Label>
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <Input 
+                                            type="date" 
+                                            value={newBlockedDate} 
+                                            onChange={(e) => setNewBlockedDate(e.target.value)} 
+                                            className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] max-w-xs"
+                                        />
+                                        <Button 
+                                            type="button" 
+                                            onClick={handleAddBlockedDate}
+                                            className="h-11 bg-[#7C3AED] text-white rounded-xl px-6 hover:bg-[#7C3AED]/90 font-black uppercase text-xs tracking-wider cursor-pointer"
+                                        >
+                                            Bloquear Fecha
+                                        </Button>
                                     </div>
-
-                                    {/* Right Column - Español */}
-                                    <div className="space-y-6">
-                                        <div className="flex items-center gap-1.5 pb-2 border-b border-[#3A3A3A]/40">
-                                            <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest">Español</span>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroTitleEs" className="text-xs font-semibold text-slate-400">Título (Español)</Label>
-                                            <Input id="heroTitleEs" value={formData.heroTitleEs || ""} onChange={handleChange} placeholder="Cuidado de" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroHighlightEs" className="text-xs font-semibold text-slate-400">Texto Resaltado (ES)</Label>
-                                            <Input id="heroHighlightEs" value={formData.heroHighlightEs || ""} onChange={handleChange} placeholder="Primera Clase" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] italic" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroBadgeEs" className="text-xs font-semibold text-slate-400">Etiqueta (Español)</Label>
-                                            <Input id="heroBadgeEs" value={formData.heroBadgeEs || ""} onChange={handleChange} placeholder="Servicio #1 en Miami" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="heroDescEs" className="text-xs font-semibold text-slate-400">Descripción (Español)</Label>
-                                            <Textarea id="heroDescEs" value={formData.heroDescEs || ""} onChange={handleChange} className="min-h-[120px] bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </Card>
-
-            {/* Footer Section */}
-            <Card className="border-[#3A3A3A] shadow-sm overflow-hidden rounded-2xl bg-[#1A1A1A] hover:border-[#7C3AED]/20 transition-all">
-                <div 
-                    onClick={() => toggleSection("footer")}
-                    className="bg-[#151515] px-6 py-4 border-b border-[#3A3A3A] flex items-center justify-between cursor-pointer select-none"
-                >
-                    <div className="flex items-center space-x-2">
-                        <Layout className="h-4 w-4 text-slate-400" />
-                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Pie de Página (Footer)</h3>
-                    </div>
-                    <span className="text-slate-400 font-bold text-xs">
-                        {openSections.footer ? "▲" : "▼"}
-                    </span>
-                </div>
-                <AnimatePresence initial={false}>
-                    {openSections.footer && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="overflow-hidden border-t border-[#3A3A3A]"
-                        >
-                            <CardContent className="p-6">
-                                {/* 2-column comparative layout for Footer translation */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-1.5 pb-2 border-b border-[#3A3A3A]/40">
-                                            <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest">Inglés (English)</span>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="footerDescEn" className="text-xs font-semibold text-slate-400">Footer Description (English)</Label>
-                                            <Textarea id="footerDescEn" value={formData.footerDescEn || ""} onChange={handleChange} className="min-h-[120px] bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-1.5 pb-2 border-b border-[#3A3A3A]/40">
-                                            <span className="text-[10px] font-black text-[#7C3AED] uppercase tracking-widest">Español</span>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="footerDescEs" className="text-xs font-semibold text-slate-400">Descripción Footer (Español)</Label>
-                                            <Textarea id="footerDescEs" value={formData.footerDescEs || ""} onChange={handleChange} className="min-h-[120px] bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
-                                        </div>
+                                    
+                                    <div className="mt-3">
+                                        <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest block mb-2">Fechas Bloqueadas Activas:</span>
+                                        {(() => {
+                                            const blockedDatesArray = formData.blockedDates 
+                                                ? formData.blockedDates.split(",").map(d => d.trim()).filter(Boolean) 
+                                                : [];
+                                            if (blockedDatesArray.length === 0) {
+                                                return <p className="text-xs text-slate-600 italic">No hay ninguna fecha bloqueada actualmente.</p>;
+                                            }
+                                            return (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {blockedDatesArray.map((d) => (
+                                                        <div 
+                                                            key={d} 
+                                                            className="inline-flex items-center gap-1.5 bg-[#121212] border border-[#3A3A3A] text-white text-xs font-bold px-3 py-1.5 rounded-xl hover:border-rose-500/50 transition-all shadow-xs"
+                                                        >
+                                                            <span>{d}</span>
+                                                            <button
+                                                                type="button"
+                                                                title="Desbloquear fecha"
+                                                                onClick={() => handleRemoveBlockedDate(d)}
+                                                                className="text-slate-500 hover:text-rose-500 p-0.5 rounded-md hover:bg-[#1A1A1A] transition-colors cursor-pointer"
+                                                            >
+                                                                <X className="h-3.5 w-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </CardContent>
@@ -384,100 +414,22 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                 </AnimatePresence>
             </Card>
 
-            {/* Social Media */}
+            {/* Weight Tiers Pricing Settings */}
             <Card className="border-[#3A3A3A] shadow-sm overflow-hidden rounded-2xl bg-[#1A1A1A] hover:border-[#7C3AED]/20 transition-all">
                 <div 
-                    onClick={() => toggleSection("social")}
-                    className="bg-[#151515] px-6 py-4 border-b border-[#3A3A3A] flex items-center justify-between cursor-pointer select-none"
-                >
-                    <div className="flex items-center space-x-2">
-                        <Globe className="h-4 w-4 text-slate-400" />
-                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Canales Sociales</h3>
-                    </div>
-                    <span className="text-slate-400 font-bold text-xs">
-                        {openSections.social ? "▲" : "▼"}
-                    </span>
-                </div>
-                <AnimatePresence initial={false}>
-                    {openSections.social && (
-                        <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2, ease: "easeInOut" }}
-                            className="overflow-hidden border-t border-[#3A3A3A]"
-                        >
-                            <CardContent className="p-6 space-y-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    {/* Instagram */}
-                                    <div className="space-y-3">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="instagramUrl" className="flex items-center text-xs font-semibold text-slate-400"><Instagram className="h-3.5 w-3.5 mr-2 text-[#7C3AED]" /> Instagram</Label>
-                                            <Input id="instagramUrl" value={formData.instagramUrl || ""} onChange={handleChange} placeholder="URL de perfil" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] placeholder-slate-600" />
-                                        </div>
-                                        <div className="flex items-center justify-between p-3.5 bg-[#151515] rounded-xl border border-[#3A3A3A]">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estado Visible</span>
-                                            <Switch 
-                                                checked={formData.instagramActive ?? true} 
-                                                onCheckedChange={(val) => setFormData(prev => ({ ...prev, instagramActive: val }))}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* TikTok */}
-                                    <div className="space-y-3">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="tiktokUrl" className="flex items-center text-xs font-semibold text-slate-400">TikTok</Label>
-                                            <Input id="tiktokUrl" value={formData.tiktokUrl || ""} onChange={handleChange} placeholder="URL de perfil" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] placeholder-slate-600" />
-                                        </div>
-                                        <div className="flex items-center justify-between p-3.5 bg-[#151515] rounded-xl border border-[#3A3A3A]">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estado Visible</span>
-                                            <Switch 
-                                                checked={formData.tiktokActive ?? true} 
-                                                onCheckedChange={(val) => setFormData(prev => ({ ...prev, tiktokActive: val }))}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* X / Twitter */}
-                                    <div className="space-y-3">
-                                        <div className="space-y-1.5">
-                                            <Label htmlFor="twitterUrl" className="flex items-center text-xs font-semibold text-slate-400">
-                                                <XIcon className="h-3.5 w-3.5 mr-2 text-white" /> X (Twitter)
-                                            </Label>
-                                            <Input id="twitterUrl" value={formData.twitterUrl || ""} onChange={handleChange} placeholder="URL de perfil" className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED] placeholder-slate-600" />
-                                        </div>
-                                        <div className="flex items-center justify-between p-3.5 bg-[#151515] rounded-xl border border-[#3A3A3A]">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estado Visible</span>
-                                            <Switch 
-                                                checked={formData.twitterActive ?? true} 
-                                                onCheckedChange={(val) => setFormData(prev => ({ ...prev, twitterActive: val }))}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </Card>
-
-            {/* Sections Toggle */}
-            <Card className="border-[#3A3A3A] shadow-sm overflow-hidden rounded-2xl bg-[#1A1A1A] hover:border-[#7C3AED]/20 transition-all">
-                <div 
-                    onClick={() => toggleSection("modules")}
+                    onClick={() => toggleSection("weight")}
                     className="bg-[#151515] px-6 py-4 border-b border-[#3A3A3A] flex items-center justify-between cursor-pointer select-none"
                 >
                     <div className="flex items-center space-x-2">
                         <Layers className="h-4 w-4 text-slate-400" />
-                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Activar/Desactivar Módulos</h3>
+                        <h3 className="font-bold text-white text-sm uppercase tracking-wider">Tarifas de Peso (Base Peso)</h3>
                     </div>
                     <span className="text-slate-400 font-bold text-xs">
-                        {openSections.modules ? "▲" : "▼"}
+                        {openSections.weight ? "▲" : "▼"}
                     </span>
                 </div>
                 <AnimatePresence initial={false}>
-                    {openSections.modules && (
+                    {openSections.weight && (
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -485,23 +437,26 @@ export default function SettingsForm({ initialData }: SettingsFormProps) {
                             transition={{ duration: 0.2, ease: "easeInOut" }}
                             className="overflow-hidden border-t border-[#3A3A3A]"
                         >
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between p-4 bg-[#151515] rounded-xl border border-[#3A3A3A]">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="transformationsEnabled" className="text-sm font-bold text-white">Módulo de Transformaciones (Antes & Después)</Label>
-                                        <p className="text-xs text-slate-500 font-medium">Controla si esta sección aparece en el menú público.</p>
+                            <CardContent className="p-6 space-y-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="weightTier1Price" className="text-xs font-semibold text-slate-400">Pequeño (&lt; 15 lbs) ($)</Label>
+                                        <Input id="weightTier1Price" type="number" step="0.01" value={formData.weightTier1Price ?? 45.0} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
                                     </div>
-                                    <div className="flex items-center space-x-3">
-                                        <span className={cn("text-[10px] font-bold tracking-widest", formData.transformationsEnabled ? "text-[#7C3AED]" : "text-slate-500")}>
-                                            {formData.transformationsEnabled ? "ACTIVO" : "INACTIVO"}
-                                        </span>
-                                        <Switch 
-                                            id="transformationsEnabled" 
-                                            checked={formData.transformationsEnabled || false} 
-                                            onCheckedChange={(val) => setFormData((prev) => ({ ...prev, transformationsEnabled: val }))} 
-                                        />
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="weightTier2Price" className="text-xs font-semibold text-slate-400">Mediano (15 a 29 lbs) ($)</Label>
+                                        <Input id="weightTier2Price" type="number" step="0.01" value={formData.weightTier2Price ?? 60.0} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="weightTier3Price" className="text-xs font-semibold text-slate-400">Grande (30 a 59 lbs) ($)</Label>
+                                        <Input id="weightTier3Price" type="number" step="0.01" value={formData.weightTier3Price ?? 75.0} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="weightTier4Price" className="text-xs font-semibold text-slate-400">Gigante (60+ lbs) ($)</Label>
+                                        <Input id="weightTier4Price" type="number" step="0.01" value={formData.weightTier4Price ?? 95.0} onChange={handleChange} className="h-11 bg-[#121212] border-[#3A3A3A] text-white rounded-xl focus:border-[#7C3AED] focus:ring-[#7C3AED] focus-visible:ring-[#7C3AED]" />
                                     </div>
                                 </div>
+                                <p className="text-[10px] text-slate-500 font-bold">Estas tarifas base por peso de mascotas se aplican automáticamente en el cotizador en tiempo real según el peso de cada perro ingresado por el usuario.</p>
                             </CardContent>
                         </motion.div>
                     )}

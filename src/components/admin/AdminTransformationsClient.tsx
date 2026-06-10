@@ -19,6 +19,7 @@ interface Transformation {
     serviceDate: Date | string;
     beforePhotoUrl: string;
     afterPhotoUrl: string;
+    contractImage?: string;
     descriptionEs: string;
     descriptionEn: string;
     visible: boolean;

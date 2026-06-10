@@ -12,12 +12,12 @@ import { toast } from "sonner";
 import { submitInquiry } from "@/lib/actions/inquiries";
 import { validateDiscountCode } from "@/lib/actions/discounts";
 import { isZipCodeSupported, getTravelPremium } from "@/lib/pricing";
-import { useEffect, useState, useRef, useTransition, useId } from "react";
+import { useEffect, useState, useRef, useTransition, useId, useMemo } from "react";
 import { 
     Camera, Image as ImageIcon, AlertTriangle, ShieldCheck, DollarSign,
     Dog, PawPrint, Calendar, Clock, User, Gift, Check, Info, PlusCircle, 
     Scissors, Tag, Sparkles, MessageSquare, ChevronDown, ChevronUp, Star, MapPin, UploadCloud,
-    ChevronLeft, ChevronRight
+    ChevronLeft, ChevronRight, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -63,22 +63,43 @@ interface ServiceItem {
 interface QuoteSectionProps {
     locale: string;
     initialServices: ServiceItem[];
+    initialConfig: any;
 }
-export default function QuoteSection({ locale, initialServices }: QuoteSectionProps) {
+export default function QuoteSection({ locale, initialServices, initialConfig }: QuoteSectionProps) {
     const t = useTranslations("QuoteForm");
     const tIndex = useTranslations("Index");
     const activeLocale = useLocale();
 
+    const localizedSchema = useMemo(() => z.object({
+        name: z.string().min(2, { message: t("valNameMin") }),
+        email: z.string().email({ message: t("valEmail") }),
+        phone: z.string().min(10, { message: t("valPhone") }),
+        address: z.string().min(5, { message: t("valAddress") }),
+        zipCode: z.string().regex(/^\d{5}$/, { message: t("valZip") }),
+        appointmentDate: z.string().min(1, { message: t("valDate") }),
+        appointmentTime: z.string().min(1, { message: t("valTime") }),
+        
+        // Pet Specs
+        pets: z.array(z.object({
+            name: z.string().min(1, { message: t("valPetName") }),
+            breed: z.string().min(1, { message: t("valPetBreed") }),
+            weight: z.coerce.number().min(1, { message: t("valPetWeightMin") }).max(200, { message: t("valPetWeightMax") }),
+            age: z.string().min(1, { message: t("valPetAge") }),
+            rabiesVaccinated: z.boolean().refine((val) => val === true, {
+                message: t("valRabies"),
+            }),
+            rabiesRegistry: z.string().optional(),
+        })).min(1, { message: t("valMinPets") }),
+
+        // Services selection state will be handled dynamically outside hook form
+        discountCode: z.string().optional(),
+        message: z.string().optional(),
+        legalAccepted: z.boolean().refine((val) => val === true, {
+            message: t("valLegal"),
+        }),
+    }), [t]);
+
     const uniqueId = useId();
-    const nameInputId = `quote-${uniqueId}-name`;
-    const emailInputId = `quote-${uniqueId}-email`;
-    const phoneInputId = `quote-${uniqueId}-phone`;
-    const addressInputId = `quote-${uniqueId}-address`;
-    const zipInputId = `quote-${uniqueId}-zipCode`;
-    const dateInputId = `quote-${uniqueId}-appointmentDate`;
-    const timeSelectId = `quote-${uniqueId}-appointmentTime`;
-    const messageTextareaId = `quote-${uniqueId}-message`;
-    const legalCheckboxId = `quote-${uniqueId}-legalAccepted`;
     
     const [step, setStep] = useState(1);
     const [isPending, startTransition] = useTransition();
@@ -103,7 +124,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     const [expandedPetIndex, setExpandedPetIndex] = useState<number>(0);
 
     const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema) as any,
+        resolver: zodResolver(localizedSchema) as any,
         defaultValues: {
             name: "",
             email: "",
@@ -133,6 +154,57 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
         control: form.control,
         name: "pets"
     });
+
+    // Dynamic GIS ZIP validation state
+    const [zipStatus, setZipStatus] = useState<{
+        isValid: boolean | null;
+        name?: string;
+        travelFee: number;
+        checking: boolean;
+    }>({
+        isValid: null,
+        travelFee: 0,
+        checking: false
+    });
+
+    useEffect(() => {
+        const rawZip = form.watch("zipCode") || "";
+        const clean = rawZip.trim();
+        if (clean.length === 5 && /^\d{5}$/.test(clean)) {
+            setZipStatus(prev => ({ ...prev, checking: true }));
+            fetch(`/api/validate-zip?zip=${clean}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.supported) {
+                        setZipStatus({
+                            isValid: true,
+                            name: data.name,
+                            travelFee: Number(data.travelFee),
+                            checking: false
+                        });
+                    } else {
+                        setZipStatus({
+                            isValid: false,
+                            travelFee: 0,
+                            checking: false
+                        });
+                    }
+                })
+                .catch(() => {
+                    setZipStatus({
+                        isValid: false,
+                        travelFee: 0,
+                        checking: false
+                    });
+                });
+        } else {
+            setZipStatus({
+                isValid: null,
+                travelFee: 0,
+                checking: false
+            });
+        }
+    }, [form.watch("zipCode")]);
 
     // Sync pet services across all pet profiles if applyToAll is true
     useEffect(() => {
@@ -198,14 +270,30 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
     // Calculate dynamic pricing breakdown for each pet
     const petsCalculated = petsList.map((pet, index) => {
-        let petWeightBasePrice = 45;
+        if (step === 1) {
+            return {
+                name: pet.name || t("petPlaceholder", { number: index + 1 }),
+                weightBasePrice: 0,
+                mainPrice: 0,
+                addonsPrice: 0,
+                shampooPrice: 0,
+                subtotal: 0
+            };
+        }
+
+        const t1 = Number(initialConfig?.weightTier1Price ?? 45);
+        const t2 = Number(initialConfig?.weightTier2Price ?? 60);
+        const t3 = Number(initialConfig?.weightTier3Price ?? 75);
+        const t4 = Number(initialConfig?.weightTier4Price ?? 95);
+
+        let petWeightBasePrice = t1;
         const w = Number(pet.weight) || 0;
         if (w >= 15 && w < 30) {
-            petWeightBasePrice = 60;
+            petWeightBasePrice = t2;
         } else if (w >= 30 && w < 60) {
-            petWeightBasePrice = 75;
+            petWeightBasePrice = t3;
         } else if (w >= 60) {
-            petWeightBasePrice = 95;
+            petWeightBasePrice = t4;
         }
 
         const servicesForPet = petServices[index] || { mainGrooming: "", addons: [], shampoo: "" };
@@ -229,8 +317,8 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
     });
 
     const totalPetsSubtotal = petsCalculated.reduce((sum, p) => sum + p.subtotal, 0);
-    const isZipValid = isZipCodeSupported(watchedZip);
-    const travelSurcharge = isZipValid ? getTravelPremium(watchedZip) : 0;
+    const isZipValid = zipStatus.isValid === true;
+    const travelSurcharge = step === 1 ? 0 : zipStatus.travelFee;
     
     const originalPrice = totalPetsSubtotal + travelSurcharge;
 
@@ -394,12 +482,12 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                     {/* Promo Discount Input */}
                     <div className="grid gap-1.5 border-b border-black/10 pb-4">
-                        <Label htmlFor={discountInputId} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                        <Label htmlFor={isMobileLayout ? "quote-discount-code-mobile" : "quote-discount-code-desktop"} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                             <Tag className="h-3.5 w-3.5 text-[#06B6D4]" /> {t("coupon")}
                             {appliedDiscount && <span className="ml-2 text-emerald-600 font-black">✓ {appliedDiscount}</span>}
                         </Label>
                         <div className="flex gap-2">
-                            <Input id={discountInputId} placeholder="CUPON123" {...form.register("discountCode")} className="border-3 border-black bg-white text-neutral-900 rounded-xl text-sm h-10 focus-visible:ring-0 uppercase placeholder-slate-400 font-black tracking-wider" />
+                            <Input id={isMobileLayout ? "quote-discount-code-mobile" : "quote-discount-code-desktop"} placeholder="CUPON123" {...form.register("discountCode")} className="border-3 border-black bg-white text-neutral-900 rounded-xl text-sm h-10 uppercase placeholder-slate-400 font-black tracking-wider focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                             <Button 
                                 type="button" 
                                 onClick={checkCode}
@@ -417,52 +505,60 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                             <Dog className="h-3.5 w-3.5 text-slate-400" /> {t("dogBreakdown")}
                         </h5>
                         <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1 scrollbar-thin">
-                            {petsCalculated.map((p, idx) => {
-                                return (
-                                    <div key={idx} className="bg-white border-2 border-black rounded-xl p-3 text-xs space-y-1 shadow-[2px_2px_0_0_#000]">
-                                        <div className="flex justify-between items-center border-b border-black/5 pb-1">
-                                            <span className="font-black text-neutral-900 uppercase flex items-center gap-1.5">
-                                                <Dog className="h-3 w-3 text-[#06B6D4]" /> {p.name}
-                                            </span>
-                                            <span className="font-black text-[#06B6D4]">
-                                                ${p.subtotal.toFixed(2)}
-                                            </span>
-                                        </div>
-                                        <div className="space-y-0.5 text-[10px] text-slate-500 font-bold leading-normal">
-                                            <div className="flex justify-between">
-                                                <span>{t("weightBase")}</span>
-                                                <span>${p.weightBasePrice.toFixed(2)}</span>
+                            {step === 1 ? (
+                                <div className="text-[11px] font-bold text-slate-400 italic text-center py-6 leading-normal">
+                                    {locale === "es" 
+                                        ? "El desglose se activará al ingresar los datos de tu mascota en el Paso 2."
+                                        : "Breakdown will activate when you enter your pet's details in Step 2."}
+                                </div>
+                            ) : (
+                                petsCalculated.map((p, idx) => {
+                                    return (
+                                        <div key={idx} className="bg-white border-2 border-black rounded-xl p-3 text-xs space-y-1 shadow-[2px_2px_0_0_#000]">
+                                            <div className="flex justify-between items-center border-b border-black/5 pb-1">
+                                                <span className="font-black text-neutral-900 uppercase flex items-center gap-1.5">
+                                                    <Dog className="h-3 w-3 text-[#06B6D4]" /> {p.name}
+                                                </span>
+                                                <span className="font-black text-[#06B6D4]">
+                                                    ${p.subtotal.toFixed(2)}
+                                                </span>
                                             </div>
-                                            {p.mainPrice > 0 && (
+                                            <div className="space-y-0.5 text-[10px] text-slate-500 font-bold leading-normal">
                                                 <div className="flex justify-between">
-                                                    <span>Grooming:</span>
-                                                    <span>${p.mainPrice.toFixed(2)}</span>
+                                                    <span>{t("weightBase")}</span>
+                                                    <span>${p.weightBasePrice.toFixed(2)}</span>
                                                 </div>
-                                            )}
-                                            {p.addonsPrice > 0 && (
-                                                <div className="flex justify-between">
-                                                    <span>Add-ons:</span>
-                                                    <span>+${p.addonsPrice.toFixed(2)}</span>
-                                                </div>
-                                            )}
-                                            {p.shampooPrice > 0 && (
-                                                <div className="flex justify-between">
-                                                    <span>Champú:</span>
-                                                    <span>+${p.shampooPrice.toFixed(2)}</span>
-                                                </div>
-                                            )}
+                                                {p.mainPrice > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Grooming:</span>
+                                                        <span>${p.mainPrice.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                                {p.addonsPrice > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Add-ons:</span>
+                                                        <span>+${p.addonsPrice.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                                {p.shampooPrice > 0 && (
+                                                    <div className="flex justify-between">
+                                                        <span>Champú:</span>
+                                                        <span>+${p.shampooPrice.toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
 
                     {/* Surcharges and discounts */}
                     <div className="space-y-2 text-[11px] font-bold text-slate-500">
                         {travelSurcharge > 0 && (
-                            <div className="flex justify-between items-center">
-                                <span className="uppercase flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-slate-400" /> {locale === "es" ? "Traslado / Zona" : "Travel surcharge"}:</span>
+                            <div className="flex justify-between items-center animate-in fade-in duration-200">
+                                <span className="uppercase flex items-center gap-1.5 font-bold text-slate-505"><MapPin className="h-3.5 w-3.5 text-slate-400" /> {locale === "es" ? "Recargo de viaje (Por distancia)" : "Travel Surcharge (Based on distance)"}:</span>
                                 <span className="font-black text-neutral-800">${travelSurcharge.toFixed(2)}</span>
                             </div>
                         )}
@@ -528,10 +624,10 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                     </div>
 
                     {/* Single Master Container Card */}
-                    <div className="relative flex flex-col md:flex-row bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_#1e1e1e] w-full max-w-6xl mx-auto">
+                    <div className="relative flex flex-col md:flex-row bg-white border-4 border-black rounded-3xl overflow-hidden shadow-[8px_8px_0px_0px_#1e1e1e] w-full max-w-6xl mx-auto h-full">
                         
                         {/* COLUMNA IZQUIERDA: Formulario dinámico por pasos (65% del ancho) */}
-                        <div className="w-full md:w-[65%] bg-white p-6 md:p-10 border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col justify-between space-y-6">
+                        <div className="w-full md:w-[65%] bg-white p-6 md:p-10 border-b-4 md:border-b-0 border-black flex flex-col justify-between space-y-6">
                             
                             {/* Barra de Progreso Neo-Brutalista */}
                             <div className="w-full bg-[#E5E7EB] border-4 border-black h-8 rounded-xl overflow-hidden relative shadow-[4px_4px_0_0_#000] mb-2 select-none shrink-0">
@@ -567,59 +663,65 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                                             <div className="space-y-4">
                                                 <div className="grid gap-1.5">
-                                                    <Label htmlFor={nameInputId} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("ownerName")}</Label>
-                                                    <Input id={nameInputId} placeholder={t("ownerNamePlaceholder")} {...form.register("name")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                    <Label htmlFor="quote-owner-name" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("ownerName")}</Label>
+                                                    <Input id="quote-owner-name" placeholder={t("ownerNamePlaceholder")} {...form.register("name")} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                     {form.formState.errors.name && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.name.message}</p>}
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={emailInputId} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("email")}</Label>
-                                                        <Input id={emailInputId} type="email" placeholder={t("emailPlaceholder")} {...form.register("email")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                        <Label htmlFor="quote-owner-email" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("email")}</Label>
+                                                        <Input id="quote-owner-email" type="email" placeholder={t("emailPlaceholder")} {...form.register("email")} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                         {form.formState.errors.email && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.email.message}</p>}
                                                     </div>
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={phoneInputId} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("phone")}</Label>
-                                                        <Input id={phoneInputId} type="tel" placeholder={t("phonePlaceholder")} {...form.register("phone")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                        <Label htmlFor="quote-owner-phone" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("phone")}</Label>
+                                                        <Input id="quote-owner-phone" type="tel" placeholder={t("phonePlaceholder")} {...form.register("phone")} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                         {form.formState.errors.phone && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.phone.message}</p>}
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                                     <div className="sm:col-span-2 grid gap-1.5">
-                                                        <Label htmlFor={addressInputId} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("address")}</Label>
-                                                        <Input id={addressInputId} placeholder={t("addressPlaceholder")} {...form.register("address")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                        <Label htmlFor="quote-owner-address" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("address")}</Label>
+                                                        <Input id="quote-owner-address" placeholder={t("addressPlaceholder")} {...form.register("address")} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                         {form.formState.errors.address && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.address.message}</p>}
                                                     </div>
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={zipInputId} className="font-black text-xs uppercase tracking-wider text-slate-700">{t("zipCode")}</Label>
-                                                        <Input id={zipInputId} maxLength={5} placeholder={t("zipCodePlaceholder")} {...form.register("zipCode")} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] uppercase placeholder-slate-400 font-black tracking-widest text-neutral-900" />
-                                                        {form.formState.errors.zipCode && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.zipCode.message}</p>}
-                                                        {watchedZip && !isZipValid && (
-                                                            <p className="text-[10px] font-black text-amber-600 uppercase mt-0.5 flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> {locale === "es" ? "Fuera de cobertura" : "No coverage area"}</p>
-                                                        )}
+                                                         <Label htmlFor="quote-owner-zipcode" className="font-black text-xs uppercase tracking-wider text-slate-700">{t("zipCode")}</Label>
+                                                         <Input id="quote-owner-zipcode" maxLength={5} placeholder={t("zipCodePlaceholder")} {...form.register("zipCode")} className="border-3 border-black bg-white rounded-xl text-sm h-11 uppercase placeholder-slate-400 font-black tracking-widest text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
+                                                         {form.formState.errors.zipCode && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.zipCode.message}</p>}
+                                                         {watchedZip.length === 5 && zipStatus.isValid === false && (
+                                                             <p className="text-[10px] font-black text-rose-505 uppercase mt-1.5 flex items-center gap-1.5 leading-tight"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {locale === "es" ? "Lo sentimos, actualmente no cubrimos esta zona." : "Sorry, we currently do not cover this area."}</p>
+                                                         )}
+                                                         {zipStatus.checking && (
+                                                             <p className="text-[10px] font-bold text-[#06B6D4] uppercase mt-1.5 flex items-center gap-1.5"><RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" /> {locale === "es" ? "Validando zona..." : "Validating area..."}</p>
+                                                         )}
+                                                         {zipStatus.isValid === true && (
+                                                             <p className="text-[10px] font-black text-emerald-600 uppercase mt-1.5 flex items-center gap-1.5"><Check className="h-3.5 w-3.5 shrink-0" /> {locale === "es" ? `Cobertura Confirmada: ${zipStatus.name}` : `Coverage Confirmed: ${zipStatus.name}`}</p>
+                                                         )}
                                                     </div>
                                                 </div>
 
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={`quote-${uniqueId}-date`} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Calendar className="h-4 w-4 text-[#06B6D4]" /> {t("bookingDate")}</Label>
+                                                        <Label htmlFor="quote-appointment-date" className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Calendar className="h-4 w-4 text-[#06B6D4]" /> {t("bookingDate")}</Label>
                                                         <Input 
-                                                            id={`quote-${uniqueId}-date`} 
+                                                            id="quote-appointment-date" 
                                                             type="date" 
                                                             placeholder={t("datePlaceholder")}
                                                             min={new Date().toISOString().split('T')[0]}
                                                             {...form.register("appointmentDate")} 
-                                                            className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900" 
+                                                            className="border-3 border-black bg-white rounded-xl text-sm h-11 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" 
                                                         />
                                                         {form.formState.errors.appointmentDate && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{form.formState.errors.appointmentDate.message}</p>}
                                                     </div>
                                                     <div className="grid gap-1.5">
-                                                        <Label htmlFor={`quote-${uniqueId}-time`} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Clock className="h-4 w-4 text-[#06B6D4]" /> {t("bookingTime")}</Label>
+                                                        <Label htmlFor="quote-appointment-time" className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5"><Clock className="h-4 w-4 text-[#06B6D4]" /> {t("bookingTime")}</Label>
                                                         <select
-                                                            id={`quote-${uniqueId}-time`}
+                                                            id="quote-appointment-time"
                                                             {...form.register("appointmentTime")}
-                                                            className="flex h-12 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-slate-800"
+                                                            className="flex h-12 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none font-bold text-slate-800 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200"
                                                         >
                                                             <option value="">{locale === "es" ? "Seleccione un horario" : "Select a time slot"}</option>
                                                             <option value="09:00 - 12:00">09:00 AM - 12:00 PM ({locale === "es" ? "Mañana" : "Morning"})</option>
@@ -738,7 +840,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                                 </Label>
                                                                                 <div 
                                                                                     onClick={() => {
-                                                                                        const el = document.getElementById(`${uniqueId}-pet-photo-${index}`);
+                                                                                        const el = document.getElementById(`pet-photo-input-${index}`);
                                                                                         if (el) el.click();
                                                                                     }}
                                                                                     className="relative h-40 w-full rounded-xl border-2 border-dashed border-black/25 transition-all duration-300 flex flex-col items-center justify-center gap-2 cursor-pointer overflow-hidden hover:bg-black/5 bg-white shadow-[2px_2px_0_0_rgba(0,0,0,0.05)]"
@@ -765,7 +867,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                                     )}
                                                                                 </div>
                                                                                 <input
-                                                                                    id={`${uniqueId}-pet-photo-${index}`}
+                                                                                    id={`pet-photo-input-${index}`}
                                                                                     type="file"
                                                                                     accept="image/*"
                                                                                     className="sr-only"
@@ -783,12 +885,12 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                                     <div className="grid gap-1.5">
                                                                                         <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petName")}</Label>
-                                                                                        <Input placeholder={t("petNamePlaceholder")} {...form.register(`pets.${index}.name`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                                        <Input placeholder={t("petNamePlaceholder")} {...form.register(`pets.${index}.name`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                                                         {errors?.name && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.name.message}</p>}
                                                                                     </div>
                                                                                     <div className="grid gap-1.5">
                                                                                         <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petBreed")}</Label>
-                                                                                        <Input placeholder={t("petBreedPlaceholder")} {...form.register(`pets.${index}.breed`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                                        <Input placeholder={t("petBreedPlaceholder")} {...form.register(`pets.${index}.breed`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                                                         {errors?.breed && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.breed.message}</p>}
                                                                                     </div>
                                                                                 </div>
@@ -797,14 +899,14 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                                     <div className="grid gap-1.5">
                                                                                         <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petWeight")}</Label>
                                                                                         <div className="relative">
-                                                                                            <Input type="number" placeholder={t("petWeightPlaceholder")} {...form.register(`pets.${index}.weight`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 pr-12 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                                            <Input type="number" placeholder={t("petWeightPlaceholder")} {...form.register(`pets.${index}.weight`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 pr-12 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                                                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">LBS</span>
                                                                                         </div>
                                                                                         {errors?.weight && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.weight.message}</p>}
                                                                                     </div>
                                                                                     <div className="grid gap-1.5">
                                                                                         <Label className="font-black text-xs uppercase tracking-wider text-slate-700">{t("petAge")}</Label>
-                                                                                        <Input placeholder={t("petAgePlaceholder")} {...form.register(`pets.${index}.age`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] placeholder-slate-400 font-bold text-neutral-900" />
+                                                                                        <Input placeholder={t("petAgePlaceholder")} {...form.register(`pets.${index}.age`)} className="border-3 border-black bg-white rounded-xl text-sm h-11 placeholder-slate-400 font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                                                         {errors?.age && <p className="text-xs font-black text-rose-500 uppercase mt-0.5">{errors.age.message}</p>}
                                                                                     </div>
                                                                                 </div>
@@ -836,7 +938,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                                             {isVaccinated ? (
                                                                                 <div className="grid gap-1.5 pt-2 border-t-2 border-black/5">
                                                                                     <Label htmlFor={`rabiesRegistry-${index}`} className="font-black text-xs text-slate-650 uppercase tracking-wider">{t("rabiesNumber")}</Label>
-                                                                                    <Input id={`rabiesRegistry-${index}`} placeholder={t("rabiesNumberPlaceholder")} {...form.register(`pets.${index}.rabiesRegistry`)} className="border-3 border-black bg-white rounded-xl text-sm h-10 focus-visible:ring-0 placeholder-slate-400 font-bold tracking-widest uppercase text-neutral-900" />
+                                                                                    <Input id={`rabiesRegistry-${index}`} placeholder={t("rabiesNumberPlaceholder")} {...form.register(`pets.${index}.rabiesRegistry`)} className="border-3 border-black bg-white rounded-xl text-sm h-10 placeholder-slate-400 font-bold tracking-widest uppercase text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200" />
                                                                                 </div>
                                                                             ) : (
                                                                                 <div className="bg-rose-500/10 border-2 border-rose-500 text-rose-600 p-3 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider leading-relaxed flex items-start gap-2 mt-2">
@@ -1080,15 +1182,15 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                             {/* 3. Special Shampoo Selector */}
                                                             {shampoos.length > 0 && (
                                                                 <div className="space-y-2 pt-2 border-t-2 border-black/5">
-                                                                    <Label htmlFor={`special-shampoo-${petIdx}-${uniqueId}`} className="font-black text-xs uppercase tracking-wider text-slate-750 flex items-center gap-1.5">
+                                                                    <Label htmlFor={`special-shampoo-${petIdx}`} className="font-black text-xs uppercase tracking-wider text-slate-750 flex items-center gap-1.5">
                                                                         <Sparkles className="h-3.5 w-3.5 text-[#06B6D4] shrink-0" /> {locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
                                                                     </Label>
                                                                     <select
-                                                                        id={`special-shampoo-${petIdx}-${uniqueId}`}
+                                                                        id={`special-shampoo-${petIdx}`}
                                                                         title={locale === "es" ? "Champú Especial (Opcional)" : "Special Shampoo (Optional)"}
                                                                         value={servicesForPet.shampoo}
                                                                         onChange={(e) => setShampooForPet(e.target.value)}
-                                                                        className="flex h-12 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:shadow-[3px_3px_0_0_#000] appearance-none font-bold text-slate-800"
+                                                                        className="flex h-12 w-full rounded-xl border-3 border-black bg-white px-3 py-2 text-sm focus-visible:outline-none appearance-none font-bold text-slate-800 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200"
                                                                     >
                                                                         <option value="">{locale === "es" ? "Ninguno (Champú Orgánico Estándar)" : "None (Standard Organic Shampoo)"}</option>
                                                                         {shampoos.map(s => {
@@ -1109,14 +1211,14 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
 
                                             {/* Optional Client Message */}
                                             <div className="space-y-1.5 pt-4 border-t-2 border-black/5">
-                                                <Label htmlFor={messageTextareaId} className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                                <Label htmlFor="quote-message-notes" className="font-black text-xs uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                                                     <MessageSquare className="h-3.5 w-3.5 text-[#06B6D4] shrink-0" /> {locale === "es" ? "Mensaje o Nota Opcional" : "Optional Message or Note"}
                                                 </Label>
                                                 <Textarea 
-                                                    id={messageTextareaId} 
+                                                    id="quote-message-notes" 
                                                     placeholder={locale === "es" ? "Indicaciones especiales sobre tu mascota o domicilio..." : "Special instructions about your pet or address..."} 
                                                     {...form.register("message")} 
-                                                    className="border-3 border-black bg-white rounded-xl text-sm min-h-[70px] focus-visible:ring-0 focus-visible:shadow-[3px_3px_0_0_#000] font-bold text-neutral-900"
+                                                    className="border-3 border-black bg-white rounded-xl text-sm min-h-[70px] font-bold text-neutral-900 focus:bg-yellow-50 focus:scale-[1.02] focus:ring-2 focus:ring-black focus:outline-none transition-all duration-200"
                                                 />
                                             </div>
 
@@ -1130,11 +1232,11 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                                                 <div className="flex items-start gap-2.5">
                                                     <input 
                                                         type="checkbox"
-                                                        id={legalCheckboxId}
+                                                        id="quote-legal-accepted"
                                                         className="h-5 w-5 accent-[#06B6D4] border-3 border-black rounded cursor-pointer mt-0.5 shrink-0"
                                                         {...form.register("legalAccepted")}
                                                     />
-                                                    <Label htmlFor={legalCheckboxId} className="text-[10px] font-semibold text-slate-600 leading-relaxed uppercase select-none cursor-pointer flex items-start gap-1.5">
+                                                    <Label htmlFor="quote-legal-accepted" className="text-[10px] font-semibold text-slate-600 leading-relaxed uppercase select-none cursor-pointer flex items-start gap-1.5">
                                                         <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                                                         <span>
                                                             {locale === "es" 
@@ -1171,8 +1273,10 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                         </div>
 
                         {/* COLUMNA DERECHA: Sticky Resumen de Cotización (35% del ancho) */}
-                        <div className="w-full md:w-[35%] bg-cyan-50/60 p-6 md:p-8 md:sticky md:top-24 self-start h-full border-t-4 md:border-t-0 md:border-l-4 border-black">
-                            {renderSummaryCard(false)}
+                        <div className="w-full md:w-[35%] bg-[#F0F9FF] md:sticky md:top-24 h-full border-t-4 md:border-t-0 border-black">
+                            <div className="p-6 md:p-8 h-full">
+                                {renderSummaryCard(false)}
+                            </div>
                         </div>
 
                     </div>
@@ -1222,7 +1326,7 @@ export default function QuoteSection({ locale, initialServices }: QuoteSectionPr
                             <Button 
                                 type="button"
                                 onClick={() => {
-                                    const element = document.getElementById(legalCheckboxId);
+                                    const element = document.getElementById("quote-legal-accepted");
                                     if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
                                     toast.info(locale === "es" ? "Acepte los términos y haga clic en Enviar" : "Accept terms and click Submit");
                                 }}

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Star, Zap } from "lucide-react";
 import { LazyMotion, domAnimation, m } from "framer-motion";
 import { DogCollage } from "./DogCollage";
 
@@ -104,12 +104,60 @@ export default function HeroSection({ config, locale }: HeroSectionProps) {
                             initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
                             animate={{ opacity: 1, scale: 1, rotate: 0 }}
                             transition={{ duration: 1.2, type: "spring", damping: 12 }}
-                            className="w-full max-w-2xl"
+                            className="w-full max-w-2xl relative"
                         >
-                            <DogCollage 
-                                src="/assets/hero_dog_svg.svg" 
-                                variant="A" 
-                            />
+                            {/* Y axis continuous float animation */}
+                            <m.div
+                                animate={{ y: [-10, 10, -10] }}
+                                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                                className="w-full h-full"
+                            >
+                                <DogCollage 
+                                    src="/assets/hero_dog_svg.svg" 
+                                    variant="A" 
+                                />
+                            </m.div>
+
+                            {/* Floating Pop-Art stickers around the dog */}
+                            <m.div
+                                className="absolute -top-4 left-6 z-20 cursor-pointer select-none"
+                                animate={{ scale: [1, 1.15, 1], rotate: [-12, -2, -12] }}
+                                transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                            >
+                                <div className="bg-[#FEF08A] border-[3px] border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_#000] transition-transform hover:scale-110">
+                                    <Star className="w-8 h-8 text-black fill-[#FEF08A]" />
+                                </div>
+                            </m.div>
+
+                            <m.div
+                                className="absolute bottom-8 right-6 z-20 cursor-pointer select-none"
+                                animate={{ scale: [1, 1.1, 1], rotate: [15, 25, 15] }}
+                                transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+                            >
+                                <div className="bg-[#BFDBFE] border-[3px] border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_#000] transition-transform hover:scale-110">
+                                    <Zap className="w-8 h-8 text-black fill-[#BFDBFE]" />
+                                </div>
+                            </m.div>
+
+                            <m.div
+                                className="absolute top-1/2 -right-6 z-20 cursor-pointer select-none"
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+                            >
+                                <div className="bg-[#86EFAC] border-[3px] border-black p-2.5 rounded-full shadow-[4px_4px_0px_0px_#000] transition-transform hover:scale-110">
+                                    <Star className="w-6 h-6 text-black fill-[#86EFAC]" />
+                                </div>
+                            </m.div>
+
+                            <m.div
+                                className="absolute bottom-1/4 -left-6 z-20 cursor-pointer select-none"
+                                animate={{ scale: [1, 1.15, 1], y: [0, -10, 0] }}
+                                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                            >
+                                <div className="bg-[#FEF08A] border-[3px] border-black p-3 rounded-2xl shadow-[4px_4px_0px_0px_#000] rotate-[8deg] transition-transform hover:scale-110">
+                                    <Zap className="w-6 h-6 text-black fill-[#FEF08A]" />
+                                </div>
+                            </m.div>
                         </m.div>
                     </div>
                 </div>

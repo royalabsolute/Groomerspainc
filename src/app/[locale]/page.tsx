@@ -5,6 +5,8 @@ import ServicesShowcase from "@/components/public/ServicesShowcase";
 import db from '@/lib/db';
 import { PopArtDots, PopArtZap, PopArtStar } from '@/components/public/PopArtDecorations';
 import { ZigzagYellowDoodle, OrangeBlobDoodle, CyanPlusDoodle } from '@/components/public/Doodles';
+import InfiniteMarquee from "@/components/public/InfiniteMarquee";
+import TornPaperDivider from "@/components/public/TornPaperDivider";
 
 const GallerySection = dynamic(() => import('@/components/public/GallerySection'), {
   loading: () => <div className="min-h-[400px] bg-secondary/10 animate-pulse rounded-3xl m-8" />
@@ -44,7 +46,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
   })) as any[];
 
   return (
-    <div className="flex flex-col gap-0 relative overflow-hidden bg-[#FDFCF8] min-h-screen pt-20">
+    <div className="flex flex-col gap-0 relative overflow-hidden bg-[#FDFCF8] min-h-screen pt-20 pb-32 md:pb-0">
       {/* Global subtle pop-art backgrounds */}
       <PopArtDots className="absolute inset-0 z-0 opacity-10 pointer-events-none" />
       
@@ -71,6 +73,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         {/* Section 1: Hero - Always First */}
         <div className="order-1">
           <HeroSection config={config as any} locale={locale} />
+          <InfiniteMarquee />
         </div>
 
         {/* Section 2: Services Showcase (order-2 on mobile, order-3 on desktop) */}
@@ -85,7 +88,8 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
         {/* Section 4: Quote Wizard (order-4 on both mobile and desktop) */}
         <div className="order-4">
-          <QuoteSection locale={locale} initialServices={services} />
+          <TornPaperDivider />
+          <QuoteSection locale={locale} initialServices={services} initialConfig={config} />
         </div>
 
         {/* Section 5: Footer - Always Last */}

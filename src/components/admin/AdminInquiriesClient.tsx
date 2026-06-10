@@ -239,28 +239,41 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
         }
     };
 
-    // Helper to generate dynamic WhatsApp bilingually
+    // Builds a WhatsApp deep link — ALWAYS in English regardless of user locale
     const getWhatsAppLink = (item: InquiryItem) => {
-        let cleanPhone = item.phone.replace(/[^\d]/g, "");
-        if (cleanPhone.length === 10) {
-            cleanPhone = "1" + cleanPhone; // Prefix standard US code
-        }
-        
+        // Normalize phone to E.164 (add US +1 if 10 digits)
+        let cleanPhone = item.phone.replace(/\D/g, "");
+        if (cleanPhone.length === 10) cleanPhone = "1" + cleanPhone;
+
         const price = item.finalAdminPrice || item.systemEstimatedPrice;
-        
-        // Dynamic dynamic service lookup
+
+        // Use English service names — forced English-only policy
         const ids = item.selectedServiceIds.split(",").map(id => id.trim()).filter(Boolean);
         const chosen = services.filter(s => ids.includes(s.id));
-        const serviceNames = chosen.map(s => s.nameEs).join(", ");
-        
-        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://groomersincpetspa.com";
-        const acceptUrl = `${siteUrl}/es/quote/${item.id}/accept`;
+        const serviceNames = chosen.map(s => s.nameEn).join(", ") || "Professional Grooming";
 
-        // Pre-written professional message
-        const isEn = !!item.discountCode; // simple heuristic for demo
-        const msg = isEn 
-            ? `Hello ${item.name}! Your quote to pamper ${item.petName} is ready. [GroomingPet]\n\nIncluded: ${serviceNames || "Grooming"}\nOfficial Price: $${price.toFixed(2)}\n\nAccept & Book your spot here: ${acceptUrl}\n\nThank you!`
-            : `¡Hola ${item.name}! El estimado para consentir a ${item.petName} está listo. [GroomingPet]\n\nIncluye: ${serviceNames || "Grooming"}\nPrecio Oficial: $${price.toFixed(2)}\n\nAcepta y Confirma tu cita aquí: ${acceptUrl}\n\n¡Gracias!`;
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://groomersincathome.com";
+        // Always /en/ locale for outbound client links
+        const acceptUrl = `${siteUrl}/en/quote/${item.id}/accept`;
+
+        // English-only message template (matches whatsapp-en/messages.ts quoteReadyMessage)
+        const msg = [
+            `Hello ${item.name}! 🐾`,
+            ``,
+            `Your grooming quote for *${item.petName}* is ready from *Groomers, INC.*`,
+            ``,
+            `📋 *Services Included:*`,
+            serviceNames,
+            ``,
+            `💰 *Official Price: $${price.toFixed(2)}*`,
+            `(Cash only upon service completion)`,
+            ``,
+            `✅ *Accept & confirm your appointment:*`,
+            acceptUrl,
+            ``,
+            `Questions? Reply to this message.`,
+            `Thank you for choosing Groomers, INC.! 🐶`,
+        ].join("\n");
 
         return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
     };
@@ -276,219 +289,13 @@ export default function AdminInquiriesClient({ initialItems, services }: AdminIn
     };
 
     const handleDownloadPDF = (item: InquiryItem) => {
-        const printWindow = window.open("", "_blank");
+        const parts = window.location.pathname.split("/");
+        const locale = (parts[1] === "es" || parts[1] === "en") ? parts[1] : "en";
+        const printWindow = window.open(`/${locale}/admin-print/waiver-template?id=${item.id}`, "_blank");
         if (!printWindow) {
-            toast.error("El navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes.");
+            toast.error("Pop-up blocked. Please allow pop-ups for this page.");
             return;
         }
-
-        const price = item.finalAdminPrice || item.systemEstimatedPrice;
-        
-        // Compile all pets in English representation
-        let petsInfo = "";
-        const petsList = item.pets && item.pets.length > 0 ? item.pets : [
-            {
-                name: item.petName,
-                breed: item.breed,
-                weight: item.petWeight,
-                age: item.petAge,
-                rabiesVaccinated: item.rabiesVaccinated,
-                rabiesRegistry: item.rabiesRegistry,
-                selectedServiceIds: item.selectedServiceIds
-            }
-        ];
-
-        petsList.forEach((pet, idx) => {
-            const ids = pet.selectedServiceIds.split(",").map(id => id.trim()).filter(Boolean);
-            const chosen = services.filter(s => ids.includes(s.id));
-            const servicesText = chosen.map(s => s.nameEn).join(", ") || "Grooming";
-
-            petsInfo += `
-            <div style="border: 1px solid #000; padding: 12px; margin-bottom: 12px; border-radius: 8px;">
-                <p style="margin: 4px 0;"><strong>PET #${idx + 1} NAME:</strong> ${pet.name || "_______________"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>BREED:</strong> ${pet.breed || "_______________"}</p>
-                <p style="margin: 4px 0;"><strong>WEIGHT:</strong> ${pet.weight ? `${pet.weight} lbs` : "_______ lbs"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>AGE:</strong> ${pet.age || "_______________"} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>MEDICAL ISSUES / OBSERVATIONS:</strong> ____________________________</p>
-                <p style="margin: 4px 0;"><strong>RABIES VACCINE EXPIRATION DATE:</strong> ________________________ &nbsp;&nbsp;|&nbsp;&nbsp; <strong>GROOMER INITIALS:</strong> _________</p>
-                <p style="margin: 4px 0;"><strong>REQUESTED SERVICES:</strong> ${servicesText}</p>
-            </div>
-            `;
-        });
-
-        printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>GROOMERS, INC. - Liability Waiver - ${item.name}</title>
-            <style>
-                body {
-                    font-family: 'Courier New', Courier, monospace;
-                    color: #000;
-                    margin: 40px;
-                    line-height: 1.5;
-                    font-size: 12px;
-                }
-                .header {
-                    text-align: center;
-                    border-bottom: 2px double #000;
-                    padding-bottom: 12px;
-                    margin-bottom: 20px;
-                }
-                .header h1 {
-                    margin: 0;
-                    font-size: 20px;
-                    font-weight: bold;
-                    letter-spacing: 1px;
-                }
-                .header p {
-                    margin: 4px 0 0;
-                    font-size: 11px;
-                    font-weight: bold;
-                }
-                .section {
-                    margin-bottom: 20px;
-                }
-                .section-title {
-                    font-weight: bold;
-                    text-transform: uppercase;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 3px;
-                    margin-bottom: 10px;
-                    font-size: 13px;
-                }
-                .field-row {
-                    display: flex;
-                    justify-content: flex-start;
-                    flex-wrap: wrap;
-                    margin-bottom: 6px;
-                }
-                .field {
-                    margin-right: 20px;
-                    margin-bottom: 6px;
-                }
-                .terms {
-                    text-align: justify;
-                    font-size: 10px;
-                    line-height: 1.4;
-                    border: 1px dashed #000;
-                    padding: 10px;
-                    margin-bottom: 20px;
-                    background: #FAFAFA;
-                }
-                .signatures {
-                    margin-top: 30px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .signature-line {
-                    border-top: 1px solid #000;
-                    width: 45%;
-                    text-align: center;
-                    padding-top: 5px;
-                    margin-top: 40px;
-                }
-                .footer-box {
-                    border: 1px solid #000;
-                    padding: 10px;
-                    margin-top: 20px;
-                    font-size: 11px;
-                }
-                @media print {
-                    body {
-                        margin: 20px;
-                    }
-                    button {
-                        display: none;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div style="text-align: right; margin-bottom: 10px;">
-                <button onclick="window.print()" style="padding: 8px 16px; font-weight: bold; cursor: pointer; background: #000; color: #FFF; border: none; border-radius: 4px;">PRINT / SAVE PDF</button>
-            </div>
-
-            <!-- HEADER -->
-            <div class="header">
-                <h1>GROOMERS, INC.</h1>
-                <p>Mobile Pet Grooming Spa | Miami, FL</p>
-                <p style="font-size: 14px; margin-top: 8px;">LIABILITY WAIVER & SERVICE AGREEMENT</p>
-            </div>
-
-            <!-- SEC 1: CLIENT INFORMATION -->
-            <div class="section">
-                <div class="section-title">SECTION 1: CLIENT & VEHICLE DESTINATION</div>
-                <div class="field-row">
-                    <div class="field"><strong>CLIENT NAME:</strong> ${item.name}</div>
-                    <div class="field"><strong>PHONE:</strong> ${item.phone}</div>
-                    <div class="field"><strong>EMAIL:</strong> ${item.email}</div>
-                </div>
-                <div class="field-row">
-                    <div class="field"><strong>SERVICE ADDRESS:</strong> ${item.address}, ZIP ${item.zipCode}</div>
-                </div>
-            </div>
-
-            <!-- SEC 2 & 3: PETS & RABIES REGISTRY -->
-            <div class="section">
-                <div class="section-title">SECTION 2 & 3: PET SPECIFICATION & SERVICES INFO (FL Law Compliance)</div>
-                <p style="font-size: 10px; margin: 0 0 10px 0; font-style: italic;">* In compliance with Florida Law, rabies tags / proof of vaccine expiration date must be registered prior to service start.</p>
-                ${petsInfo}
-            </div>
-
-            <div class="section">
-                <div class="field-row" style="margin-top: 10px;">
-                    <div class="field"><strong>TOTAL ESTIMATED SPA PRICE:</strong> $${price.toFixed(2)}</div>
-                    <div class="field"><strong>SPECIFIC INSTRUCTIONS:</strong> ________________________________________________</div>
-                </div>
-            </div>
-
-            <!-- SEC 4: TERMS & AGREEMENTS -->
-            <div class="section">
-                <div class="section-title">SECTION 4: MOBILE SPA SERVICE TERMS</div>
-                <div class="terms">
-                    1. MATTED COAT POLICY: Shaving a matted coat can expose pre-existing skin conditions. Groomers, Inc. is not responsible for irritation, cuts or abrasions resulting from de-matting or clipping a severely matted coat.<br/>
-                    2. BEHAVIOR & SAFETY: Owner must inform the groomer if the pet exhibits aggressive behavior. We reserve the right to refuse service or use safe muzzling if required for pet and handler protection.<br/>
-                    3. CASH ONLY PAYMENT: Groomers, Inc. operates strictly on a Cash-On-Delivery (COD) basis. Payments must be processed immediately upon pet check-out.<br/>
-                    4. LIABILITY WAIVER: Owner releases Groomers, Inc. from any liability for injury, illness or damage arising from standard grooming procedures or sudden health events during spa sessions.
-                </div>
-            </div>
-
-            <!-- SEC 5 & FOOTER: SIGNATURES & CLOSURE -->
-            <div class="section">
-                <div class="section-title">SECTION 5: SIGNATURES & FINAL CLOSURE</div>
-                
-                <div class="signatures">
-                    <div class="signature-line">
-                        CLIENT SIGNATURE & DATE<br/>
-                        X ________________________________________
-                    </div>
-                    <div class="signature-line">
-                        SPA GROOMER SIGNATURE & DATE<br/>
-                        X ________________________________________
-                    </div>
-                </div>
-
-                <div class="footer-box">
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-weight: bold;">
-                        <label><input type="checkbox"/> [ ] SERVICE COMPLETED SUCCESSFULLY</label>
-                        <span>FINAL CASH RECEIVED: $________________</span>
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <strong>GROOMER FINAL CLINICAL/BEHAVIOR NOTES:</strong><br/>
-                        <p style="margin: 8px 0 0 0; line-height: 1.8;">___________________________________________________________________________________________________________________</p>
-                        <p style="margin: 4px 0 0 0; line-height: 1.8;">___________________________________________________________________________________________________________________</p>
-                    </div>
-                </div>
-            </div>
-            
-            <script>
-                // Auto trigger browser print dialogue
-                window.onload = function() {
-                    window.print();
-                }
-            </script>
-        </body>
-        </html>
-        `);
-        printWindow.document.close();
     };
 
     const filteredItems = items.filter(item => {

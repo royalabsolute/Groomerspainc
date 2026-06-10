@@ -49,3 +49,9 @@ next-env.d.ts
 
 # Editor Configurations
 .cursor/
+
+# Deployment packages
+deploy.tar.gz
+
+# Minecraft Server Backups
+MINECRAFT SERVER 1.20.1 FABRIC.7z

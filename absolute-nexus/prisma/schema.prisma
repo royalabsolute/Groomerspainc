@@ -1,0 +1,287 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  image     String?
+  avatarUrl String?  // Optional column for Supabase avatar storage
+  createdAt DateTime @default(now())
+}
+
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  url       String
+  type      String
+  category  String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Testimonial {
+  id         String  @id @default(cuid())
+  clientName String
+  messageEs  String
+  messageEn  String?
+  rating     Int     @default(5)
+  imageUrl   String?
+  approved   Boolean @default(false)
+
+  @@index([approved])
+}
+
+model Inquiry {
+  id              String   @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  message         String
+  petDetails      String?
+  petName         String?
+  breed           String?
+  petWeight       Float?
+  petAge          String?
+  rabiesVaccinated Boolean? @default(false)
+  rabiesRegistry  String?
+  zipCode         String?
+  petImageUrl     String?
+  read            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  service         String?
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, UNPAID
+  discountCode    String?  // Stored discount code used
+  basePrice       Float?   @default(0)
+  discountApplied Float?   @default(0)
+  netGain         Float?   @default(0)
+  deleted         Boolean  @default(false)
+  address         String?
+  appointmentDate DateTime?
+  appointmentTime String?
+
+  @@index([name])
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deleted])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model DiscountCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  description String?
+  discount    String?  // "10%", "$5", etc.
+  isActive    Boolean  @default(true)
+  usedCount   Int      @default(0)
+  maxUses     Int?     @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SiteConfig {
+  id                        String  @id @default("config")
+  phone                     String?
+  email                     String?
+  address                   String?
+  heroTitleEs               String?
+  heroTitleEn               String?
+  tiktokUrl                 String?
+  footerDescEn              String?
+  footerDescEs              String?
+  heroDescEn                String?
+  heroDescEs                String?
+  heroHighlightEn           String?
+  heroHighlightEs           String?
+  instagramUrl              String?
+  twitterUrl                String?
+  heroBadgeEn               String?
+  heroBadgeEs               String?
+  heroImageUrl              String?
+  notificationEmail         String?
+  contactSubtitleEn         String?
+  contactSubtitleEs         String?
+  contactTitleEn            String?
+  contactTitleEs            String?
+  hoursEn                   String?
+  hoursEs                   String?
+  transformationsEnabled    Boolean @default(false)
+  tiktokActive              Boolean @default(true)
+  instagramActive           Boolean @default(true)
+  twitterActive             Boolean @default(true)
+  accentColor               String? @default("#7C3AED") // Hex accent color configuration
+  primaryColor              String? @default("#121212") // Hex color configuration
+  heroSectionActive         Boolean @default(true)      // Section toggle states
+  servicesSectionActive     Boolean @default(true)
+  testimonialsSectionActive Boolean @default(true)
+  gallerySectionActive      Boolean @default(true)
+  workingHoursStart         String? @default("09:00")
+  workingHoursEnd           String? @default("18:00")
+  workingDays               String? @default("1,2,3,4,5")
+  blockedDates              String?
+  weightTier1Price          Float?  @default(45.0)
+  weightTier2Price          Float?  @default(60.0)
+  weightTier3Price          Float?  @default(75.0)
+  weightTier4Price          Float?  @default(95.0)
+}
+
+model Transformation {
+  id                    String   @id @default(cuid())
+  petName               String
+  breed                 String
+  age                   Int?
+  serviceDate           DateTime
+  beforePhotoUrl        String   // Ruta local NVMe
+  afterPhotoUrl         String   // Ruta local NVMe
+  contractImage         String?  // Documento/Contrato de Evaluación
+  technicalDescriptionEs String
+  technicalDescriptionEn String
+  visible               Boolean  @default(true)
+  createdAt             DateTime @default(now())
+
+  @@index([breed])
+  @@index([serviceDate])
+  @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  type        String   // "INCOME" or "EXPENSE"
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  invoiceUrl  String?
+  inquiryId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type])
+  @@index([date])
+}
+
+model ServiceItem {
+  id        String          @id @default(cuid())
+  nameEs    String          // Nombre en Español
+  nameEn    String          // Nombre en Inglés
+  category  String
+  basePrice Float
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  // Relación Many-to-Many implícita con PetProfile
+  pets      PetProfile[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model QuoteRequest {
+  id                   String      @id @default(cuid())
+  status               String      @default("PENDING_REVIEW")
+  
+  // Datos del Dueño
+  ownerName            String
+  ownerPhone           String
+  ownerEmail           String
+  
+  // Dirección física en Florida
+  address              String
+  zipCode              String
+  city                 String      @default("Miami") // Broward / Miami-Dade focus
+  
+  // Relación One-to-Many con las Mascotas
+  pets                 PetProfile[]
+  
+  // Validaciones y Cláusulas Legales
+  termsAccepted        Boolean     // Aceptación de precio estimado provisional
+  
+  // Motores de Precios
+  systemEstimatedPrice Float
+  finalAdminPrice      Float?
+  
+  message              String?
+  appointmentDate      DateTime?
+  appointmentTime      String?
+  discountCode         String?
+  
+  // Sistema de Agenda Dinámica y Control de Tiempo
+  scheduledDate        DateTime?
+  startTime            DateTime?
+  estimatedEndTime     DateTime?
+  actualEndTime        DateTime?
+  contractUrl          String?
+  groomerNotes         String?
+
+  read                 Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  @@index([status])
+  @@index([ownerEmail])
+}
+
+model PetProfile {
+  id                    String        @id @default(cuid())
+  quoteRequestId        String
+  quoteRequest          QuoteRequest  @relation(fields: [quoteRequestId], references: [id], onDelete: Cascade)
+  
+  name                  String
+  breed                 String
+  weightLbs             Float
+  ageYears              Int?
+  photoUrl              String?       // Foto individual de la mascota
+  rabiesVaccineUpToDate Boolean       // Cada mascota debe validar su vacuna individualmente
+  rabiesRegistry        String?       // Número de registro de rabia si aplica
+  
+  // Relación Many-to-Many para los servicios de cada perro
+  services              ServiceItem[]
+  shampooId             String?       // ID de Champú Especial
+  
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([quoteRequestId])
+}
+
+model ServiceZone {
+  zipCode       String   @id
+  name          String
+  distanceMiles Float
+  travelFee     Float
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

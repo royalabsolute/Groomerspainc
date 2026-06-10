@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://groomingpetmiami.com';
+    const baseUrl = 'https://groomersincathome.com';
     const locales = ['en', 'es'];
     const paths = ['', '/transformaciones'];
 

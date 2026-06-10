@@ -16,6 +16,8 @@ import {
     Ticket,
     Users,
     DollarSign,
+    MapPin,
+    Palette,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useEffect } from "react";
@@ -28,9 +30,11 @@ const menuItems = [
     { name: "Servicios", href: "/admin/services", icon: Scissors },
     { name: "Galería", href: "/admin/gallery", icon: ImageIcon },
     { name: "Transformaciones", href: "/admin/transformaciones", icon: Sparkles },
+    { name: "Zonas", href: "/admin/zonas", icon: MapPin },
     { name: "Cupones", href: "/admin/cupones", icon: Ticket },
     { name: "Finanzas", href: "/admin/finanzas", icon: DollarSign },
     { name: "Usuarios", href: "/admin/users", icon: Users },
+    { name: "Personalización", href: "/admin/personalizacion", icon: Palette },
     { name: "Configuración", href: "/admin/config", icon: Settings },
 ];
 

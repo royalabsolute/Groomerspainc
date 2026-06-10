@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  absolute-nexus:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: absolute-nexus
+    restart: always
+    network_mode: "host"
+    environment:
+      # Conexión directa a la base de datos PostgreSQL de producción del VPS (vía localhost)
+      - DATABASE_URL=postgresql://groomer_admin:Mega1321@@localhost:5432/groomingpet_db?schema=public
+      - AUTH_SECRET=3e5a5b5c92c81ef40d4fbe1d0e12e3fa0fb176c12513f56e9c0b115a39cbfa7e
+      - AUTH_TRUST_HOST=true
+      - NEXTAUTH_URL=https://absoluteserversmanager.cloud
+      - AUTH_URL=https://absoluteserversmanager.cloud/api/auth
+      - PORT=3001
+      - MINECRAFT_SERVER_PATH=/var/minecraft/server
+      - RCON_HOST=localhost
+      - RCON_PORT=25575
+      - RCON_PASSWORD=tu_contraseña_segura
+    volumes:
+      - /var/minecraft/server:/var/minecraft/server

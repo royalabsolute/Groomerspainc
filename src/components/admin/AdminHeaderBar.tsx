@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key } from "lucide-react";
+import { Bell, ChevronDown, CheckCircle, User, LogOut, Settings as SettingsIcon, X, Upload, Loader2, Sparkles, Key, Printer } from "lucide-react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useTransition } from "react";
@@ -191,6 +191,18 @@ export default function AdminHeaderBar({ user: initialUser, pendingInquiries = [
 
                 {/* Right Action Icons & Profile Info */}
                 <div className="flex items-center space-x-6">
+                    {/* Print Blank Contract Button */}
+                    <Link
+                        href="/admin-print/waiver-template"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Imprimir Contrato en Blanco"
+                        aria-label="Imprimir Contrato en Blanco"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#252525] transition-all cursor-pointer flex items-center justify-center"
+                    >
+                        <Printer className="h-4.5 w-4.5" />
+                    </Link>
+
                     {/* Notifications Bell Dropdown */}
                     <div className="relative" ref={notificationsRef}>
                         <button 

@@ -50,11 +50,11 @@ const CATEGORY_CONFIG: Record<
 > = {
     MAIN_GROOMING: {
         icon: Scissors,
-        bg: "bg-[#FEF08A]",
+        bg: "bg-[#FDFCF8]", // Pop-Art Cream
         border: "border-black",
-        shadow: "shadow-[6px_6px_0px_0px_#000]",
-        activeBg: "bg-[#FEF08A]/80",
-        pillBg: "bg-[#FEF08A]/30",
+        shadow: "shadow-[8px_8px_0px_0px_#000]",
+        activeBg: "bg-[#FDFCF8]/90",
+        pillBg: "bg-slate-50",
         labelEs: "Servicio Principal",
         labelEn: "Main Grooming",
         subtitleEs: "Cortes, baños y peluquería completa",
@@ -62,11 +62,11 @@ const CATEGORY_CONFIG: Record<
     },
     ADDON_TREATMENT: {
         icon: Sparkles,
-        bg: "bg-[#BFDBFE]",
+        bg: "bg-[#BFDBFE]", // Pastel Blue
         border: "border-black",
-        shadow: "shadow-[6px_6px_0px_0px_#000]",
-        activeBg: "bg-[#BFDBFE]/80",
-        pillBg: "bg-[#BFDBFE]/30",
+        shadow: "shadow-[8px_8px_0px_0px_#000]",
+        activeBg: "bg-[#BFDBFE]/90",
+        pillBg: "bg-[#BFDBFE]/10",
         labelEs: "Tratamiento / Add-on",
         labelEn: "Treatment / Add-on",
         subtitleEs: "Limpiezas especializadas y extras",
@@ -74,11 +74,11 @@ const CATEGORY_CONFIG: Record<
     },
     SPECIAL_SHAMPOO: {
         icon: Droplets,
-        bg: "bg-[#86EFAC]",
+        bg: "bg-[#86EFAC]", // Pastel Green
         border: "border-black",
-        shadow: "shadow-[6px_6px_0px_0px_#000]",
-        activeBg: "bg-[#86EFAC]/80",
-        pillBg: "bg-[#86EFAC]/30",
+        shadow: "shadow-[8px_8px_0px_0px_#000]",
+        activeBg: "bg-[#86EFAC]/90",
+        pillBg: "bg-[#86EFAC]/10",
         labelEs: "Baño Especial",
         labelEn: "Special Bath",
         subtitleEs: "Champús medicados y terapéuticos",
@@ -182,7 +182,7 @@ export default function ServicesShowcase({
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 transition={{ duration: 0.25 }}
-                                className="grid grid-cols-3 gap-2.5 sm:gap-4 md:gap-6 max-w-4xl mx-auto w-full select-none"
+                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-8 md:gap-10 max-w-4xl mx-auto w-full select-none pt-10"
                             >
                                 {CATEGORY_ORDER.map((cat) => {
                                     const cfg = CATEGORY_CONFIG[cat];
@@ -196,46 +196,49 @@ export default function ServicesShowcase({
                                             key={cat}
                                             onClick={() => setActiveCategory(cat)}
                                             whileHover={{ 
-                                                scale: 1.05, 
-                                                rotate: -2,
-                                                y: -8, 
-                                                x: -4,
-                                                boxShadow: "12px 12px 0px 0px rgba(0,0,0,1)" 
+                                                scale: 1.04, 
+                                                rotate: -1.5,
+                                                y: -6, 
+                                                x: -3,
+                                                boxShadow: "10px 10px 0px 0px rgba(0,0,0,1)" 
                                             }}
                                             whileTap={{ 
                                                 scale: 0.98, 
-                                                y: 2, 
-                                                x: 2,
-                                                boxShadow: "2px 2px 0px 0px rgba(0,0,0,1)" 
+                                                y: 0, 
+                                                x: 0,
+                                                boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)" 
                                             }}
                                             transition={{ type: "spring", stiffness: 350, damping: 16 }}
                                             className={cn(
-                                                "w-full aspect-square md:aspect-auto md:h-48 p-3 sm:p-4 md:p-6 flex flex-col items-center justify-center text-center border-4 border-black rounded-3xl cursor-pointer relative overflow-hidden select-none group shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                                                "w-full min-h-[120px] md:min-h-64 h-auto py-6 px-4 md:p-6 flex flex-col items-center justify-center gap-2 text-center border-4 border-black rounded-3xl cursor-pointer relative select-none group shadow-[6px_6px_0px_0px_#000]",
                                                 cfg.bg
                                             )}
                                         >
                                             {/* Halftone Comic Pattern background (activates on hover) */}
-                                            <div className="absolute inset-0 bg-[radial-gradient(#000_15%,transparent_15%)] bg-size-[8px_8px] opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none rounded-3xl" />
+                                            <div className="absolute inset-0 bg-[radial-gradient(#000_20%,transparent_20%)] [background-size:10px_10px] opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none rounded-3xl" />
 
-                                            {/* Vintage Circular Postmark Seal */}
-                                            <div className="absolute top-2 right-2 w-8 h-8 rounded-full border border-black/10 flex items-center justify-center -rotate-12 pointer-events-none scale-75 md:scale-100 opacity-40 group-hover:opacity-75 transition-opacity">
-                                                <div className="w-6.5 h-6.5 rounded-full border border-dashed border-black/15 flex items-center justify-center font-black text-[4px] text-neutral-900/40 group-hover:text-neutral-900/70 uppercase">
-                                                    <span>VIP</span>
+                                            {/* Popular Sticker Badge */}
+                                            {cat === "MAIN_GROOMING" && (
+                                                <div className="absolute -top-3 -right-2 sm:-right-3 bg-[#38BDF8] text-black text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 border-3 border-black shadow-[3px_3px_0px_0px_#000] rotate-12 z-20 select-none">
+                                                    {locale === "es" ? "POPULAR" : "POPULAR"}
                                                 </div>
+                                            )}
+
+                                            {/* Elevated Icon Container */}
+                                            <div className="absolute -top-6 md:-top-7 left-1/2 -translate-x-1/2 w-12 h-12 md:w-14 md:h-14 bg-white border-4 border-black rounded-full flex items-center justify-center shrink-0 shadow-[3px_3px_0_0_#000] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                                <Icon className="w-6 h-6 md:w-7 md:h-7 text-neutral-900 stroke-2" />
                                             </div>
 
-                                            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-white border-2 md:border-3 border-black rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-[2px_2px_0_0_#000] md:shadow-[3px_3px_0_0_#000] group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                                <Icon className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 stroke-2 text-neutral-900" />
-                                            </div>
-                                            <span className="text-[10px] sm:text-xs md:text-lg font-black uppercase tracking-tight block leading-tight mt-2.5 md:mt-3.5 text-neutral-900 truncate w-full group-hover:scale-[1.02] transition-transform">
+                                            <span className="text-base sm:text-lg font-black uppercase tracking-tight block leading-tight mt-2 text-neutral-900 whitespace-normal wrap-break-word text-balance group-hover:scale-[1.02] transition-transform">
                                                 {label}
                                             </span>
-                                            <span className="hidden md:block text-xs font-bold text-neutral-800/70 mt-1 leading-snug">
+                                            
+                                            <span className="block text-[10px] sm:text-xs font-bold text-neutral-800/70 mt-1 leading-snug">
                                                 {subtitle}
                                             </span>
 
                                             {services.length > 0 && (
-                                                <span className="hidden md:inline-block bg-white border-2 border-black rounded-lg px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_#000] mt-2.5 group-hover:-translate-y-px transition-transform">
+                                                <span className="hidden md:inline-block bg-white border-2 border-black rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-wider shadow-[1.5px_1.5px_0px_0px_#000] mt-2 group-hover:-translate-y-px transition-transform">
                                                     {services.length} {locale === "es" ? "Servicios" : "Services"}
                                                 </span>
                                             )}
@@ -261,7 +264,7 @@ export default function ServicesShowcase({
                                         <>
                                             {/* Active Header Card */}
                                             <div className={cn(
-                                                "border-4 border-black rounded-3xl p-5 md:p-8 flex items-center justify-between shadow-[6px_6px_0px_0px_#000] relative overflow-hidden select-none",
+                                                "border-4 border-black rounded-3xl p-5 md:p-8 flex items-center justify-between shadow-[8px_8px_0px_0px_#000] relative overflow-hidden select-none",
                                                 cfg.bg
                                             )}>
                                                 {/* Halftone Comic Pattern background */}
@@ -296,7 +299,7 @@ export default function ServicesShowcase({
                                                 initial={{ opacity: 0, y: 15 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: 0.05, duration: 0.25 }}
-                                                className="bg-white border-4 border-black rounded-3xl p-5 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6"
+                                                className="bg-white border-4 border-black rounded-3xl p-5 md:p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6"
                                             >
                                                 {grouped[activeCat].length === 0 ? (
                                                     <p className="text-sm font-bold text-muted-foreground text-center py-8">
@@ -322,12 +325,12 @@ export default function ServicesShowcase({
                                                                     whileHover={{ 
                                                                         scale: 1.025, 
                                                                         y: -3, 
-                                                                        boxShadow: "5px 5px 0px 0px rgba(0,0,0,1)",
+                                                                        boxShadow: "8px 8px 0px 0px rgba(0,0,0,1)",
                                                                         backgroundColor: "#FFFFFF"
                                                                     }}
                                                                     transition={{ type: "spring", stiffness: 450, damping: 20 }}
                                                                     className={cn(
-                                                                        "flex items-center justify-between gap-4 p-4 md:p-5 rounded-2xl border-[3px] border-black shadow-[3px_3px_0px_0px_#000] cursor-pointer",
+                                                                        "flex items-center justify-between gap-4 p-4 md:p-5 rounded-2xl border-[3px] border-black shadow-[4px_4px_0px_0px_#000] cursor-pointer",
                                                                         cfg.pillBg
                                                                     )}
                                                                 >

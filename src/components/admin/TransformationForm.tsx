@@ -21,6 +21,7 @@ interface Transformation {
     serviceDate: Date | string;
     beforePhotoUrl?: string;
     afterPhotoUrl?: string;
+    contractImage?: string;
     descriptionEs: string;
     descriptionEn: string;
     visible: boolean;
@@ -53,12 +54,14 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
 
     const [beforeFile, setBeforeFile] = useState<File | null>(null);
     const [afterFile, setAfterFile] = useState<File | null>(null);
+    const [contractFile, setContractFile] = useState<File | null>(null);
     const [beforePreview, setBeforePreview] = useState(initial?.beforePhotoUrl ?? "");
     const [afterPreview, setAfterPreview] = useState(initial?.afterPhotoUrl ?? "");
+    const [contractPreview, setContractPreview] = useState(initial?.contractImage ?? "");
 
     const handleFileChange = (
         e: React.ChangeEvent<HTMLInputElement>,
-        type: "before" | "after"
+        type: "before" | "after" | "contract"
     ) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -66,9 +69,12 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
         if (type === "before") {
             setBeforeFile(file);
             setBeforePreview(url);
-        } else {
+        } else if (type === "after") {
             setAfterFile(file);
             setAfterPreview(url);
+        } else {
+            setContractFile(file);
+            setContractPreview(url);
         }
     };
 
@@ -130,6 +136,7 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
             fd.append("visible", String(visible));
             if (beforeFile) fd.append("beforeImage", beforeFile);
             if (afterFile) fd.append("afterImage", afterFile);
+            if (contractFile) fd.append("contractImage", contractFile);
 
             const result = isEditing
                 ? await updateTransformation(initial!.id!, fd)
@@ -277,8 +284,8 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                         </div>
                     </div>
 
-                    {/* Double Image Uploader */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Triple Image Uploader */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Before */}
                         <div className="space-y-2">
                             <Label className="font-bold text-slate-300 flex items-center gap-1.5"><ImageIcon className="h-4 w-4 text-slate-400 shrink-0" /> <span>{t("beforePhoto")}</span></Label>
@@ -331,6 +338,34 @@ export default function TransformationForm({ initial, onClose, onSaved }: Transf
                                     accept="image/*"
                                     className="hidden"
                                     onChange={(e) => handleFileChange(e, "after")}
+                                />
+                            </label>
+                        </div>
+
+                        {/* Contract / Evaluation Document */}
+                        <div className="space-y-2">
+                            <Label className="font-bold text-slate-300 flex items-center gap-1.5"><Upload className="h-4 w-4 text-amber-500 shrink-0" /> <span>Documento de Evaluación</span></Label>
+                            <label className="block cursor-pointer">
+                                <div className="relative aspect-square rounded-2xl overflow-hidden border-2 border-dashed border-[#3A3A3A] hover:border-[#7C3AED]/50 transition-colors bg-[#252525]/40 flex items-center justify-center">
+                                    {contractPreview ? (
+                                        <Image src={contractPreview} alt="Documento" fill unoptimized className="object-cover" />
+                                    ) : (
+                                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-500 p-4 text-center">
+                                            <Upload className="h-8 w-8 text-amber-500 mb-1" />
+                                            <span className="text-sm font-bold block">Contrato de Evaluación</span>
+                                        </div>
+                                    )}
+                                    {contractPreview && (
+                                        <div className="absolute bottom-2.5 right-2.5 bg-amber-500/85 backdrop-blur-md text-white text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider border border-white/10">
+                                            Documento
+                                        </div>
+                                    )}
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => handleFileChange(e, "contract")}
                                 />
                             </label>
                         </div>

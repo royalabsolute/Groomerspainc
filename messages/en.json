@@ -80,7 +80,10 @@
             "madeWith": "Made with",
             "forPets": "for happy pets",
             "rights": "All rights reserved."
-        }
+        },
+        "firstClassCare": "FIRST CLASS CARE",
+        "mobileGroomingSpa": "MOBILE GROOMING SPA",
+        "sweetGuest": "SWEET GUEST"
     },
     "Common": {
         "loading": "Loading...",
@@ -282,7 +285,22 @@
         "dogBreakdown": "Dog Breakdown",
         "chooseServicesForDogs": "3. Choose Services for Your Dogs",
         "petPlaceholder": "Pet #{number}",
-        "datePlaceholder": "mm/dd/yyyy"
+        "datePlaceholder": "mm/dd/yyyy",
+        "valNameMin": "Name must be at least 2 characters.",
+        "valEmail": "Invalid email address.",
+        "valPhone": "Phone number is required (min 10 digits).",
+        "valAddress": "Address must be at least 5 characters.",
+        "valZip": "ZIP Code must be exactly 5 digits.",
+        "valDate": "Appointment date is required.",
+        "valTime": "Appointment time is required.",
+        "valPetName": "Pet name is required.",
+        "valPetBreed": "Breed is required.",
+        "valPetWeightMin": "Weight must be at least 1 lb.",
+        "valPetWeightMax": "Weight must be under 200 lbs.",
+        "valPetAge": "Age is required.",
+        "valRabies": "Florida health standards require rabies vaccination.",
+        "valMinPets": "Must add at least one pet.",
+        "valLegal": "You must accept the estimation terms."
     },
     "QuoteAccept": {
         "title": "Appointment Confirmed!",

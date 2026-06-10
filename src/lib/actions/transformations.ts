@@ -28,6 +28,7 @@ export async function createTransformation(formData: FormData) {
         const visible = formData.get("visible") === "true";
         const beforeFile = formData.get("beforeImage") as File | null;
         const afterFile = formData.get("afterImage") as File | null;
+        const contractFile = formData.get("contractImage") as File | null;
 
         if (!petName || !breed || !ageRaw || !serviceDateStr || !technicalDescriptionEs || !technicalDescriptionEn || !beforeFile || !afterFile) {
             return { success: false, error: "Faltan campos requeridos." };
@@ -48,6 +49,17 @@ export async function createTransformation(formData: FormData) {
         const afterResult = await uploadFile(afterFD);
         if (!afterResult.success) return { success: false, error: "Error al subir la imagen DESPUÉS." };
 
+        // Upload optional contract/evaluation document
+        let contractPhotoUrl: string | null = null;
+        if (contractFile && contractFile.size > 0) {
+            const contractFD = new FormData();
+            contractFD.append("file", contractFile);
+            const contractResult = await uploadFile(contractFD);
+            if (contractResult.success) {
+                contractPhotoUrl = contractResult.url!;
+            }
+        }
+
         await (db as any).transformation.create({
             data: {
                 petName,
@@ -57,6 +69,7 @@ export async function createTransformation(formData: FormData) {
                 visible,
                 beforePhotoUrl: beforeResult.url!,
                 afterPhotoUrl: afterResult.url!,
+                contractImage: contractPhotoUrl,
                 technicalDescriptionEs,
                 technicalDescriptionEn,
             },
@@ -84,6 +97,7 @@ export async function updateTransformation(id: string, formData: FormData) {
         const visible = formData.get("visible") === "true";
         const beforeFile = formData.get("beforeImage") as File | null;
         const afterFile = formData.get("afterImage") as File | null;
+        const contractFile = formData.get("contractImage") as File | null;
 
         if (!petName || !breed || !ageRaw || !serviceDateStr || !technicalDescriptionEs || !technicalDescriptionEn) {
             return { success: false, error: "Faltan campos requeridos." };
@@ -97,6 +111,7 @@ export async function updateTransformation(id: string, formData: FormData) {
 
         let beforePhotoUrl = existing.beforePhotoUrl;
         let afterPhotoUrl = existing.afterPhotoUrl;
+        let contractImageUrl = existing.contractImage;
 
         if (beforeFile && beforeFile.size > 0) {
             const fd = new FormData();
@@ -112,6 +127,13 @@ export async function updateTransformation(id: string, formData: FormData) {
             if (r.success) afterPhotoUrl = r.url!;
         }
 
+        if (contractFile && contractFile.size > 0) {
+            const fd = new FormData();
+            fd.append("file", contractFile);
+            const r = await uploadFile(fd);
+            if (r.success) contractImageUrl = r.url!;
+        }
+
         await (db as any).transformation.update({
             where: { id },
             data: {
@@ -122,6 +144,7 @@ export async function updateTransformation(id: string, formData: FormData) {
                 visible,
                 beforePhotoUrl,
                 afterPhotoUrl,
+                contractImage: contractImageUrl,
                 technicalDescriptionEs,
                 technicalDescriptionEn,
             },

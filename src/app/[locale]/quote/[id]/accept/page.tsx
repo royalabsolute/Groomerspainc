@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Calendar, MapPin, DollarSign, ShieldCheck, ClipboardCheck } from "lucide-react";
 import { Link } from "@/navigation";
 import { Button } from "@/components/ui/button";
-import { ensureTransactionForQuote } from "@/lib/actions/inquiries";
+import { acceptQuoteAndNotify } from "@/lib/actions/quoteAccept";
 import { getTranslations } from "next-intl/server";
 
 interface PageProps {
@@ -27,13 +27,9 @@ export default async function QuoteAcceptPage({ params }: PageProps) {
         notFound();
     }
 
-    // Auto-confirm the quote by updating status to CONFIRMED in the database
+    // Confirm appointment + send English confirmation email
     if (quote.status !== "CONFIRMED" && quote.status !== "COMPLETED") {
-        await (db as any).quoteRequest.update({
-            where: { id },
-            data: { status: "CONFIRMED" }
-        });
-        await ensureTransactionForQuote(id);
+        await acceptQuoteAndNotify(id);
     }
 
     const t = await getTranslations("QuoteAccept");

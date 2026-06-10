@@ -80,7 +80,10 @@
       "madeWith": "Hecho con",
       "forPets": "para mascotas felices",
       "rights": "Todos los derechos reservados."
-    }
+    },
+    "firstClassCare": "SERVICIO DE PRIMERA CLASE",
+    "mobileGroomingSpa": "SPA DE GROOMING MÓVIL",
+    "sweetGuest": "DULCE INVITADO"
   },
   "Common": {
     "loading": "Cargando...",
@@ -282,7 +285,22 @@
     "dogBreakdown": "Desglose por Perro",
     "chooseServicesForDogs": "3. Elige los Servicios para tus Perros",
     "petPlaceholder": "Perro #{number}",
-    "datePlaceholder": "dd/mm/aaaa"
+    "datePlaceholder": "dd/mm/aaaa",
+    "valNameMin": "El nombre debe tener al menos 2 caracteres.",
+    "valEmail": "Dirección de correo electrónico inválida.",
+    "valPhone": "El número de teléfono es obligatorio (mínimo 10 dígitos).",
+    "valAddress": "La dirección debe tener al menos 5 caracteres.",
+    "valZip": "El código postal debe tener exactamente 5 dígitos.",
+    "valDate": "La fecha de la cita es obligatoria.",
+    "valTime": "La hora de la cita es obligatoria.",
+    "valPetName": "El nombre de la mascota es obligatorio.",
+    "valPetBreed": "La raza es obligatoria.",
+    "valPetWeightMin": "El peso debe ser de al menos 1 lb.",
+    "valPetWeightMax": "El peso debe ser menor a 200 lbs.",
+    "valPetAge": "La edad es obligatoria.",
+    "valRabies": "Las normas de salud de Florida requieren la vacuna de la rabia.",
+    "valMinPets": "Debe agregar al menos una mascota.",
+    "valLegal": "Debe aceptar los términos de estimación."
   },
   "QuoteAccept": {
     "title": "¡Cita Confirmada!",

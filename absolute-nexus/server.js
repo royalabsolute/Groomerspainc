@@ -26,6 +26,18 @@ if (dev) {
   const targetDir = fs.existsSync(path.join(__dirname, "absolute-nexus"))
     ? path.join(__dirname, "absolute-nexus")
     : __dirname;
+
+  // Load config dynamically for standalone mode
+  const requiredServerFilesPath = path.join(targetDir, ".next", "required-server-files.json");
+  if (fs.existsSync(requiredServerFilesPath)) {
+    try {
+      const requiredServerFiles = JSON.parse(fs.readFileSync(requiredServerFilesPath, "utf-8"));
+      process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(requiredServerFiles.config);
+    } catch (err) {
+      console.error("Failed to load required-server-files.json in server.js:", err.message);
+    }
+  }
+
   const nextServer = new NextServer({
     hostname,
     port,

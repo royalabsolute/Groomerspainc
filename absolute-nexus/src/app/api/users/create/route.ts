@@ -5,12 +5,12 @@ import { hash } from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Validar autenticación y rol
+    // 1. Validar autenticación
     const session = await auth();
-    if (!session || !session.user || session.user.role !== "ADMIN_GENERAL") {
+    if (!session || !session.user) {
       return NextResponse.json(
-        { success: false, error: "No autorizado. Se requiere rol ADMIN_GENERAL." },
-        { status: 403 }
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
       );
     }
 

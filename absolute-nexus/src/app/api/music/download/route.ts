@@ -4,6 +4,7 @@ import { promisify } from "util";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import db from "@/lib/db";
+import { auth } from "@/auth";
 
 const execPromise = promisify(exec);
 
@@ -39,6 +40,10 @@ async function getYoutubeMetadata(youtubeId: string): Promise<{ title: string; d
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const { youtubeId: inputId, url: inputUrl } = body;
     const rawInput = inputId || inputUrl;

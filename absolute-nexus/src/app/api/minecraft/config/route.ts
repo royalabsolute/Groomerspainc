@@ -5,8 +5,8 @@ import db from "@/lib/db";
 export async function GET() {
   try {
     const session = await auth();
-    if (!session || !session.user || (session.user.role !== "ADMIN_GENERAL" && session.user.role !== "MODERATOR")) {
-      return NextResponse.json({ success: false, error: "No autorizado. Permisos insuficientes." }, { status: 403 });
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const defaultPath = process.env.MINECRAFT_SERVER_PATH || "/var/minecraft/server";
@@ -37,8 +37,8 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !session.user || (session.user.role !== "ADMIN_GENERAL" && session.user.role !== "MODERATOR")) {
-      return NextResponse.json({ success: false, error: "No autorizado. Permisos insuficientes." }, { status: 403 });
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();

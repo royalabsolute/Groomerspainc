@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { auth } from "@/auth";
 
 const execAsync = promisify(exec);
 
@@ -40,6 +41,10 @@ function getCpuUsage(): Promise<number> {
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     // RAM Metrics
     const totalMem = os.totalmem();
     const freeMem = os.freemem();

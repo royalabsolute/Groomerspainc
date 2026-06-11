@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import { resolve, sep } from "path";
+import { auth } from "@/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     let requestedPath = searchParams.get("path") || "";
 

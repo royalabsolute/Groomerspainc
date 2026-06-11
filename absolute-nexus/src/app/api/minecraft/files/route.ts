@@ -5,6 +5,7 @@ import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { exec } from "child_process";
 import { getMinecraftServerPath } from "@/lib/minecraft";
+import { auth } from "@/auth";
 
 // Resolves a virtual path (e.g., /var/minecraft/server or /var/www/grooming)
 // to a physical path on the local OS.
@@ -38,6 +39,10 @@ function getPhysicalPath(virtualPath: string, minecraftServerPath: string): stri
 // GET: Read directory contents
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const pathQuery = request.nextUrl.searchParams.get("path") || "";
     const minecraftServerPath = await getMinecraftServerPath();
     const targetDir = getPhysicalPath(pathQuery, minecraftServerPath);
@@ -90,6 +95,10 @@ export async function GET(request: NextRequest) {
 // POST: Upload large files using streams to avoid memory limits
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const pathQuery = request.nextUrl.searchParams.get("path") || "";
     const filename = request.nextUrl.searchParams.get("filename") || "";
 
@@ -126,6 +135,10 @@ export async function POST(request: NextRequest) {
 // PATCH: File actions (unzip, set_boot, delete)
 export async function PATCH(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const { path: folderPath, filename, action, newName, folderName } = body;
 
@@ -306,6 +319,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE: Remove file or directory recursively
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const { path: folderPath, filename } = await request.json();
 
     if (!filename) {

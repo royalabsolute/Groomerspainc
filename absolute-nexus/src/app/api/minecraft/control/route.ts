@@ -4,6 +4,7 @@ import fs, { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import net from "net";
 import { getMinecraftServerPath, getRconPassword } from "@/lib/minecraft";
+import { auth } from "@/auth";
 
 // Helper function to safely check if directory is empty or doesn't exist
 function checkIsDirEmpty(dirPath: string): boolean {
@@ -128,6 +129,10 @@ function isPortOpen(port: number, host: string = "127.0.0.1"): Promise<boolean> 
 // API POST handler
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const { action, command } = body;
 
@@ -383,6 +388,10 @@ function getMockCommandResponse(command: string): string {
 }
 
 export async function GET() {
+  const session = await auth();
+  if (!session || !session.user) {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+  }
   const serverPath = await getMinecraftServerPath();
   const isDirEmpty = checkIsDirEmpty(serverPath);
   if (isDirEmpty) {

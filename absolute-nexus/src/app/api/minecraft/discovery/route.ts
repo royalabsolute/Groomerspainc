@@ -3,9 +3,14 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { join, resolve } from "path";
 
 import { getMinecraftServerPath } from "@/lib/minecraft";
+import { auth } from "@/auth";
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
     const serverPath = await getMinecraftServerPath();
     
     let modsCount = 0;

@@ -4,66 +4,43 @@ import { hash } from "bcryptjs";
 
 export async function GET() {
   try {
-    const adminEmail = "admin@absolutenexus.com";
+    console.log("=== INICIANDO CONFIGURACIÓN DE USUARIO MAESTRO (HTTP API) ===");
 
-    // 1. Verificar si el usuario administrador ya existe
-    const existingAdmin = await db.user.findUnique({
-      where: { email: adminEmail }
-    });
+    // 1. Eliminar TODOS los usuarios existentes
+    const deleteResult = await db.user.deleteMany();
+    console.log(`Se eliminaron ${deleteResult.count} usuarios existentes de la base de datos.`);
 
-    if (existingAdmin) {
-      if ((existingAdmin as any).role !== "ADMIN_GENERAL") {
-        await db.user.update({
-          where: { id: existingAdmin.id },
-          data: { role: "ADMIN_GENERAL" }
-        });
-      }
-      return NextResponse.json({
-        success: true,
-        message: "El usuario administrador ya existe en el sistema (rol asegurado como ADMIN_GENERAL).",
-        user: {
-          id: existingAdmin.id,
-          name: existingAdmin.name,
-          email: existingAdmin.email,
-          role: "ADMIN_GENERAL"
-        }
-      });
-    }
+    // 2. Encriptar la contraseña maestra "Mega1321@"
+    const plainPassword = "Mega1321@";
+    const hashedPassword = await hash(plainPassword, 10);
 
-    // 2. Encriptar la contraseña maestra
-    const masterPassword = "NexusAdmin2026!";
-    const hashedPassword = await hash(masterPassword, 10);
-
-    // 3. Crear el usuario administrador en la base de datos con rol ADMIN_GENERAL
-    const newAdmin = await db.user.create({
+    // 3. Crear el único usuario maestro
+    const masterUser = await db.user.create({
       data: {
-        email: adminEmail,
-        name: "Admin General",
+        email: "srjaggeroff@gmail.com",
+        name: "Master User",
         password: hashedPassword,
-        role: "ADMIN_GENERAL"
+        role: "ADMIN_GENERAL" // Se mantiene en la BD por compatibilidad
       }
     });
 
+    console.log(`Usuario maestro creado con éxito a través de API: ${masterUser.email}`);
+    
     return NextResponse.json({
       success: true,
-      message: "Usuario administrador creado correctamente.",
-      credentials: {
-        email: adminEmail,
-        password: "[PROTEGIDO] Usa 'NexusAdmin2026!' para iniciar sesión",
-        role: "ADMIN_GENERAL"
-      },
+      message: "Base de datos reseteada. Usuario maestro creado correctamente.",
       user: {
-        id: newAdmin.id,
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: "ADMIN_GENERAL"
+        id: masterUser.id,
+        email: masterUser.email,
+        name: masterUser.name,
+        role: masterUser.role
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error en setup endpoint:", error);
     return NextResponse.json({
       success: false,
-      error: "Error interno del servidor al inicializar el usuario."
+      error: `Error interno del servidor al inicializar el usuario: ${error.message || error}`
     }, { status: 500 });
   }
 }

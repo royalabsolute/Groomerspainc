@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { io } from "socket.io-client";
 import { NavigationProvider } from "@/context/NavigationContext";
 import AppSidebar from "@/components/AppSidebar";
 import SecondaryPanel from "@/components/SecondaryPanel";
@@ -46,67 +47,95 @@ export default function NexusDashboard() {
   const [volume, setVolume] = useState(50);
   const [isSyncActive, setIsSyncActive] = useState(false);
 
-  // ── Polling: logs + status ─────────────────────────────────────────────────
+  // ── WebSocket: logs + status + telemetry ──────────────────────────────────
   useEffect(() => {
-    const fetchLogsAndStatus = async () => {
-      try {
-        const [logsRes, statusRes] = await Promise.all([
-          fetch("/api/minecraft/control"),
-          fetch("/api/minecraft/control", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "status" }),
-          }),
-        ]);
+    const socket = io(typeof window !== "undefined" ? window.location.origin : "", {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    });
 
-        if (logsRes.ok) {
-          const d = await logsRes.json();
-          if (d.success && d.logs) setConsoleLogs(d.logs);
-        }
-
-        if (statusRes.ok) {
-          const d = await statusRes.json();
+    socket.on("connect", () => {
+      console.log("[Socket] Connected to server");
+      // Perform initial check
+      fetch("/api/minecraft/control", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status" }),
+      })
+        .then((res) => res.json())
+        .then((d) => {
           if (d.success) {
             if (d.status === "RUNNING") {
               setServerStatus("RUNNING");
               setPlayersCount(3);
-              setUptime("2d 14h 42m");
-            } else if (d.status === "OFFLINE") {
+              setUptime("Online");
+            } else {
               setServerStatus("OFFLINE");
               setPlayersCount(0);
               setUptime("Offline");
             }
           }
+        })
+        .catch((err) => console.error("Initial status check failed:", err));
+    });
+
+    socket.on("console-init", (lines: string[]) => {
+      setConsoleLogs(lines);
+    });
+
+    socket.on("console-stream", (line: string) => {
+      setConsoleLogs((prev) => {
+        const next = [...prev, line];
+        if (next.length > 500) next.shift();
+        return next;
+      });
+    });
+
+    socket.on("telemetry-stream", (data: { cpu: string; ram: string; ramRaw: { used: string; total: string }; ports: Record<string, boolean> }) => {
+      setCpuUsage(parseFloat(data.cpu));
+      setRamUsage(parseFloat(data.ramRaw.used));
+
+      const isMcRunning = !!data.ports["25565"];
+      setServerStatus((prev) => {
+        if (isMcRunning) {
+          setPlayersCount(3); // Simulated default players count
+          setUptime("Online");
+          return "RUNNING";
+        } else {
+          setPlayersCount(0);
+          setUptime("Offline");
+          if (prev === "STARTING") return "STARTING";
+          if (prev === "STOPPING") return "STOPPING";
+          return "OFFLINE";
         }
-      } catch (e) {
-        console.error("Polling error:", e);
+      });
+    });
+
+    socket.on("console-cmd-response", (data: { command: string; response?: string; error?: string }) => {
+      const timestamp = new Date().toTimeString().split(" ")[0];
+      if (data.error) {
+        setConsoleLogs((prev) => [
+          ...prev,
+          `${timestamp} - [RCON Command] > ${data.command}`,
+          `${timestamp} - [RCON Error]: ${data.error}`,
+        ]);
+      } else if (data.response) {
+        const lines = data.response.split(/\r?\n/).filter(Boolean);
+        setConsoleLogs((prev) => [
+          ...prev,
+          `${timestamp} - [RCON Command] > ${data.command}`,
+          ...lines.map((line) => `${timestamp} - [RCON]: ${line}`),
+        ]);
       }
+    });
+
+    (window as any).socket = socket;
+
+    return () => {
+      socket.disconnect();
     };
-
-    fetchLogsAndStatus();
-    const interval = setInterval(fetchLogsAndStatus, 3000);
-    return () => clearInterval(interval);
   }, []);
-
-  // ── Simulated hardware variation ───────────────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (serverStatus === "RUNNING") {
-        setCpuUsage(p => Math.max(12, Math.min(85, +(p + (Math.random() * 10 - 5)).toFixed(1))));
-        setRamUsage(p => Math.max(5.8, Math.min(8.5, +(p + (Math.random() * 0.4 - 0.2)).toFixed(1))));
-      } else if (serverStatus === "STARTING") {
-        setCpuUsage(p => Math.max(70, Math.min(95, +(p + Math.random() * 5).toFixed(1))));
-        setRamUsage(p => Math.min(6.0, p + 0.3));
-      } else if (serverStatus === "STOPPING") {
-        setCpuUsage(p => Math.max(50, Math.min(80, +(p + Math.random() * 5).toFixed(1))));
-        setRamUsage(p => Math.max(0.5, p - 0.5));
-      } else {
-        setCpuUsage(0.8);
-        setRamUsage(0.4);
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [serverStatus]);
 
   // ── Music Track Progression Timer ──────────────────────────────────────────
   useEffect(() => {

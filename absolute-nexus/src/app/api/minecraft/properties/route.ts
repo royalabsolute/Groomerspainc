@@ -20,26 +20,11 @@ gamemode=survival
 spawn-protection=16
 `;
 
-async function getPropertiesPath(): Promise<string> {
-  try {
-    const config = await db.siteConfig.findUnique({
-      where: { id: "config" }
-    }) as any;
-    if (config?.minecraftPath) {
-      return path.join(path.resolve(config.minecraftPath), "server.properties");
-    }
-  } catch (err: any) {
-    console.error("Error reading siteConfig for minecraftPath:", err.message);
-  }
+import { getMinecraftServerPath } from "@/lib/minecraft";
 
-  const envPath = process.env.MINECRAFT_SERVER_PATH;
-  
-  if (envPath) {
-    return path.join(path.resolve(envPath), "server.properties");
-  }
-  
-  // Default production path inside Docker volume
-  return "/var/minecraft/server/server.properties";
+async function getPropertiesPath(): Promise<string> {
+  const serverPath = await getMinecraftServerPath();
+  return path.join(path.resolve(serverPath), "server.properties");
 }
 
 function parseProperties(content: string): Record<string, string> {

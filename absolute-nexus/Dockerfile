@@ -36,7 +36,7 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN apt-get update && apt-get install -y openssl unzip ffmpeg python3 curl p7zip-full && \
+RUN apt-get update && apt-get install -y openssl unzip tar tmux ffmpeg python3 curl p7zip-full openjdk-21-jre-headless && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     rm -rf /var/lib/apt/lists/*
@@ -51,6 +51,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Copiar node_modules del builder para disponer de la CLI de Prisma en runtime
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+# Copiar nuestro server.js customizado con Socket.io
+COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
 
 USER nextjs
 

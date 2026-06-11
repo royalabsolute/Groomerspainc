@@ -182,6 +182,11 @@ export default function ContentArea({
         <GameSettingsView />
       )}
 
+      {/* IT module — Global Settings */}
+      {activeModule === "it" && activeChannel === "configuracion-rutas" && (
+        <GlobalSettingsView />
+      )}
+
       {/* IT module — Backups */}
       {activeModule === "it" && activeChannel === "backups" && <BackupsView />}
 
@@ -246,9 +251,37 @@ function MinecraftConsoleView({
   const [isSending, setIsSending] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-discovery state
+  const [discoveryData, setDiscoveryData] = useState<{ modsCount: number; worldExists: boolean }>({
+    modsCount: 0,
+    worldExists: false,
+  });
+
   useEffect(() => {
     terminalEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [consoleLogs]);
+
+  useEffect(() => {
+    const fetchDiscovery = async () => {
+      try {
+        const res = await fetch("/api/minecraft/discovery");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setDiscoveryData({
+              modsCount: data.modsCount,
+              worldExists: data.worldExists,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Discovery error:", e);
+      }
+    };
+    fetchDiscovery();
+    const interval = setInterval(fetchDiscovery, 10000);
+    return () => clearInterval(interval);
+  }, [serverStatus]);
 
   const triggerPowerAction = async (action: "start" | "stop" | "restart") => {
     if (action === "start") setServerStatus("STARTING");
@@ -271,18 +304,24 @@ function MinecraftConsoleView({
     setHistoryIndex(-1);
     setCommandInput("");
     setIsSending(true);
-    try {
-      await fetch("/api/minecraft/control", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "command", command: cmd }),
-      });
-      const logsRes = await fetch("/api/minecraft/control");
-      if (logsRes.ok) {
-        const d = await logsRes.json();
-        if (d.success) setConsoleLogs(d.logs);
+
+    const socket = (window as any).socket;
+    if (socket && socket.connected) {
+      socket.emit("console-cmd", cmd);
+      setIsSending(false);
+    } else {
+      try {
+        await fetch("/api/minecraft/control", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "command", command: cmd }),
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsSending(false);
       }
-    } catch (e) { console.error(e); } finally { setIsSending(false); }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -301,11 +340,13 @@ function MinecraftConsoleView({
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden">
       {/* Status cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 shrink-0">
         <StatusCard icon={Server} label="Servidor" value={serverStatus} status={serverStatus} />
         <StatusCard icon={Activity} label="Dirección IP" value="mc.absolutenexus.net" />
         <StatusCard icon={Activity} label="Tiempo Activo" value={uptime} />
         <StatusCard icon={Users} label="Jugadores" value={`${playersCount} / 20`} />
+        <StatusCard icon={Settings} label="Mods Activos" value={`${discoveryData.modsCount} JARs`} />
+        <StatusCard icon={HardDrive} label="Mundo / Mapa" value={discoveryData.worldExists ? "Generado" : "No Detectado"} status={discoveryData.worldExists ? "RUNNING" : "OFFLINE"} />
       </div>
 
       {/* Terminal */}
@@ -1142,7 +1183,7 @@ function GameSettingsView() {
 
   return (
     <div className="flex-1 p-4 overflow-y-auto">
-      <form onSubmit={handleSave} className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+      <form onSubmit={handleSave} id="ajustes-servidor" className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Settings className="w-5 h-5 text-zinc-400" /> Configuración de Juego
@@ -1328,6 +1369,162 @@ function FormField({ label, description, children }: { label: string; descriptio
         {description && <span className="text-[10px] text-[#949BA4] block leading-tight mt-0.5">{description}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─── Global Settings View ───────────────────────────────────────────────────
+function GlobalSettingsView() {
+  const [minecraftPath, setMinecraftPath] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ modsCount: number; worldExists: boolean } | null>(null);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const res = await fetch("/api/minecraft/config");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setMinecraftPath(data.minecraftServerPath || "");
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching config:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!minecraftPath.trim()) return;
+    setSaving(true);
+    setStatus(null);
+    setScanResult(null);
+
+    try {
+      // 1. Update path in DB
+      const res = await fetch("/api/minecraft/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minecraftServerPath: minecraftPath.trim() }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // 2. Trigger Auto-discovery to scan folder
+        const scanRes = await fetch("/api/minecraft/discovery");
+        if (scanRes.ok) {
+          const scanData = await scanRes.json();
+          if (scanData.success) {
+            setScanResult({
+              modsCount: scanData.modsCount,
+              worldExists: scanData.worldExists,
+            });
+            setStatus({
+              type: "success",
+              message: `Configuración guardada. Escaneo completado: se encontraron ${scanData.modsCount} mods y el mapa ${scanData.worldExists ? "SÍ" : "NO"} está generado.`,
+            });
+          } else {
+            setStatus({ type: "success", message: "Configuración guardada, pero falló el escaneo de auto-descubrimiento." });
+          }
+        } else {
+          setStatus({ type: "success", message: "Configuración guardada, pero falló la comunicación con el motor de descubrimiento." });
+        }
+      } else {
+        setStatus({ type: "error", message: data.error || "Error al actualizar la configuración." });
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus({ type: "error", message: "Error de conexión al guardar la configuración." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-[#FFa500] border-t-transparent rounded-full animate-spin" />
+          <span>Cargando configuración global...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 p-4 overflow-y-auto">
+      <form onSubmit={handleSubmit} id="configuracion-rutas" className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Settings className="w-5 h-5 text-zinc-400" /> Ajustes Globales de Infraestructura
+          </h2>
+          <p className="text-xs text-[#949BA4] mt-1">
+            Establece rutas de almacenamiento dinámicas del ERP. Todos los módulos, consolas, streams y sistemas de ficheros se adaptarán inmediatamente a estas carpetas.
+          </p>
+        </div>
+
+        {status && (
+          <div
+            className={`p-3 rounded text-xs flex items-start gap-2 border ${
+              status.type === "success"
+                ? "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/30"
+                : "bg-[#F23F43]/10 text-[#F23F43] border-[#F23F43]/30"
+            }`}
+          >
+            <span className="mt-0.5 font-bold">{status.type === "success" ? "✓" : "⚠"}</span>
+            <div>{status.message}</div>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <FormField label="Carpeta Raíz Minecraft (minecraftServerPath)" description="La ruta física absoluta en el VPS del directorio de tu servidor de Minecraft.">
+            <input
+              type="text"
+              required
+              title="Ruta de Minecraft"
+              placeholder="/var/minecraft/server"
+              value={minecraftPath}
+              onChange={e => setMinecraftPath(e.target.value)}
+              className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+            />
+          </FormField>
+
+          {scanResult && (
+            <div className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] space-y-2">
+              <h3 className="text-xs font-bold text-[#DBDEE1] uppercase tracking-wider">Resultados de Auto-Descubrimiento</h3>
+              <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div className="bg-[#111214] p-3 rounded flex flex-col">
+                  <span className="text-[#949BA4]">Mods Detectados</span>
+                  <span className="text-base font-bold text-white mt-1">{scanResult.modsCount} JARs</span>
+                </div>
+                <div className="bg-[#111214] p-3 rounded flex flex-col">
+                  <span className="text-[#949BA4]">Generación de Mundo</span>
+                  <span className={`text-base font-bold mt-1 ${scanResult.worldExists ? "text-[#23A55A]" : "text-[#F23F43]"}`}>
+                    {scanResult.worldExists ? "GENERADO (world)" : "NO DETECTADO"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end pt-4 border-t border-[#1F2023]">
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 h-9"
+          >
+            {saving ? "Analizando..." : "Guardar y Analizar"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

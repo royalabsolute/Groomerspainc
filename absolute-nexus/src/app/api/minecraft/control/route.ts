@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from "child_process";
 import fs, { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import net from "net";
+import { getMinecraftServerPath, getRconPassword } from "@/lib/minecraft";
 
 // Helper function to safely check if directory is empty or doesn't exist
 function checkIsDirEmpty(dirPath: string): boolean {
@@ -104,16 +105,36 @@ function sendRconCommand(host: string, port: number, pass: string, command: stri
   });
 }
 
+function isPortOpen(port: number, host: string = "127.0.0.1"): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(300);
+    socket
+      .connect(port, host, () => {
+        socket.destroy();
+        resolve(true);
+      })
+      .on("error", () => {
+        socket.destroy();
+        resolve(false);
+      })
+      .on("timeout", () => {
+        socket.destroy();
+        resolve(false);
+      });
+  });
+}
+
 // API POST handler
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, command } = body;
 
-    const serverPath = process.env.MINECRAFT_SERVER_PATH || "";
+    const serverPath = await getMinecraftServerPath();
     const rconHost = process.env.RCON_HOST || "localhost";
     const rconPort = parseInt(process.env.RCON_PORT || "25575", 10);
-    const rconPassword = process.env.RCON_PASSWORD || "tu_contraseña_segura";
+    const rconPassword = getRconPassword(serverPath);
 
     if (!action) {
       return NextResponse.json({ success: false, error: "Action is required" }, { status: 400 });
@@ -141,7 +162,7 @@ export async function POST(request: NextRequest) {
 
     // --- Action: STATUS ---
     if (action === "status") {
-      const isRunning = state.process !== null && state.process.exitCode === null;
+      const isRunning = await isPortOpen(25565);
       return NextResponse.json({
         success: true,
         status: isRunning ? "RUNNING" : "OFFLINE",
@@ -151,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     // --- Action: START ---
     if (action === "start") {
-      const isRunning = state.process !== null && state.process.exitCode === null;
+      const isRunning = await isPortOpen(25565);
       if (isRunning) {
         return NextResponse.json({ success: false, error: "Server is already running" });
       }
@@ -178,89 +199,110 @@ export async function POST(request: NextRequest) {
       state.logs = []; // Clear old logs
       addServerLog(`[Nexus Controller] Spawning server process: ${scriptName}`);
 
-      // Spawn process
-      const p = spawn(isWindows ? "cmd.exe" : "/bin/sh", [isWindows ? "/c" : "-c", scriptPath], {
-        cwd: serverPath,
-        env: process.env,
-        detached: !isWindows,
-      });
-
-      p.stdout?.on("data", (data) => {
-        const chunk = data.toString();
-        addServerLog(chunk);
-      });
-
-      p.stderr?.on("data", (data) => {
-        const chunk = data.toString();
-        addServerLog(`[STDERR] ${chunk}`);
-      });
-
-      p.on("close", (code) => {
-        addServerLog(`[Nexus Controller] Server process closed with exit code: ${code}`);
-        state.process = null;
-      });
-
-      if (!isWindows) {
+      let p;
+      if (isWindows) {
+        p = spawn("cmd.exe", ["/c", scriptName], {
+          cwd: serverPath,
+          env: process.env,
+          detached: true,
+        });
+        state.process = p;
+      } else {
+        const { execSync } = require("child_process");
+        try {
+          execSync("tmux kill-session -t minecraft-server 2>/dev/null || true");
+        } catch (e) {}
+        p = spawn("tmux", ["new-session", "-d", "-s", "minecraft-server", "./start.sh"], {
+          cwd: serverPath,
+          env: { ...process.env },
+          detached: true,
+          stdio: "ignore",
+        });
         p.unref();
+        state.process = p;
       }
-
-      state.process = p;
 
       return NextResponse.json({ success: true, message: "Server startup initiated" });
     }
 
     // --- Action: STOP ---
     if (action === "stop") {
-      const isRunning = state.process !== null && state.process.exitCode === null;
+      const isRunning = await isPortOpen(25565);
       if (!isRunning) {
         return NextResponse.json({ success: false, error: "Server is not running" });
       }
 
-      addServerLog("[Nexus Controller] Sending shutdown signal...");
+      addServerLog("[Nexus Controller] Sending shutdown signal via RCON...");
 
       // Attempt graceful stop via RCON first
       try {
         await sendRconCommand(rconHost, rconPort, rconPassword, "stop");
         return NextResponse.json({ success: true, message: "Graceful shutdown sent via RCON" });
       } catch (rconError) {
-        addServerLog(`[Nexus Controller] RCON Stop failed: ${(rconError as Error).message}. Forcing process kill.`);
-        // Force process kill
-        state.process?.kill();
-        state.process = null;
-        return NextResponse.json({ success: true, message: "Server process terminated forcefully" });
+        const errMsg = (rconError as Error).message;
+        addServerLog(`[Nexus Controller] RCON Stop failed: ${errMsg}`);
+        const isWindows = process.platform === "win32";
+        if (!isWindows) {
+          addServerLog("[Nexus Controller] Forcing tmux session kill.");
+          const { execSync } = require("child_process");
+          try {
+            execSync("tmux kill-session -t minecraft-server 2>/dev/null || true");
+          } catch (e) {}
+          state.process = null;
+          return NextResponse.json({ success: true, message: "Server process terminated forcefully (killed tmux session)" });
+        } else if (state.process) {
+          addServerLog("[Nexus Controller] Forcing process kill.");
+          state.process.kill();
+          state.process = null;
+          return NextResponse.json({ success: true, message: "Server process terminated forcefully" });
+        }
+        return NextResponse.json({ success: false, error: `Failed to stop server: ${errMsg}` }, { status: 500 });
       }
     }
 
     // --- Action: RESTART ---
     if (action === "restart") {
-      const isRunning = state.process !== null && state.process.exitCode === null;
+      const isRunning = await isPortOpen(25565);
       if (isRunning) {
-        addServerLog("[Nexus Controller] Restarting: Stopping process...");
+        addServerLog("[Nexus Controller] Restarting: Sending stop command via RCON...");
         try {
           await sendRconCommand(rconHost, rconPort, rconPassword, "stop");
         } catch {
-          state.process?.kill();
+          if (state.process) {
+            state.process.kill();
+            state.process = null;
+          }
         }
       }
 
       // Wait a moment and launch again
       setTimeout(async () => {
-        // Launch logic
         const isWindows = process.platform === "win32";
-        const scriptPath = join(serverPath, isWindows ? "start.bat" : "start.sh");
+        const scriptName = isWindows ? "start.bat" : "start.sh";
+        const scriptPath = join(serverPath, scriptName);
         if (existsSync(scriptPath)) {
-          const p = spawn(isWindows ? "cmd.exe" : "/bin/sh", [isWindows ? "/c" : "-c", scriptPath], {
-            cwd: serverPath,
-            env: process.env,
-            detached: !isWindows,
-          });
-          p.stdout?.on("data", (data) => addServerLog(data.toString()));
-          p.stderr?.on("data", (data) => addServerLog(`[STDERR] ${data.toString()}`));
-          p.on("close", () => { state.process = null; });
-          if (!isWindows) {
+          let p;
+          if (isWindows) {
+            p = spawn("cmd.exe", ["/c", scriptName], {
+              cwd: serverPath,
+              env: process.env,
+              detached: true,
+            });
+            state.process = p;
+          } else {
+            const { execSync } = require("child_process");
+            try {
+              execSync("tmux kill-session -t minecraft-server 2>/dev/null || true");
+            } catch (e) {}
+            p = spawn("tmux", ["new-session", "-d", "-s", "minecraft-server", "./start.sh"], {
+              cwd: serverPath,
+              env: { ...process.env },
+              detached: true,
+              stdio: "ignore",
+            });
             p.unref();
+            state.process = p;
           }
-          state.process = p;
         }
       }, 3000);
 
@@ -341,7 +383,7 @@ function getMockCommandResponse(command: string): string {
 }
 
 export async function GET() {
-  const serverPath = process.env.MINECRAFT_SERVER_PATH || "";
+  const serverPath = await getMinecraftServerPath();
   const isDirEmpty = checkIsDirEmpty(serverPath);
   if (isDirEmpty) {
     return NextResponse.json({

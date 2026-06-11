@@ -4,28 +4,25 @@ import { resolve, join, basename } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { exec } from "child_process";
-
-const rootPath = resolve(process.env.MINECRAFT_SERVER_PATH || "/var/minecraft/server");
+import { getMinecraftServerPath } from "@/lib/minecraft";
 
 // Resolves a virtual path (e.g., /var/minecraft/server or /var/www/grooming)
 // to a physical path on the local OS.
-function getPhysicalPath(virtualPath: string): string {
+function getPhysicalPath(virtualPath: string, minecraftServerPath: string): string {
   const isWindows = process.platform === "win32";
   
   // Clean up backslashes/slashes
   let cleanPath = virtualPath.replace(/\\/g, "/");
   
-  const minecraftPath = process.env.MINECRAFT_SERVER_PATH || "/var/minecraft/server";
-  
   if (cleanPath === "") {
     // If empty, default to minecraft server path
-    return resolve(minecraftPath);
+    return resolve(minecraftServerPath);
   }
   
-  // If cleanPath starts with /var/minecraft/server, map it to the process.env base path
+  // If cleanPath starts with /var/minecraft/server, map it to the database base path
   if (cleanPath.startsWith("/var/minecraft/server")) {
     const relative = cleanPath.slice("/var/minecraft/server".length);
-    return resolve(join(minecraftPath, relative));
+    return resolve(join(minecraftServerPath, relative));
   }
   
   if (isWindows) {
@@ -42,7 +39,8 @@ function getPhysicalPath(virtualPath: string): string {
 export async function GET(request: NextRequest) {
   try {
     const pathQuery = request.nextUrl.searchParams.get("path") || "";
-    const targetDir = getPhysicalPath(pathQuery);
+    const minecraftServerPath = await getMinecraftServerPath();
+    const targetDir = getPhysicalPath(pathQuery, minecraftServerPath);
 
     if (!existsSync(targetDir)) {
       try {
@@ -99,7 +97,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Filename is required" }, { status: 400 });
     }
 
-    const targetDir = getPhysicalPath(pathQuery);
+    const minecraftServerPath = await getMinecraftServerPath();
+    const targetDir = getPhysicalPath(pathQuery, minecraftServerPath);
 
     // Ensure target directory exists
     if (!existsSync(targetDir)) {
@@ -149,7 +148,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Filename is required" }, { status: 400 });
     }
 
-    const targetDir = getPhysicalPath(folderPath || "");
+    const minecraftServerPath = await getMinecraftServerPath();
+    const targetDir = getPhysicalPath(folderPath || "", minecraftServerPath);
     const targetPath = filename ? join(targetDir, filename) : "";
 
     if (resolvedAction === "mkdir") {
@@ -179,21 +179,29 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: `Renamed ${filename} to ${newName} successfully.` });
     }
 
-    if (resolvedAction === "unzip") {
+    if (resolvedAction === "unzip" || resolvedAction === "extract") {
       if (!existsSync(targetPath)) {
         return NextResponse.json({ success: false, error: "Compressed file not found" }, { status: 404 });
       }
 
-      // Execute 7z extraction command using child_process.exec
-      // If .tar.gz, pipe first 7z command to tar extraction or extract tar using 7z pipeline
-      const cmd = filename.endsWith(".tar.gz")
-        ? `7z x "${targetPath}" -so | 7z x -si -ttar -o"${targetDir}" -y`
-        : `7z x "${targetPath}" -o"${targetDir}" -y`;
+      const isWindows = process.platform === "win32";
+      let cmd = "";
+      if (isWindows) {
+        cmd = filename.endsWith(".tar.gz")
+          ? `7z x "${targetPath}" -so | 7z x -si -ttar -o"${targetDir}" -y`
+          : `7z x "${targetPath}" -o"${targetDir}" -y`;
+      } else {
+        if (filename.endsWith(".tar.gz") || filename.endsWith(".tgz")) {
+          cmd = `tar -xzf "${targetPath}" -C "${targetDir}"`;
+        } else {
+          cmd = `unzip -o "${targetPath}" -d "${targetDir}"`;
+        }
+      }
 
       await new Promise<void>((resolvePromise, rejectPromise) => {
         exec(cmd, (error, stdout, stderr) => {
           if (error) {
-            rejectPromise(new Error(`7z extraction failed: ${stderr || error.message}`));
+            rejectPromise(new Error(`Extraction failed: ${stderr || error.message}`));
           } else {
             resolvePromise();
           }
@@ -204,8 +212,8 @@ export async function PATCH(request: NextRequest) {
     } 
     
     if (resolvedAction === "set_boot") {
-      if (!filename.endsWith(".jar") && !filename.endsWith(".sh")) {
-        return NextResponse.json({ success: false, error: "Boot file must be a .jar or .sh file" }, { status: 400 });
+      if (!filename.endsWith(".jar") && !filename.endsWith(".sh") && !filename.endsWith(".bat")) {
+        return NextResponse.json({ success: false, error: "Boot file must be a .jar, .sh, or .bat file" }, { status: 400 });
       }
 
       if (!existsSync(targetPath)) {
@@ -213,16 +221,25 @@ export async function PATCH(request: NextRequest) {
       }
 
       let scriptContent = "";
+      let batContent = "";
       if (filename.endsWith(".jar")) {
         scriptContent = `#!/bin/bash\ncd "${targetDir}"\nexec java -Xms4G -Xmx6G -XX:+UseZGC -XX:+ZGenerational -jar "${filename}" nogui\n`;
-      } else {
+        batContent = `@echo off\ncd /d "%~dp0"\njava -Xms4G -Xmx6G -XX:+UseZGC -XX:+ZGenerational -jar "${filename}" nogui\npause\n`;
+      } else if (filename.endsWith(".sh")) {
         scriptContent = `#!/bin/bash\ncd "${targetDir}"\nexec "./${filename}"\n`;
+        batContent = `@echo off\ncd /d "%~dp0"\necho Cannot run shell script directly on Windows.\npause\n`;
+      } else {
+        scriptContent = `#!/bin/bash\ncd "${targetDir}"\necho Cannot run bat script directly on Linux.\n`;
+        batContent = `@echo off\ncd /d "%~dp0"\ncall "${filename}"\npause\n`;
       }
 
       const startScriptPath = join(targetDir, "start.sh");
       await fs.promises.writeFile(startScriptPath, scriptContent, { mode: 0o755 });
 
-      return NextResponse.json({ success: true, message: `Set ${filename} as boot target and re-wrote start.sh.` });
+      const startBatPath = join(targetDir, "start.bat");
+      await fs.promises.writeFile(startBatPath, batContent);
+
+      return NextResponse.json({ success: true, message: `Set ${filename} as boot target and updated start.sh / start.bat.` });
     }
 
     if (resolvedAction === "delete") {
@@ -240,12 +257,12 @@ export async function PATCH(request: NextRequest) {
       if (!sourcePath) {
         return NextResponse.json({ success: false, error: "sourcePath is required" }, { status: 400 });
       }
-      const physicalSource = getPhysicalPath(sourcePath);
+      const physicalSource = getPhysicalPath(sourcePath, minecraftServerPath);
       if (!existsSync(physicalSource)) {
         return NextResponse.json({ success: false, error: "Source file or directory not found" }, { status: 404 });
       }
       
-      const physicalDestDir = getPhysicalPath(folderPath || "");
+      const physicalDestDir = getPhysicalPath(folderPath || "", minecraftServerPath);
       const sourceBasename = filename || basename(physicalSource);
       const physicalDest = join(physicalDestDir, sourceBasename);
       
@@ -262,12 +279,12 @@ export async function PATCH(request: NextRequest) {
       if (!sourcePath) {
         return NextResponse.json({ success: false, error: "sourcePath is required" }, { status: 400 });
       }
-      const physicalSource = getPhysicalPath(sourcePath);
+      const physicalSource = getPhysicalPath(sourcePath, minecraftServerPath);
       if (!existsSync(physicalSource)) {
         return NextResponse.json({ success: false, error: "Source file or directory not found" }, { status: 404 });
       }
       
-      const physicalDestDir = getPhysicalPath(folderPath || "");
+      const physicalDestDir = getPhysicalPath(folderPath || "", minecraftServerPath);
       const sourceBasename = filename || basename(physicalSource);
       const physicalDest = join(physicalDestDir, sourceBasename);
       
@@ -295,7 +312,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Filename is required" }, { status: 400 });
     }
 
-    const targetDir = getPhysicalPath(folderPath || "");
+    const minecraftServerPath = await getMinecraftServerPath();
+    const targetDir = getPhysicalPath(folderPath || "", minecraftServerPath);
     const targetPath = join(targetDir, filename);
 
     if (!existsSync(targetPath)) {

@@ -1,5 +1,32 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+
+// Cargar variables de entorno si no están definidas (soporta .env y .env.local)
+if (!process.env.DATABASE_URL) {
+  const envPaths = [
+    path.join(__dirname, '../.env.local'),
+    path.join(__dirname, '../.env'),
+    path.join(__dirname, '../../.env.local'),
+    path.join(__dirname, '../../.env')
+  ];
+  for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const lines = content.split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('DATABASE_URL=')) {
+          const val = trimmed.substring('DATABASE_URL='.length).replace(/['"]/g, '');
+          process.env.DATABASE_URL = val;
+          break;
+        }
+      }
+      if (process.env.DATABASE_URL) break;
+    }
+  }
+}
 
 const prisma = new PrismaClient();
 

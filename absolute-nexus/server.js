@@ -23,10 +23,13 @@ if (dev) {
 } else {
   // In production (Next.js standalone), load NextServer
   const NextServer = require("next/dist/server/next-server").default;
+  const targetDir = fs.existsSync(path.join(__dirname, "absolute-nexus"))
+    ? path.join(__dirname, "absolute-nexus")
+    : __dirname;
   const nextServer = new NextServer({
     hostname,
     port,
-    dir: path.join(__dirname),
+    dir: targetDir,
     dev: false,
     customServer: true,
   });

@@ -107,10 +107,10 @@ export const MODULE_CONFIG: Record<
     ],
   },
   spotify: {
-    label: "Spotify Control",
-    color: "#1DB954",
+    label: "Absolute Nexus Music",
+    color: "#5865F2",
     channels: [
-      { id: "now-playing", label: "En Reproducción", icon: "music", category: "REPRODUCCIÓN" },
+      { id: "now-playing", label: "buscar-y-reproducir", icon: "music", category: "REPRODUCCIÓN" },
       { id: "playlists", label: "Mis Playlists", icon: "music", category: "BIBLIOTECA" },
     ],
   },

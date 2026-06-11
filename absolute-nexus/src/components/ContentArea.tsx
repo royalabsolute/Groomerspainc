@@ -32,6 +32,8 @@ import {
   MessageSquare,
   Settings,
   FolderOpen,
+  DownloadCloud,
+  Loader2,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
@@ -43,6 +45,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import type { SongData } from "@/components/MusicPlayer";
 
 // ─── Props passed from page.tsx (server state) ────────────────────────────────
 interface ContentAreaProps {
@@ -56,6 +59,11 @@ interface ContentAreaProps {
   cpuUsage: number;
   ramUsage: number;
   diskUsage: number;
+  // Music Player Hooks
+  currentSong: SongData | null;
+  isPlaying: boolean;
+  onPlaySong: (song: SongData) => void;
+  onTogglePlay: () => void;
 }
 
 // ─── Helper: Log line color ───────────────────────────────────────────────────
@@ -94,6 +102,10 @@ export default function ContentArea({
   cpuUsage,
   ramUsage,
   diskUsage,
+  currentSong,
+  isPlaying,
+  onPlaySong,
+  onTogglePlay,
 }: ContentAreaProps) {
   const { state } = useNav();
   const { activeModule, activeChannel } = state;
@@ -185,8 +197,15 @@ export default function ContentArea({
       {/* Chat placeholder */}
       {activeModule === "chat" && <PlaceholderView icon={MessageSquare} label="Chat Interno" color="#60A5FA" subtitle="Sistema de mensajería interna (próximamente)" />}
 
-      {/* Spotify placeholder */}
-      {activeModule === "spotify" && <PlaceholderView icon={Music} label="Spotify Control" color="#1DB954" subtitle="Control remoto de reproducción vía API de Spotify (próximamente)" />}
+      {/* Spotify (Absolute Nexus Music) view */}
+      {activeModule === "spotify" && (
+        <MusicModuleView
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          onPlaySong={onPlaySong}
+          onTogglePlay={onTogglePlay}
+        />
+      )}
 
       {/* Settings module */}
       {activeModule === "settings" && activeChannel === "usuarios" && (
@@ -850,6 +869,205 @@ function SettingsUsersView() {
   );
 }
 
+// ─── Music Module View (Col 3) ────────────────────────────────────────────────
+
+interface MusicModuleViewProps {
+  currentSong: SongData | null;
+  isPlaying: boolean;
+  onPlaySong: (song: SongData) => void;
+  onTogglePlay: () => void;
+}
+
+const INITIAL_SONGS: SongData[] = [
+  { id: "lofi-1", title: "Midnight Coffee", artist: "Lofi Beats", duration: 154, thumbnail: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
+  { id: "lofi-2", title: "Coding Session", artist: "Focus Chill", duration: 210, thumbnail: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
+  { id: "lofi-3", title: "Chill Rain", artist: "Rainy Day", duration: 185, thumbnail: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=120&auto=format&fit=crop&q=60", type: "YOUTUBE" },
+  { id: "lofi-4", title: "Late Night Drive", artist: "Synthwave Breeze", duration: 245, thumbnail: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&auto=format&fit=crop&q=60", type: "YOUTUBE" },
+  { id: "lofi-5", title: "Morning Walk", artist: "Sunny Day Vibe", duration: 198, thumbnail: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
+];
+
+function formatSongDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+}
+
+function MusicModuleView({
+  currentSong,
+  isPlaying,
+  onPlaySong,
+  onTogglePlay,
+}: MusicModuleViewProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [songs, setSongs] = useState<SongData[]>(INITIAL_SONGS);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  // Filter songs by title/artist search
+  const filteredSongs = songs.filter(
+    (s) =>
+      s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.artist.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleDownload = (songId: string) => {
+    setDownloadingId(songId);
+    // Simulate VPS downloading delay
+    setTimeout(() => {
+      setSongs((prev) =>
+        prev.map((s) => (s.id === songId ? { ...s, type: "LOCAL" } : s))
+      );
+      setDownloadingId(null);
+    }, 2500);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 bg-[#313338] select-none p-4 space-y-4">
+      {/* Search Bar header */}
+      <div className="flex-shrink-0">
+        <div className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
+          <input
+            type="text"
+            placeholder="Buscar canciones en YouTube o en tu biblioteca local..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-transparent text-[#F2F3F5] text-sm pl-4 pr-10 py-3 outline-none placeholder-[#949BA4]"
+          />
+          <Search className="w-5 h-5 text-[#949BA4] absolute right-3 pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Playlist / Songs Container */}
+      <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
+        {/* Table Header */}
+        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase flex-shrink-0">
+          <div className="col-span-1 text-center">#</div>
+          <div className="col-span-6">Título</div>
+          <div className="col-span-3">Artista</div>
+          <div className="col-span-2 text-right">Duración</div>
+        </div>
+
+        {/* Scrollable song list */}
+        <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-[#1F2023]/30 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22] px-2 py-1">
+          {filteredSongs.length === 0 ? (
+            <div className="p-6 text-center text-[#B5BAC1] text-sm italic">
+              No se encontraron canciones. Intenta otra búsqueda.
+            </div>
+          ) : (
+            filteredSongs.map((song, index) => {
+              const isCurrent = currentSong?.id === song.id;
+              const isPlayingCurrent = isCurrent && isPlaying;
+              const isDownloading = downloadingId === song.id;
+
+              return (
+                <div
+                  key={song.id}
+                  className={`grid grid-cols-12 items-center px-4 py-2.5 rounded-md transition-colors duration-150 group hover:bg-[#35373C]/50 ${
+                    isCurrent ? "bg-[#35373C]/30" : ""
+                  }`}
+                >
+                  {/* Number / Play Action */}
+                  <div className="col-span-1 flex items-center justify-center">
+                    <button
+                      onClick={() => (isCurrent ? onTogglePlay() : onPlaySong(song))}
+                      className="text-[#B5BAC1] group-hover:text-white transition-colors"
+                      title={isPlayingCurrent ? "Pausar" : "Reproducir"}
+                    >
+                      {isPlayingCurrent ? (
+                        <div className="flex items-end gap-0.5 h-3">
+                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-full" />
+                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-2/3" />
+                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-1/2" />
+                        </div>
+                      ) : (
+                        <span className="group-hover:hidden text-xs font-mono">
+                          {index + 1}
+                        </span>
+                      )}
+                      <Play className="w-3.5 h-3.5 fill-current hidden group-hover:block" />
+                    </button>
+                  </div>
+
+                  {/* Title & Thumbnail */}
+                  <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
+                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden flex-shrink-0">
+                      {song.thumbnail ? (
+                        <img
+                          src={song.thumbnail}
+                          alt={song.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs">
+                          🎵
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`font-semibold text-sm truncate ${
+                            isCurrent ? "text-[#5865F2]" : "text-[#F2F3F5]"
+                          }`}
+                        >
+                          {song.title}
+                        </span>
+                        <span
+                          className={`text-[8px] font-bold px-1 rounded flex-shrink-0 ${
+                            song.type === "LOCAL"
+                              ? "bg-[#23A55A]/10 text-[#23A55A] border border-[#23A55A]/20"
+                              : "bg-[#F23F43]/10 text-[#F23F43] border border-[#F23F43]/20"
+                          }`}
+                        >
+                          {song.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Artist */}
+                  <div className="col-span-3 text-[#B5BAC1] text-xs truncate">
+                    {song.artist}
+                  </div>
+
+                  {/* Duration & Actions */}
+                  <div className="col-span-2 flex items-center justify-end gap-3 pr-2">
+                    {/* Hover action: download to VPS */}
+                    {song.type === "YOUTUBE" && (
+                      <button
+                        onClick={() => handleDownload(song.id)}
+                        disabled={isDownloading}
+                        className={`transition-colors flex items-center justify-center ${
+                          isDownloading
+                            ? "text-[#FFa500]"
+                            : "text-[#B5BAC1] hover:text-[#5865F2] opacity-0 group-hover:opacity-100"
+                        }`}
+                        title={isDownloading ? "Descargando..." : "Descargar al VPS"}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <DownloadCloud className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+
+                    <span className="text-[#B5BAC1] text-xs font-mono group-hover:hidden">
+                      {formatSongDuration(song.duration)}
+                    </span>
+                    <span className="text-[#5865F2] text-xs font-bold hidden group-hover:inline">
+                      {isPlayingCurrent ? "PAUSAR" : "REPRODUCIR"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Game Settings View ──────────────────────────────────────────────────────
 function GameSettingsView() {
   const [properties, setProperties] = useState<Record<string, string>>({});
@@ -1113,4 +1331,3 @@ function FormField({ label, description, children }: { label: string; descriptio
     </div>
   );
 }
-

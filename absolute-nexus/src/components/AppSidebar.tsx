@@ -26,7 +26,7 @@ const MODULES: {
   { id: "it",       icon: Terminal,     label: "Consola IT & VPS" },
   { id: "files",    icon: FolderOpen,   label: "File Manager" },
   { id: "chat",     icon: MessageSquare,label: "Chat Interno" },
-  { id: "spotify",  icon: Music,        label: "Spotify Control" },
+  { id: "spotify",  icon: Music,        label: "Absolute Nexus Music" },
   { id: "settings", icon: Settings,     label: "Configuración" },
 ];
 

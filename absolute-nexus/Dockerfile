@@ -36,13 +36,19 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y openssl unzip tar tmux ffmpeg python3 curl p7zip-full && \
-    apt-get install -y -t bookworm-backports openjdk-21-jre-headless && \
+RUN apt-get update && apt-get install -y openssl unzip tar tmux ffmpeg python3 curl p7zip-full && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Java 21 (Eclipse Temurin JRE)
+RUN mkdir -p /opt/java && \
+    curl -L https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.3%2B9/OpenJDK21U-jre_x64_linux_hotspot_21.0.3_9.tar.gz -o /tmp/jre.tar.gz && \
+    tar -xzf /tmp/jre.tar.gz -C /opt/java && \
+    mv /opt/java/jdk* /opt/java/openjdk-21 && \
+    rm /tmp/jre.tar.gz
+
+ENV PATH="/opt/java/openjdk-21/bin:${PATH}"
 
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 --gid 1001 nextjs

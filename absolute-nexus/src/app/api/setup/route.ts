@@ -12,13 +12,20 @@ export async function GET() {
     });
 
     if (existingAdmin) {
+      if ((existingAdmin as any).role !== "ADMIN_GENERAL") {
+        await db.user.update({
+          where: { id: existingAdmin.id },
+          data: { role: "ADMIN_GENERAL" }
+        });
+      }
       return NextResponse.json({
         success: true,
-        message: "El usuario administrador ya existe en el sistema.",
+        message: "El usuario administrador ya existe en el sistema (rol asegurado como ADMIN_GENERAL).",
         user: {
           id: existingAdmin.id,
           name: existingAdmin.name,
-          email: existingAdmin.email
+          email: existingAdmin.email,
+          role: "ADMIN_GENERAL"
         }
       });
     }
@@ -27,14 +34,13 @@ export async function GET() {
     const masterPassword = "NexusAdmin2026!";
     const hashedPassword = await hash(masterPassword, 10);
 
-    // 3. Crear el usuario administrador en la base de datos
-    // Nota: El modelo User en nuestro schema no contiene una columna 'role',
-    // el rol se asigna dinámicamente en el flujo de sesión de NextAuth (src/auth.ts).
+    // 3. Crear el usuario administrador en la base de datos con rol ADMIN_GENERAL
     const newAdmin = await db.user.create({
       data: {
         email: adminEmail,
         name: "Admin General",
         password: hashedPassword,
+        role: "ADMIN_GENERAL"
       }
     });
 
@@ -44,12 +50,13 @@ export async function GET() {
       credentials: {
         email: adminEmail,
         password: "[PROTEGIDO] Usa 'NexusAdmin2026!' para iniciar sesión",
-        role: "ADMIN_GENERAL (Mapeado en sesión)"
+        role: "ADMIN_GENERAL"
       },
       user: {
         id: newAdmin.id,
         name: newAdmin.name,
-        email: newAdmin.email
+        email: newAdmin.email,
+        role: "ADMIN_GENERAL"
       }
     });
   } catch (error) {

@@ -31,11 +31,16 @@ export default function RightPanel({
   playersCount = 0,
 }: RightPanelProps) {
   const { state } = useNav();
-  const { activeModule } = state;
+  const { activeModule, activeChannel } = state;
   const config = MODULE_CONFIG[activeModule];
 
+  // Completely hide right sidebar in Consola Minecraft channel to allow full width for logs
+  if (activeModule === "it" && activeChannel === "consola-minecraft") {
+    return null;
+  }
+
   return (
-    <aside className="w-60 bg-[#2B2D31] flex flex-col p-4 border-l border-[#1F2023] flex-shrink-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22]">
+    <aside className="w-60 bg-[#2B2D31] flex flex-col p-4 border-l border-[#1F2023] shrink-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22]">
       {activeModule === "it" && (
         <ITRightPanel
           cpuUsage={cpuUsage}
@@ -97,6 +102,10 @@ function ProgressBar({ label, value, max, color }: { label: string; value: numbe
 
 // ─── IT Right Panel ───────────────────────────────────────────────────────────
 function ITRightPanel({ cpuUsage, ramUsage, serverStatus, playersCount }: Required<RightPanelProps>) {
+  const { state } = useNav();
+  const { activeChannel } = state;
+  const showVpsState = activeChannel === "rendimiento-vps";
+
   return (
     <>
       {/* Players online */}
@@ -118,29 +127,31 @@ function ITRightPanel({ cpuUsage, ramUsage, serverStatus, playersCount }: Requir
       </div>
 
       {/* VPS State */}
-      <div className="space-y-3">
-        <SectionHeader>
-          <Server className="w-3.5 h-3.5 text-[#23A55A]" />
-          Estado VPS KVM4
-        </SectionHeader>
+      {showVpsState && (
+        <div className="space-y-3">
+          <SectionHeader>
+            <Server className="w-3.5 h-3.5 text-[#23A55A]" />
+            Estado VPS KVM4
+          </SectionHeader>
 
-        <div className="space-y-2">
-          <InfoRow label="IP Nodo:" value="2.24.104.9" />
-          <ProgressBar label="RAM:" value={ramUsage} max={16} color="#5865F2" />
-          <ProgressBar label="CPU:" value={cpuUsage} max={100} color="#23A55A" />
-          <InfoRow label="SSH Port:" value="ONLINE (22)" highlight="bg-[#23A55A]/20 text-[#23A55A]" />
-          <InfoRow
-            label="RCON Port:"
-            value={`${serverStatus === "RUNNING" ? "ONLINE" : "OFFLINE"} (25575)`}
-            highlight={serverStatus === "RUNNING" ? "bg-[#23A55A]/20 text-[#23A55A]" : "bg-red-500/20 text-red-500"}
-          />
-          <InfoRow
-            label="Game Port:"
-            value={`${serverStatus === "RUNNING" ? "ONLINE" : "OFFLINE"} (25565)`}
-            highlight={serverStatus === "RUNNING" ? "bg-[#23A55A]/20 text-[#23A55A]" : "bg-red-500/20 text-red-500"}
-          />
+          <div className="space-y-2">
+            <InfoRow label="IP Nodo:" value="2.24.104.9" />
+            <ProgressBar label="RAM:" value={ramUsage} max={16} color="#5865F2" />
+            <ProgressBar label="CPU:" value={cpuUsage} max={100} color="#23A55A" />
+            <InfoRow label="SSH Port:" value="ONLINE (22)" highlight="bg-[#23A55A]/20 text-[#23A55A]" />
+            <InfoRow
+              label="RCON Port:"
+              value={`${serverStatus === "RUNNING" ? "ONLINE" : "OFFLINE"} (25575)`}
+              highlight={serverStatus === "RUNNING" ? "bg-[#23A55A]/20 text-[#23A55A]" : "bg-red-500/20 text-red-500"}
+            />
+            <InfoRow
+              label="Game Port:"
+              value={`${serverStatus === "RUNNING" ? "ONLINE" : "OFFLINE"} (25565)`}
+              highlight={serverStatus === "RUNNING" ? "bg-[#23A55A]/20 text-[#23A55A]" : "bg-red-500/20 text-red-500"}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
@@ -153,7 +164,7 @@ function PlayerRow({
 }) {
   return (
     <div className="flex items-center gap-2 p-1 hover:bg-[#35373C]/60 rounded cursor-pointer transition">
-      <div className="relative flex-shrink-0">
+      <div className="relative shrink-0">
         <div className="w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs" style={{ backgroundColor: color, color: "#000" }}>
           {initials}
         </div>
@@ -187,7 +198,7 @@ function FilesRightPanel() {
         <SectionHeader>Accesos Directos</SectionHeader>
         {["/var/minecraft/server", "/var/www/grooming", "/var/www/absolute-nexus", "/root"].map(p => (
           <div key={p} className="flex items-center gap-2 p-1.5 hover:bg-[#35373C]/60 rounded cursor-pointer transition-colors">
-            <FolderOpen className="w-4 h-4 text-purple-400 flex-shrink-0" />
+            <FolderOpen className="w-4 h-4 text-purple-400 shrink-0" />
             <span className="text-[11px] text-[#B5BAC1] font-mono truncate">{p}</span>
           </div>
         ))}

@@ -14,6 +14,7 @@ model User {
   password  String
   image     String?
   avatarUrl String?  // Optional column for Supabase avatar storage
+  role      String   @default("USER")
   createdAt DateTime @default(now())
   playlists Playlist[]
 }
@@ -145,6 +146,7 @@ model SiteConfig {
   weightTier2Price          Float?  @default(60.0)
   weightTier3Price          Float?  @default(75.0)
   weightTier4Price          Float?  @default(95.0)
+  minecraftPath             String? @default("e:/ABSOLUTE FILES/MINECRAFT SERVER 1.20.1 FABRIC")
 }
 
 model Transformation {

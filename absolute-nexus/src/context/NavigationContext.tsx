@@ -23,7 +23,25 @@ export type GlobalModule =
 export interface Channel {
   id: string;
   label: string;
-  icon: "hash" | "folder" | "activity" | "hard-drive" | "message" | "music" | "settings" | "home";
+  icon:
+    | "hash"
+    | "folder"
+    | "activity"
+    | "hard-drive"
+    | "message"
+    | "music"
+    | "settings"
+    | "home"
+    | "terminal"
+    | "archive"
+    | "calendar"
+    | "users"
+    | "package"
+    | "user"
+    | "shield"
+    | "cpu"
+    | "database"
+    | "code";
   category?: string; // category header above this channel
 }
 
@@ -37,73 +55,74 @@ export const MODULE_CONFIG: Record<
     label: "Absolute Home",
     color: "#5865F2",
     channels: [
-      { id: "bienvenida", label: "bienvenida", icon: "home", category: "GENERAL" },
-      { id: "anuncios", label: "anuncios", icon: "hash", category: "GENERAL" },
+      { id: "bienvenida", label: "Bienvenida", icon: "home", category: "GENERAL" },
+      { id: "anuncios", label: "Anuncios", icon: "message", category: "GENERAL" },
     ],
   },
   grooming: {
     label: "Grooming Pet",
     color: "#23A55A",
     channels: [
-      { id: "dashboard-grooming", label: "dashboard", icon: "hash", category: "GESTIÓN" },
-      { id: "citas", label: "citas-del-dia", icon: "hash", category: "GESTIÓN" },
-      { id: "clientes", label: "clientes", icon: "hash", category: "GESTIÓN" },
-      { id: "productos", label: "productos", icon: "hash", category: "INVENTARIO" },
+      { id: "dashboard-grooming", label: "Dashboard", icon: "activity", category: "GESTIÓN" },
+      { id: "citas", label: "Citas del Día", icon: "calendar", category: "GESTIÓN" },
+      { id: "clientes", label: "Clientes", icon: "users", category: "GESTIÓN" },
+      { id: "productos", label: "Productos", icon: "package", category: "INVENTARIO" },
     ],
   },
   hotel: {
     label: "Módulo Hotelera",
     color: "#F43F5E",
     channels: [
-      { id: "dashboard-hotel", label: "dashboard", icon: "hash", category: "GESTIÓN" },
-      { id: "reservas", label: "reservas", icon: "hash", category: "GESTIÓN" },
-      { id: "habitaciones", label: "habitaciones", icon: "hash", category: "GESTIÓN" },
+      { id: "dashboard-hotel", label: "Dashboard", icon: "activity", category: "GESTIÓN" },
+      { id: "reservas", label: "Reservas", icon: "calendar", category: "GESTIÓN" },
+      { id: "habitaciones", label: "Habitaciones", icon: "home", category: "GESTIÓN" },
     ],
   },
   it: {
     label: "Nexus IT Hub",
     color: "#FFa500",
     channels: [
-      { id: "consola-minecraft", label: "consola-minecraft", icon: "hash", category: "CANALES DE TEXTO" },
-      { id: "rendimiento-vps", label: "rendimiento-vps", icon: "activity", category: "CANALES DE TEXTO" },
-      { id: "backups", label: "backups", icon: "hard-drive", category: "CANALES DE TEXTO" },
+      { id: "consola-minecraft", label: "Consola Minecraft", icon: "terminal", category: "PANEL DE CONTROL" },
+      { id: "rendimiento-vps", label: "Rendimiento VPS", icon: "activity", category: "PANEL DE CONTROL" },
+      { id: "configuracion-juego", label: "Configuración de Juego", icon: "settings", category: "PANEL DE CONTROL" },
+      { id: "backups", label: "Backups", icon: "database", category: "PANEL DE CONTROL" },
     ],
   },
   files: {
     label: "File Manager",
     color: "#A78BFA",
     channels: [
-      { id: "minecraft-server", label: "/var/minecraft/server", icon: "folder", category: "SERVIDORES" },
-      { id: "www-grooming", label: "/var/www/grooming", icon: "folder", category: "SERVIDORES" },
-      { id: "www-nexus", label: "/var/www/absolute-nexus", icon: "folder", category: "APLICACIONES" },
-      { id: "home-root", label: "/root", icon: "folder", category: "SISTEMA" },
+      { id: "home-root", label: "Raíz VPS", icon: "folder", category: "ACCESOS DIRECTOS" },
+      { id: "minecraft-server", label: "Servidor Minecraft", icon: "folder", category: "ACCESOS DIRECTOS" },
+      { id: "www-grooming", label: "Groomers Inc", icon: "folder", category: "ACCESOS DIRECTOS" },
     ],
   },
   chat: {
     label: "Chat Interno",
     color: "#60A5FA",
     channels: [
-      { id: "general", label: "general", icon: "message", category: "CANALES DE TEXTO" },
-      { id: "alertas-sistema", label: "alertas-sistema", icon: "hash", category: "CANALES DE TEXTO" },
-      { id: "logs-automaticos", label: "logs-automaticos", icon: "hash", category: "AUTOMATIZACIÓN" },
+      { id: "general", label: "# general", icon: "message", category: "CANALES DE TEXTO" },
+      { id: "alertas-sistema", label: "# alertas", icon: "hash", category: "CANALES DE TEXTO" },
+      { id: "logs-automaticos", label: "# logs-automaticos", icon: "hash", category: "AUTOMATIZACIÓN" },
     ],
   },
   spotify: {
     label: "Spotify Control",
     color: "#1DB954",
     channels: [
-      { id: "now-playing", label: "en-reproducción", icon: "music", category: "REPRODUCCIÓN" },
-      { id: "playlists", label: "mis-playlists", icon: "music", category: "BIBLIOTECA" },
+      { id: "now-playing", label: "En Reproducción", icon: "music", category: "REPRODUCCIÓN" },
+      { id: "playlists", label: "Mis Playlists", icon: "music", category: "BIBLIOTECA" },
     ],
   },
   settings: {
     label: "Configuración",
     color: "#949BA4",
     channels: [
-      { id: "cuenta", label: "cuenta", icon: "hash", category: "PERSONAL" },
-      { id: "seguridad", label: "seguridad", icon: "hash", category: "PERSONAL" },
-      { id: "integraciones", label: "integraciones", icon: "hash", category: "SISTEMA" },
-      { id: "variables-entorno", label: "variables-entorno", icon: "hash", category: "SISTEMA" },
+      { id: "cuenta", label: "Cuenta", icon: "user", category: "PERSONAL" },
+      { id: "seguridad", label: "Seguridad", icon: "shield", category: "PERSONAL" },
+      { id: "integraciones", label: "Integraciones", icon: "cpu", category: "SISTEMA" },
+      { id: "usuarios", label: "Gestión de Usuarios", icon: "users", category: "SISTEMA" },
+      { id: "variables-entorno", label: "Variables de Entorno", icon: "code", category: "SISTEMA" },
     ],
   },
 };

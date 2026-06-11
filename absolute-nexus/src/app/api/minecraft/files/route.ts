@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs, { createWriteStream, existsSync } from "fs";
-import { resolve, join } from "path";
+import { resolve, join, basename } from "path";
 import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import { exec } from "child_process";
@@ -17,8 +17,8 @@ function getPhysicalPath(virtualPath: string): string {
   
   const minecraftPath = process.env.MINECRAFT_SERVER_PATH || "/var/minecraft/server";
   
-  if (cleanPath === "" || cleanPath === "/") {
-    // If empty or root, default to minecraft server path
+  if (cleanPath === "") {
+    // If empty, default to minecraft server path
     return resolve(minecraftPath);
   }
   
@@ -128,35 +128,72 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { path: folderPath, filename } = body;
-    let action = body.action;
+    const { path: folderPath, filename, action, newName, folderName } = body;
 
-    if (!filename) {
-      return NextResponse.json({ success: false, error: "Filename is required" }, { status: 400 });
-    }
-
-    const targetDir = getPhysicalPath(folderPath || "");
-    const targetPath = join(targetDir, filename);
-
-    if (!action) {
-      if (filename.endsWith(".zip")) {
-        action = "unzip";
+    let resolvedAction = action;
+    if (!resolvedAction) {
+      if (
+        filename &&
+        (filename.endsWith(".zip") ||
+          filename.endsWith(".rar") ||
+          filename.endsWith(".7z") ||
+          filename.endsWith(".tar.gz"))
+      ) {
+        resolvedAction = "unzip";
       } else {
         return NextResponse.json({ success: false, error: "Action is required" }, { status: 400 });
       }
     }
 
-    if (action === "unzip") {
+    if (!filename && resolvedAction !== "mkdir") {
+      return NextResponse.json({ success: false, error: "Filename is required" }, { status: 400 });
+    }
+
+    const targetDir = getPhysicalPath(folderPath || "");
+    const targetPath = filename ? join(targetDir, filename) : "";
+
+    if (resolvedAction === "mkdir") {
+      if (!folderName) {
+        return NextResponse.json({ success: false, error: "folderName is required" }, { status: 400 });
+      }
+      const newFolderPath = join(targetDir, folderName);
+      if (existsSync(newFolderPath)) {
+        return NextResponse.json({ success: false, error: "A file or folder with that name already exists" }, { status: 400 });
+      }
+      await fs.promises.mkdir(newFolderPath, { recursive: true });
+      return NextResponse.json({ success: true, message: `Created folder ${folderName} successfully.` });
+    }
+
+    if (resolvedAction === "rename") {
+      if (!newName) {
+        return NextResponse.json({ success: false, error: "newName is required" }, { status: 400 });
+      }
       if (!existsSync(targetPath)) {
-        return NextResponse.json({ success: false, error: "Zip file not found" }, { status: 404 });
+        return NextResponse.json({ success: false, error: "Source file or folder not found" }, { status: 404 });
+      }
+      const newPath = join(targetDir, newName);
+      if (existsSync(newPath)) {
+        return NextResponse.json({ success: false, error: "A file or folder with that name already exists" }, { status: 400 });
+      }
+      await fs.promises.rename(targetPath, newPath);
+      return NextResponse.json({ success: true, message: `Renamed ${filename} to ${newName} successfully.` });
+    }
+
+    if (resolvedAction === "unzip") {
+      if (!existsSync(targetPath)) {
+        return NextResponse.json({ success: false, error: "Compressed file not found" }, { status: 404 });
       }
 
-      // Execute unzip command using child_process.exec
-      const cmd = `unzip -o "${targetPath}" -d "${targetDir}"`;
+      // Execute 7z extraction command using child_process.exec
+      // If .tar.gz, pipe first 7z command to tar extraction or extract tar using 7z pipeline
+      const cmd = filename.endsWith(".tar.gz")
+        ? `7z x "${targetPath}" -so | 7z x -si -ttar -o"${targetDir}" -y`
+        : `7z x "${targetPath}" -o"${targetDir}" -y`;
+
       await new Promise<void>((resolvePromise, rejectPromise) => {
         exec(cmd, (error, stdout, stderr) => {
           if (error) {
-            rejectPromise(new Error(`unzip failed: ${stderr || error.message}`));
+            rejectPromise(new Error(`7z extraction failed: ${stderr || error.message}`));
           } else {
             resolvePromise();
           }
@@ -166,7 +203,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: `Extracted ${filename} successfully.` });
     } 
     
-    if (action === "set_boot") {
+    if (resolvedAction === "set_boot") {
       if (!filename.endsWith(".jar") && !filename.endsWith(".sh")) {
         return NextResponse.json({ success: false, error: "Boot file must be a .jar or .sh file" }, { status: 400 });
       }
@@ -177,7 +214,7 @@ export async function PATCH(request: NextRequest) {
 
       let scriptContent = "";
       if (filename.endsWith(".jar")) {
-        scriptContent = `#!/bin/bash\ncd "${targetDir}"\nexec java -Xmx8G -Xms2G -jar "${filename}" nogui\n`;
+        scriptContent = `#!/bin/bash\ncd "${targetDir}"\nexec java -Xms4G -Xmx6G -XX:+UseZGC -XX:+ZGenerational -jar "${filename}" nogui\n`;
       } else {
         scriptContent = `#!/bin/bash\ncd "${targetDir}"\nexec "./${filename}"\n`;
       }
@@ -188,7 +225,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: `Set ${filename} as boot target and re-wrote start.sh.` });
     }
 
-    if (action === "delete") {
+    if (resolvedAction === "delete") {
       if (!existsSync(targetPath)) {
         return NextResponse.json({ success: false, error: "File or directory not found" }, { status: 404 });
       }
@@ -198,7 +235,51 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: `Deleted ${filename} successfully.` });
     }
 
-    return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
+    if (resolvedAction === "copy") {
+      const { sourcePath } = body;
+      if (!sourcePath) {
+        return NextResponse.json({ success: false, error: "sourcePath is required" }, { status: 400 });
+      }
+      const physicalSource = getPhysicalPath(sourcePath);
+      if (!existsSync(physicalSource)) {
+        return NextResponse.json({ success: false, error: "Source file or directory not found" }, { status: 404 });
+      }
+      
+      const physicalDestDir = getPhysicalPath(folderPath || "");
+      const sourceBasename = filename || basename(physicalSource);
+      const physicalDest = join(physicalDestDir, sourceBasename);
+      
+      if (existsSync(physicalDest)) {
+        return NextResponse.json({ success: false, error: "A file or folder with that name already exists in the destination" }, { status: 400 });
+      }
+      
+      await fs.promises.cp(physicalSource, physicalDest, { recursive: true });
+      return NextResponse.json({ success: true, message: `Copied ${sourceBasename} successfully.` });
+    }
+
+    if (resolvedAction === "move") {
+      const { sourcePath } = body;
+      if (!sourcePath) {
+        return NextResponse.json({ success: false, error: "sourcePath is required" }, { status: 400 });
+      }
+      const physicalSource = getPhysicalPath(sourcePath);
+      if (!existsSync(physicalSource)) {
+        return NextResponse.json({ success: false, error: "Source file or directory not found" }, { status: 404 });
+      }
+      
+      const physicalDestDir = getPhysicalPath(folderPath || "");
+      const sourceBasename = filename || basename(physicalSource);
+      const physicalDest = join(physicalDestDir, sourceBasename);
+      
+      if (existsSync(physicalDest)) {
+        return NextResponse.json({ success: false, error: "A file or folder with that name already exists in the destination" }, { status: 400 });
+      }
+      
+      await fs.promises.rename(physicalSource, physicalDest);
+      return NextResponse.json({ success: true, message: `Moved ${sourceBasename} successfully.` });
+    }
+
+    return NextResponse.json({ success: false, error: `Unknown action: ${resolvedAction}` }, { status: 400 });
   } catch (error) {
     console.error("Files API PATCH error:", error);
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });

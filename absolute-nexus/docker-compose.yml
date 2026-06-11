@@ -10,7 +10,7 @@ services:
     network_mode: "host"
     environment:
       # Conexión directa a la base de datos PostgreSQL de producción del VPS (vía localhost)
-      - DATABASE_URL=postgresql://groomer_admin:Mega1321@@localhost:5432/groomingpet_db?schema=public
+      - DATABASE_URL=postgresql://groomer_admin:Mega1321@@localhost:5432/groomingpet_db?schema=public&connection_limit=5
       - AUTH_SECRET=3e5a5b5c92c81ef40d4fbe1d0e12e3fa0fb176c12513f56e9c0b115a39cbfa7e
       - AUTH_TRUST_HOST=true
       - NEXTAUTH_URL=https://absoluteserversmanager.cloud
@@ -21,5 +21,11 @@ services:
       - RCON_PORT=25575
       - RCON_PASSWORD=tu_contraseña_segura
     volumes:
+      - /:/vps-root
       - /var/minecraft/server:/var/minecraft/server
       - /var/nexus/music:/app/music_storage
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

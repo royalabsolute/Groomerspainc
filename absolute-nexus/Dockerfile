@@ -36,7 +36,7 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN apt-get update && apt-get install -y openssl unzip ffmpeg python3 curl && \
+RUN apt-get update && apt-get install -y openssl unzip ffmpeg python3 curl p7zip-full && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     rm -rf /var/lib/apt/lists/*

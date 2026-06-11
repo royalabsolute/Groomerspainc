@@ -35,6 +35,14 @@ import {
 } from "lucide-react";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 // ─── Props passed from page.tsx (server state) ────────────────────────────────
 interface ContentAreaProps {
@@ -59,6 +67,19 @@ function getLogLineStyle(line: string): string {
   if (l.includes("[mock rcon]") || l.includes("mock mode")) return "text-teal-400 italic";
   if (l.includes("joined the game") || l.includes("logged in with entity")) return "text-[#23A55A]";
   return "text-[#DBDEE1]";
+}
+
+// Helper to map color codes to tailwind classes to avoid inline styles
+function getThemeColorClasses(hex: string, isDot = false): string {
+  const h = hex.toLowerCase();
+  if (h === "#23a55a") return isDot ? "bg-[#23A55A]" : "bg-[#23A55A]/15 text-[#23A55A]";
+  if (h === "#f43f5e") return isDot ? "bg-[#F43F5E]" : "bg-[#F43F5E]/15 text-[#F43F5E]";
+  if (h === "#ffa500") return isDot ? "bg-[#FFa500]" : "bg-[#FFa500]/15 text-[#FFa500]";
+  if (h === "#a78bfa") return isDot ? "bg-[#A78BFA]" : "bg-[#A78BFA]/15 text-[#A78BFA]";
+  if (h === "#60a5fa") return isDot ? "bg-[#60A5FA]" : "bg-[#60A5FA]/15 text-[#60A5FA]";
+  if (h === "#1db954") return isDot ? "bg-[#1DB954]" : "bg-[#1DB954]/15 text-[#1DB954]";
+  if (h === "#949ba4") return isDot ? "bg-[#949BA4]" : "bg-[#949BA4]/15 text-[#949BA4]";
+  return isDot ? "bg-zinc-500" : "bg-zinc-800/40 text-zinc-400";
 }
 
 // ─── ContentArea ──────────────────────────────────────────────────────────────
@@ -93,18 +114,18 @@ export default function ContentArea({
   return (
     <main className="flex-1 bg-[#313338] flex flex-col min-w-0 overflow-hidden">
       {/* Top header bar */}
-      <header className="h-12 border-b border-[#1F2023] flex items-center justify-between px-4 flex-shrink-0">
+      <header className="h-12 border-b border-[#1F2023] flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <Hash className="w-6 h-6 text-[#80848E] flex-shrink-0" />
+          <Hash className="w-6 h-6 text-[#80848E] shrink-0" />
           <h1 className="font-semibold text-white text-base truncate">
             {channelObj?.label ?? activeChannel}
           </h1>
-          <div className="w-[1px] h-4 bg-[#3F4147] mx-2 flex-shrink-0" />
+          <div className="w-px h-4 bg-[#3F4147] mx-2 shrink-0" />
           <p className="text-xs text-[#949BA4] hidden sm:inline truncate">
             {channelDesc[activeChannel] ?? `Módulo: ${config.label}`}
           </p>
         </div>
-        <div className="flex items-center gap-4 text-[#B5BAC1] flex-shrink-0">
+        <div className="flex items-center gap-4 text-[#B5BAC1] shrink-0">
           <Bell  className="w-5 h-5 cursor-pointer hover:text-[#DBDEE1]" />
           <Pin   className="w-5 h-5 cursor-pointer hover:text-[#DBDEE1]" />
           <Users className="w-5 h-5 cursor-pointer hover:text-[#DBDEE1]" />
@@ -144,6 +165,11 @@ export default function ContentArea({
         <VPSPerformanceView cpuUsage={cpuUsage} ramUsage={ramUsage} diskUsage={diskUsage} />
       )}
 
+      {/* IT module — Game Settings */}
+      {activeModule === "it" && activeChannel === "configuracion-juego" && (
+        <GameSettingsView />
+      )}
+
       {/* IT module — Backups */}
       {activeModule === "it" && activeChannel === "backups" && <BackupsView />}
 
@@ -162,8 +188,18 @@ export default function ContentArea({
       {/* Spotify placeholder */}
       {activeModule === "spotify" && <PlaceholderView icon={Music} label="Spotify Control" color="#1DB954" subtitle="Control remoto de reproducción vía API de Spotify (próximamente)" />}
 
-      {/* Settings placeholder */}
-      {activeModule === "settings" && <PlaceholderView icon={Settings} label="Configuración" color="#949BA4" subtitle="Gestión de cuenta, seguridad e integraciones (próximamente)" />}
+      {/* Settings module */}
+      {activeModule === "settings" && activeChannel === "usuarios" && (
+        <SettingsUsersView />
+      )}
+      {activeModule === "settings" && activeChannel !== "usuarios" && (
+        <PlaceholderView
+          icon={Settings}
+          label={`Configuración — ${channelObj?.label || activeChannel}`}
+          color="#949BA4"
+          subtitle="Gestión de configuración (próximamente)"
+        />
+      )}
     </main>
   );
 }
@@ -246,7 +282,7 @@ function MinecraftConsoleView({
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden">
       {/* Status cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 flex-shrink-0">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
         <StatusCard icon={Server} label="Servidor" value={serverStatus} status={serverStatus} />
         <StatusCard icon={Activity} label="Dirección IP" value="mc.absolutenexus.net" />
         <StatusCard icon={Activity} label="Tiempo Activo" value={uptime} />
@@ -256,7 +292,7 @@ function MinecraftConsoleView({
       {/* Terminal */}
       <div className="flex-1 flex flex-col bg-[#1E1F22] rounded-lg border border-[#1F2023] overflow-hidden min-h-0">
         {/* Terminal header */}
-        <div className="bg-[#2B2D31] px-4 py-2 border-b border-[#1F2023] flex items-center justify-between flex-shrink-0">
+        <div className="bg-[#2B2D31] px-4 py-2 border-b border-[#1F2023] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
               <span className="w-3 h-3 rounded-full bg-[#F23F43] block" />
@@ -285,7 +321,7 @@ function MinecraftConsoleView({
         </div>
 
         {/* Command input */}
-        <div className="bg-[#2B2D31] p-3 border-t border-[#1F2023] flex-shrink-0">
+        <div className="bg-[#2B2D31] p-3 border-t border-[#1F2023] shrink-0">
           <form onSubmit={handleSendCommand} className="relative flex items-center bg-[#383A40] rounded-md overflow-hidden">
             <div className="pl-3 text-[#B5BAC1]"><Terminal className="w-5 h-5" /></div>
             <input
@@ -311,16 +347,28 @@ function MinecraftConsoleView({
 
 // ─── Status Card ──────────────────────────────────────────────────────────────
 function StatusCard({ icon: Icon, label, value, status }: { icon: React.ElementType; label: string; value: string; status?: string }) {
-  const color = status === "RUNNING" ? "#23A55A" : status === "STARTING" ? "#FFa500" : status === "STOPPING" ? "#F23F43" : "#949BA4";
+  let themeColor = "#949BA4";
+  if (status === "RUNNING") themeColor = "#23A55A";
+  else if (status === "STARTING") themeColor = "#FFa500";
+  else if (status === "STOPPING") themeColor = "#F23F43";
+  else {
+    if (label.includes("IP") || label.includes("Dirección")) themeColor = "#60A5FA";
+    else if (label.includes("Tiempo") || label.includes("Activo")) themeColor = "#23A55A";
+    else if (label.includes("Jugadores")) themeColor = "#A78BFA";
+  }
+
+  const colorClass = getThemeColorClasses(themeColor);
+  const dotColorClass = getThemeColorClasses(themeColor, true);
+
   return (
     <div className="bg-[#2B2D31] rounded-lg p-3 border border-[#1F2023] flex items-center gap-3">
-      <div className="p-2 rounded-full" style={{ backgroundColor: `${color}1A`, color }}>
+      <div className={`p-2 rounded-full ${colorClass}`}>
         <Icon className="w-5 h-5" />
       </div>
       <div>
         <span className="text-[10px] text-[#949BA4] font-bold uppercase tracking-wider block">{label}</span>
         <span className="text-sm font-semibold text-white flex items-center gap-1.5">
-          {status && <span className="w-2.5 h-2.5 rounded-full inline-block animate-pulse" style={{ backgroundColor: color }} />}
+          {status && <span className={`w-2.5 h-2.5 rounded-full inline-block animate-pulse ${dotColorClass}`} />}
           {value}
         </span>
       </div>
@@ -342,17 +390,84 @@ function PowerButton({ label, color, disabled, onClick, icon }: { label: string;
 }
 
 // ─── VPS Performance View ─────────────────────────────────────────────────────
-function VPSPerformanceView({ cpuUsage, ramUsage, diskUsage }: { cpuUsage: number; ramUsage: number; diskUsage: number }) {
+function VPSPerformanceView({ cpuUsage: initialCpu, ramUsage: initialRam, diskUsage }: { cpuUsage: number; ramUsage: number; diskUsage: number }) {
+  const [isMounted, setIsMounted] = useState(false);
+  const [telemetry, setTelemetry] = useState({
+    cpuUsage: initialCpu,
+    ramUsedGB: initialRam,
+    ramTotalGB: 16.0,
+    ramUsage: parseFloat(((initialRam / 16.0) * 100).toFixed(1))
+  });
+  const [processes, setProcesses] = useState<Array<{ pid: number; name: string; mem: number; cpu: number }>>([]);
+  const [history, setHistory] = useState<Array<{ time: string; cpu: number; ram: number }>>([]);
+
+  useEffect(() => {
+    setIsMounted(true);
+
+    // Pre-fill history buffer with 20 points based on initial stats
+    const initialHistory = [];
+    const now = new Date();
+    const initRamPct = parseFloat(((initialRam / 16.0) * 100).toFixed(1));
+    for (let i = 19; i >= 0; i--) {
+      const pastTime = new Date(now.getTime() - i * 2000);
+      initialHistory.push({
+        time: pastTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+        cpu: initialCpu,
+        ram: initRamPct
+      });
+    }
+    setHistory(initialHistory);
+
+    const pollApi = async () => {
+      try {
+        const res = await fetch("/api/vps/telemetry");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setTelemetry(data.telemetry);
+            if (data.processes) {
+              setProcesses(data.processes);
+            }
+            
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            const newPoint = {
+              time: timestamp,
+              cpu: data.telemetry.cpuUsage,
+              ram: data.telemetry.ramUsage
+            };
+
+            setHistory(prev => {
+              const next = [...prev, newPoint];
+              if (next.length > 20) {
+                return next.slice(next.length - 20);
+              }
+              return next;
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching telemetry:", err);
+      }
+    };
+
+    pollApi();
+    const interval = setInterval(pollApi, 2000);
+    return () => clearInterval(interval);
+  }, [initialCpu, initialRam]);
+
   return (
     <div className="flex-1 p-4 overflow-y-auto">
       <div className="bg-[#2B2D31] rounded-lg p-6 border border-[#1F2023] space-y-6">
+        {/* Header */}
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <Cpu className="w-5 h-5 text-[#FFa500]" /> Rendimiento VPS KVM4
         </h2>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "Carga CPU",          value: `${cpuUsage}%`,       sub: "4 vCPUs AMD EPYC 2.4GHz" },
-            { label: "Memoria RAM",        value: `${ramUsage} GB`,     sub: "De 16 GB asignados" },
+            { label: "Carga CPU",          value: `${telemetry.cpuUsage}%`,       sub: "4 vCPUs AMD EPYC 2.4GHz" },
+            { label: "Memoria RAM",        value: `${telemetry.ramUsedGB} GB`,     sub: `De ${telemetry.ramTotalGB} GB (${telemetry.ramUsage}%)` },
             { label: "Almacenamiento NVMe",value: `${diskUsage} GB`,    sub: "Utilizado de 100 GB SSD" },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] flex flex-col items-center gap-2">
@@ -364,20 +479,106 @@ function VPSPerformanceView({ cpuUsage, ramUsage, diskUsage }: { cpuUsage: numbe
             </div>
           ))}
         </div>
-        <div className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023]">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-1.5">
-            <Activity className="w-4 h-4 text-[#23A55A]" /> Red en Tiempo Real
-          </h3>
-          <div className="h-32 flex items-end gap-1 px-2 pb-1 bg-[#111214] rounded border border-zinc-800">
-            {Array.from({ length: 48 }).map((_, i) => {
-              const h = Math.floor(Math.random() * 80) + 10;
-              return <div key={i} className="bg-[#23A55A] opacity-75 hover:opacity-100 transition-opacity rounded-t w-full" style={{ height: `${h}%` }} />;
-            })}
+
+        {/* Charts Section */}
+        {isMounted ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CPU Chart */}
+            <div className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] space-y-3">
+              <h3 className="text-xs font-bold text-[#949BA4] uppercase tracking-wider flex items-center gap-1.5">
+                <Activity className="w-4 h-4 text-[#10B981]" /> Carga de CPU Histórica (%)
+              </h3>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="time" stroke="#80848E" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#80848E" fontSize={10} domain={[0, 100]} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#111214", borderColor: "#1F2023", borderRadius: "6px" }}
+                      itemStyle={{ color: "#10B981", fontSize: "12px" }}
+                      labelStyle={{ color: "#80848E", fontSize: "11px" }}
+                    />
+                    <Area type="monotone" dataKey="cpu" name="CPU Usage" stroke="#10B981" strokeWidth={2} fillOpacity={1} fill="url(#colorCpu)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* RAM Chart */}
+            <div className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] space-y-3">
+              <h3 className="text-xs font-bold text-[#949BA4] uppercase tracking-wider flex items-center gap-1.5">
+                <Activity className="w-4 h-4 text-[#06B6D4]" /> Uso de RAM Histórico (%)
+              </h3>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={history} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="time" stroke="#80848E" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#80848E" fontSize={10} domain={[0, 100]} tickLine={false} axisLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#111214", borderColor: "#1F2023", borderRadius: "6px" }}
+                      itemStyle={{ color: "#06B6D4", fontSize: "12px" }}
+                      labelStyle={{ color: "#80848E", fontSize: "11px" }}
+                    />
+                    <Area type="monotone" dataKey="ram" name="RAM Usage" stroke="#06B6D4" strokeWidth={2} fillOpacity={1} fill="url(#colorRam)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between text-[10px] text-[#949BA4] mt-2 font-mono">
-            <span>Hace 5 min</span>
-            <span>14.5 Mbps In / 6.2 Mbps Out</span>
-            <span>Ahora</span>
+        ) : (
+          <div className="h-48 flex items-center justify-center text-zinc-500">
+            Cargando gráficos de telemetría...
+          </div>
+        )}
+
+        {/* Process List (Task Manager Table) */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-bold text-[#949BA4] uppercase tracking-wider flex items-center gap-1.5">
+            <Activity className="w-4 h-4 text-zinc-400" /> Administrador de Tareas (Top 15 Procesos)
+          </h3>
+          <div className="bg-[#1E1F22] rounded-lg border border-[#1F2023] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#111214] text-[#949BA4] font-bold border-b border-[#1F2023] uppercase text-[10px] tracking-wider">
+                    <th className="p-3">PID</th>
+                    <th className="p-3">Proceso</th>
+                    <th className="p-3 text-right">% CPU</th>
+                    <th className="p-3 text-right">% Memoria</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#1F2023]">
+                  {processes.length > 0 ? (
+                    processes.map((proc, index) => (
+                      <tr key={`${proc.pid}-${index}`} className="hover:bg-[#2B2D31]/40 text-[#DBDEE1] transition-colors">
+                        <td className="p-3 font-mono text-zinc-500">{proc.pid}</td>
+                        <td className="p-3 font-mono font-semibold truncate max-w-[150px]">{proc.name}</td>
+                        <td className="p-3 text-right font-mono text-[#10B981]">{proc.cpu.toFixed(1)}%</td>
+                        <td className="p-3 text-right font-mono text-[#06B6D4]">{proc.mem.toFixed(1)}%</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="p-4 text-center text-zinc-500">
+                        No hay datos de procesos activos disponibles.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -403,13 +604,13 @@ function BackupsView() {
           {backups.map((b, i) => (
             <div key={i} className="bg-[#1E1F22] hover:bg-[#111214] transition-colors p-4 rounded border border-[#1F2023] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                <HardDrive className="w-8 h-8 text-zinc-500 flex-shrink-0" />
+                <HardDrive className="w-8 h-8 text-zinc-500 shrink-0" />
                 <div className="min-w-0">
                   <span className="font-semibold text-[#DBDEE1] block text-sm truncate">{b.name}</span>
                   <span className="text-xs text-[#949BA4]">Tamaño: {b.size} | Creado: {b.date}</span>
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 shrink-0">
                 <span className="bg-[#5865F2]/10 text-[#5865F2] border border-[#5865F2]/20 text-[10px] px-2 py-0.5 rounded font-bold uppercase">{b.type}</span>
                 <button className="bg-zinc-800 text-white hover:bg-zinc-700 transition px-3 py-1 rounded text-xs font-semibold">Restaurar</button>
               </div>
@@ -441,7 +642,7 @@ function HomeView() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {modules.map(({ label, color, status, icon: Icon }) => (
             <div key={label} className="bg-[#2B2D31] rounded-lg p-4 border border-[#1F2023] flex flex-col gap-3 hover:bg-[#35373C]/60 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}22`, color }}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${getThemeColorClasses(color)}`}>
                 <Icon className="w-5 h-5" />
               </div>
               <div>
@@ -460,9 +661,12 @@ function HomeView() {
 
 // ─── Generic Placeholder View ─────────────────────────────────────────────────
 function PlaceholderView({ icon: Icon, label, color, subtitle }: { icon: React.ElementType; label: string; color: string; subtitle: string }) {
+  const colorClass = getThemeColorClasses(color);
+  const dotColorClass = getThemeColorClasses(color, true);
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
-      <div className="w-20 h-20 rounded-2xl flex items-center justify-center" style={{ backgroundColor: `${color}22`, color }}>
+      <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${colorClass}`}>
         <Icon className="w-10 h-10" />
       </div>
       <div>
@@ -470,9 +674,443 @@ function PlaceholderView({ icon: Icon, label, color, subtitle }: { icon: React.E
         <p className="text-[#949BA4] text-sm mt-1 max-w-xs">{subtitle}</p>
       </div>
       <div className="flex items-center gap-2 bg-[#2B2D31] border border-[#1F2023] rounded-full px-4 py-2 text-xs text-[#949BA4]">
-        <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: color }} />
+        <div className={`w-2 h-2 rounded-full animate-pulse ${dotColorClass}`} />
         Módulo en desarrollo
       </div>
     </div>
   );
 }
+
+// ─── Settings Users View ──────────────────────────────────────────────────────
+function SettingsUsersView() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("USER");
+  const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const generateRandomPassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
+    let pass = "";
+    for (let i = 0; i < 12; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(pass);
+    setShowPassword(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || !role) {
+      setStatus({ type: "error", message: "Todos los campos obligatorios deben completarse." });
+      return;
+    }
+    setIsSubmitting(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/users/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, role }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus({ type: "success", message: data.message });
+        setName("");
+        setEmail("");
+        setPassword("");
+        setRole("USER");
+      } else {
+        setStatus({ type: "error", message: data.error || "Error al crear el usuario." });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setStatus({ type: "error", message: "Error de red al intentar conectar con la API." });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 p-6 overflow-y-auto">
+      <div className="max-w-md mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-zinc-400" /> Crear Cuenta Secundaria
+          </h2>
+          <p className="text-xs text-[#949BA4] mt-1">
+            Permite registrar un nuevo miembro del equipo asignando un rol de acceso específico.
+          </p>
+        </div>
+
+        {status && (
+          <div
+            className={`p-3 rounded text-xs flex items-start gap-2 border ${
+              status.type === "success"
+                ? "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/30"
+                : "bg-[#F23F43]/10 text-[#F23F43] border-[#F23F43]/30"
+            }`}
+          >
+            <div className="mt-0.5 font-bold shrink-0">
+              {status.type === "success" ? "✓" : "⚠"}
+            </div>
+            <div>{status.message}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+              Nombre Completo (Opcional)
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ej. Juan Pérez"
+              className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+              Correo Electrónico <span className="text-[#F23F43]">*</span>
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="ejemplo@absolutenexus.com"
+              className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+              Contraseña <span className="text-[#F23F43]">*</span>
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Contraseña de acceso"
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-[#949BA4] hover:text-white transition-colors"
+                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? "👁" : "👁‍┐"}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={generateRandomPassword}
+                className="bg-zinc-800 text-[#DBDEE1] border border-zinc-700 hover:bg-zinc-700 px-3 py-2.5 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors"
+              >
+                Generar
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+              Rol de Acceso <span className="text-[#F23F43]">*</span>
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              title="Seleccionar rol de acceso"
+              className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+            >
+              <option value="USER">Usuario (Acceso Estándar)</option>
+              <option value="MODERATOR">Moderador (Acceso Elevado)</option>
+              <option value="ADMIN_GENERAL">Administrador General (Acceso Total)</option>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2.5 px-4 rounded transition-colors mt-2 cursor-pointer shadow-sm"
+          >
+            {isSubmitting ? "Registrando..." : "Crear Usuario"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Game Settings View ──────────────────────────────────────────────────────
+function GameSettingsView() {
+  const [properties, setProperties] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const res = await fetch("/api/minecraft/properties");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setProperties(data.properties || {});
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching properties:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProperties();
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/minecraft/properties", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ properties }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setStatus({ type: "success", message: "Ajustes del servidor guardados exitosamente." });
+      } else {
+        setStatus({ type: "error", message: data.error || "Ocurrió un error al guardar los ajustes." });
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus({ type: "error", message: "Error de conexión al guardar los ajustes." });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateProp = (key: string, value: string) => {
+    setProperties(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-[#FFa500] border-t-transparent rounded-full animate-spin" />
+          <span>Cargando propiedades del servidor...</span>
+        </div>
+      </div>
+    );
+  }
+
+  const pvpChecked = properties["pvp"] === "true";
+  const onlineModeChecked = properties["online-mode"] === "true";
+  const allowFlightChecked = properties["allow-flight"] === "true";
+
+  return (
+    <div className="flex-1 p-4 overflow-y-auto">
+      <form onSubmit={handleSave} className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <Settings className="w-5 h-5 text-zinc-400" /> Configuración de Juego
+          </h2>
+          <p className="text-xs text-[#949BA4] mt-1">
+            Modifica las propiedades del servidor de Minecraft (Fabric 1.20.1) directamente. Los cambios requieren reiniciar el servidor.
+          </p>
+        </div>
+
+        {status && (
+          <div
+            className={`p-3 rounded text-xs flex items-start gap-2 border ${
+              status.type === "success"
+                ? "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/30"
+                : "bg-[#F23F43]/10 text-[#F23F43] border-[#F23F43]/30"
+            }`}
+          >
+            <span className="mt-0.5 font-bold">{status.type === "success" ? "✓" : "⚠"}</span>
+            <div>{status.message}</div>
+          </div>
+        )}
+
+        {/* Section 1: General */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Configuración General</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField label="Nombre del Mundo (level-name)" description="Nombre del directorio del mundo en el servidor.">
+              <input
+                type="text"
+                title="Nombre del Mundo"
+                placeholder="world"
+                value={properties["level-name"] || "world"}
+                onChange={e => updateProp("level-name", e.target.value)}
+                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+              />
+            </FormField>
+
+            <FormField label="Máximo de Jugadores" description="Cantidad máxima de jugadores simultáneos permitidos.">
+              <input
+                type="number"
+                min="1"
+                max="999"
+                title="Máximo de Jugadores"
+                placeholder="20"
+                value={properties["max-players"] || "20"}
+                onChange={e => updateProp("max-players", e.target.value)}
+                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+              />
+            </FormField>
+          </div>
+
+          <FormField label="Mensaje del Día (MOTD)" description="El mensaje publicitario que se muestra en la lista de servidores del juego.">
+            <input
+              type="text"
+              title="Mensaje del Día"
+              placeholder="Absolute Minecraft Server"
+              value={properties["motd"] || "A Minecraft Server"}
+              onChange={e => updateProp("motd", e.target.value)}
+              className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+            />
+          </FormField>
+        </div>
+
+        {/* Section 2: Mechanics */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Mecánicas de Juego</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Toggle
+              label="Habilitar PVP"
+              description="Permite que los jugadores se inflijan daño entre sí."
+              checked={pvpChecked}
+              onChange={v => updateProp("pvp", v ? "true" : "false")}
+            />
+
+            <FormField label="Dificultad de Juego" description="Nivel de dificultad para los mobs y mecánicas de supervivencia.">
+              <select
+                value={properties["difficulty"] || "easy"}
+                onChange={e => updateProp("difficulty", e.target.value)}
+                title="Dificultad del juego"
+                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+              >
+                <option value="peaceful">Pacífico (Peaceful)</option>
+                <option value="easy">Fácil (Easy)</option>
+                <option value="normal">Normal (Normal)</option>
+                <option value="hard">Difícil (Hard)</option>
+              </select>
+            </FormField>
+
+            <FormField label="Modo de Juego Predeterminado" description="El modo de juego asignado por defecto al unirse.">
+              <select
+                value={properties["gamemode"] || "survival"}
+                onChange={e => updateProp("gamemode", e.target.value)}
+                title="Modo de juego predeterminado"
+                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+              >
+                <option value="survival">Supervivencia (Survival)</option>
+                <option value="creative">Creativo (Creative)</option>
+                <option value="adventure">Aventura (Adventure)</option>
+                <option value="spectator">Espectador (Spectator)</option>
+              </select>
+            </FormField>
+
+            <Toggle
+              label="Permitir Vuelo (allow-flight)"
+              description="Permite a los jugadores volar si usan mods habilitados."
+              checked={allowFlightChecked}
+              onChange={v => updateProp("allow-flight", v ? "true" : "false")}
+            />
+          </div>
+        </div>
+
+        {/* Section 3: Network & Security */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Red y Seguridad</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Toggle
+              label="Modo Online (online-mode)"
+              description="Verifica cuentas con Mojang. Desactívalo para permitir cuentas 'No Premium' (Offline)."
+              checked={onlineModeChecked}
+              onChange={v => updateProp("online-mode", v ? "true" : "false")}
+            />
+
+            <FormField label="Protección de Spawn (Bloques)" description="Radio del área de spawn protegida contra modificaciones de jugadores no OPs.">
+              <input
+                type="number"
+                min="0"
+                title="Protección de Spawn"
+                placeholder="16"
+                value={properties["spawn-protection"] || "16"}
+                onChange={e => updateProp("spawn-protection", e.target.value)}
+                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+              />
+            </FormField>
+          </div>
+        </div>
+
+        {/* Save button footer */}
+        <div className="flex justify-end pt-4 border-t border-[#1F2023]">
+          <button
+            type="submit"
+            disabled={saving}
+            className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 h-9"
+          >
+            {saving ? "Guardando..." : "Guardar Cambios"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Toggle({ label, description, checked, onChange }: { label: string; description?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between p-3.5 bg-[#1E1F22] rounded-lg border border-[#1F2023] hover:bg-[#1E1F22]/80 transition-colors">
+      <div className="space-y-0.5 mr-2">
+        <span className="text-xs font-bold text-[#DBDEE1] block">{label}</span>
+        {description && <span className="text-[10px] text-[#949BA4] block leading-tight">{description}</span>}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        title={label}
+        aria-label={label}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
+          checked ? "bg-[#23A55A]" : "bg-[#4E5058]"
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+            checked ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function FormField({ label, description, children }: { label: string; description?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5 p-3.5 bg-[#1E1F22] rounded-lg border border-[#1F2023] hover:bg-[#1E1F22]/80 transition-colors">
+      <div>
+        <span className="text-xs font-bold text-[#DBDEE1] block">{label}</span>
+        {description && <span className="text-[10px] text-[#949BA4] block leading-tight mt-0.5">{description}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+

@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# archives and database files
+*.tar.gz
+*.zip
+*.rar
+*.7z
+prisma/*.db

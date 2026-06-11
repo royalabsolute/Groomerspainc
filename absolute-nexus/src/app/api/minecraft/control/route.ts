@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn, ChildProcess } from "child_process";
-import { existsSync, readdirSync } from "fs";
+import fs, { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import net from "net";
 
@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
       const p = spawn(isWindows ? "cmd.exe" : "/bin/sh", [isWindows ? "/c" : "-c", scriptPath], {
         cwd: serverPath,
         env: process.env,
+        detached: !isWindows,
       });
 
       p.stdout?.on("data", (data) => {
@@ -198,6 +199,10 @@ export async function POST(request: NextRequest) {
         addServerLog(`[Nexus Controller] Server process closed with exit code: ${code}`);
         state.process = null;
       });
+
+      if (!isWindows) {
+        p.unref();
+      }
 
       state.process = p;
 
@@ -247,10 +252,14 @@ export async function POST(request: NextRequest) {
           const p = spawn(isWindows ? "cmd.exe" : "/bin/sh", [isWindows ? "/c" : "-c", scriptPath], {
             cwd: serverPath,
             env: process.env,
+            detached: !isWindows,
           });
           p.stdout?.on("data", (data) => addServerLog(data.toString()));
           p.stderr?.on("data", (data) => addServerLog(`[STDERR] ${data.toString()}`));
           p.on("close", () => { state.process = null; });
+          if (!isWindows) {
+            p.unref();
+          }
           state.process = p;
         }
       }, 3000);
@@ -342,6 +351,23 @@ export async function GET() {
       warning: "Directorio vacío"
     });
   }
+
+  // If memory logs are empty, try reading from logs/latest.log on disk
+  if (state.logs.length === 0) {
+    const logFilePath = join(serverPath, "logs", "latest.log");
+    try {
+      if (existsSync(logFilePath)) {
+        const content = await fs.promises.readFile(logFilePath, "utf-8");
+        const lines = content.split(/\r?\n/).filter(Boolean);
+        // Take last 100 lines
+        const lastLines = lines.slice(-100);
+        state.logs = lastLines.map(line => line);
+      }
+    } catch (err) {
+      console.error("Error reading latest.log:", err);
+    }
+  }
+
   return NextResponse.json({
     success: true,
     logs: state.logs,

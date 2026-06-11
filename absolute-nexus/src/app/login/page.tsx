@@ -55,18 +55,23 @@ export default function LoginPage() {
         
         {/* Encabezado */}
         <div className="flex flex-col items-center text-center gap-2">
+          <img
+            src="/RoyalAbsoluteTDSOTL.png"
+            alt="Royal Absolute Logo"
+            className="w-64 md:w-72 h-auto mx-auto mb-6 object-contain drop-shadow-lg"
+          />
           <h1 className="text-2xl font-semibold text-[#F2F3F5] tracking-tight">
             ¡Te damos la bienvenida!
           </h1>
           <p className="text-sm text-[#B5BAC1]">
-            Panel Corporativo de Absolute Nexus
+            Panel Corporativo
           </p>
         </div>
 
         {/* Alerta de Error */}
         {error && (
           <div className="bg-[#F23F43]/10 border border-[#F23F43]/20 rounded-[4px] p-3 flex items-start gap-2.5 text-xs text-[#F23F43] leading-relaxed">
-            <ShieldAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}

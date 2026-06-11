@@ -85,7 +85,11 @@ function AppPill({
           }
         }}
       >
-        <Icon className="w-6 h-6" />
+        {id === "home" ? (
+          <img src="/Favicon.svg" alt="Royal Absolute" className="w-7 h-7 object-contain" />
+        ) : (
+          <Icon className="w-6 h-6" />
+        )}
       </button>
 
       {/* Floating tooltip */}
@@ -104,7 +108,7 @@ export default function AppSidebar() {
   const { state, setModule } = useNav();
 
   return (
-    <aside className="w-[72px] bg-[#1E1F22] flex flex-col items-center py-3 gap-2 flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none">
+    <aside className="w-[72px] bg-[#1E1F22] flex flex-col items-center py-3 gap-2 shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none">
       {MODULES.map((mod) => (
         <React.Fragment key={mod.id}>
           <AppPill
@@ -116,7 +120,7 @@ export default function AppSidebar() {
           />
           {/* Horizontal divider after the defined separator */}
           {mod.id === SEPARATOR_AFTER && (
-            <div className="w-8 h-[2px] bg-[#35363C] rounded my-1 flex-shrink-0" />
+            <div className="w-8 h-[2px] bg-[#35363C] rounded my-1 shrink-0" />
           )}
         </React.Fragment>
       ))}

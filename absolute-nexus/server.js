@@ -14,40 +14,14 @@ const hostname = process.env.HOSTNAME || "0.0.0.0";
 
 let handler;
 
-if (dev) {
-  // In development, load standard next
-  const next = require("next");
-  const app = next({ dev, hostname, port });
-  handler = app.getRequestHandler();
-  app.prepare().then(startServer);
-} else {
-  // In production (Next.js standalone), load NextServer
-  const NextServer = require("next/dist/server/next-server").default;
-  const targetDir = fs.existsSync(path.join(__dirname, "absolute-nexus"))
-    ? path.join(__dirname, "absolute-nexus")
-    : __dirname;
+const next = require("next");
+const targetDir = fs.existsSync(path.join(__dirname, "absolute-nexus"))
+  ? path.join(__dirname, "absolute-nexus")
+  : __dirname;
 
-  // Load config dynamically for standalone mode
-  const requiredServerFilesPath = path.join(targetDir, ".next", "required-server-files.json");
-  if (fs.existsSync(requiredServerFilesPath)) {
-    try {
-      const requiredServerFiles = JSON.parse(fs.readFileSync(requiredServerFilesPath, "utf-8"));
-      process.env.__NEXT_PRIVATE_STANDALONE_CONFIG = JSON.stringify(requiredServerFiles.config);
-    } catch (err) {
-      console.error("Failed to load required-server-files.json in server.js:", err.message);
-    }
-  }
-
-  const nextServer = new NextServer({
-    hostname,
-    port,
-    dir: targetDir,
-    dev: false,
-    customServer: true,
-  });
-  handler = nextServer.getRequestHandler();
-  startServer();
-}
+const app = next({ dev, hostname, port, dir: targetDir });
+handler = app.getRequestHandler();
+app.prepare().then(startServer);
 
 function startServer() {
   const server = http.createServer((req, res) => {

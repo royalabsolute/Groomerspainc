@@ -34,6 +34,8 @@ import {
   FolderOpen,
   DownloadCloud,
   Loader2,
+  Folder,
+  ChevronLeft,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
@@ -182,10 +184,6 @@ export default function ContentArea({
         <GameSettingsView />
       )}
 
-      {/* IT module — Global Settings */}
-      {activeModule === "it" && activeChannel === "configuracion-rutas" && (
-        <GlobalSettingsView />
-      )}
 
       {/* IT module — Backups */}
       {activeModule === "it" && activeChannel === "backups" && <BackupsView />}
@@ -1116,26 +1114,124 @@ function GameSettingsView() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const res = await fetch("/api/minecraft/properties");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setProperties(data.properties || {});
-          }
+  // States for Directorio Raíz and FolderSelector
+  const [minecraftPath, setMinecraftPath] = useState("");
+  const [pathLoading, setPathLoading] = useState(true);
+  const [showExplorer, setShowExplorer] = useState(false);
+  const [explorerPath, setExplorerPath] = useState("");
+  const [explorerFolders, setExplorerFolders] = useState<string[]>([]);
+  const [explorerParent, setExplorerParent] = useState("");
+  const [explorerError, setExplorerError] = useState<string | null>(null);
+  const [explorerLoading, setExplorerLoading] = useState(false);
+  const [savingPath, setSavingPath] = useState(false);
+
+  // Fetch server.properties
+  const fetchProperties = async () => {
+    try {
+      const res = await fetch("/api/minecraft/properties");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setProperties(data.properties || {});
         }
-      } catch (err) {
-        console.error("Error fetching properties:", err);
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error("Error fetching properties:", err);
+    }
+  };
+
+  // Fetch minecraft path config
+  const fetchConfig = async () => {
+    try {
+      const res = await fetch("/api/minecraft/config");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setMinecraftPath(data.minecraftServerPath || "");
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching config:", err);
+    } finally {
+      setPathLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([fetchProperties(), fetchConfig()]);
+      setLoading(false);
     };
-    fetchProperties();
+    init();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Directory explorer load
+  const loadExplorer = async (pathStr: string) => {
+    setExplorerLoading(true);
+    setExplorerError(null);
+    try {
+      const url = `/api/vps/explorer?path=${encodeURIComponent(pathStr)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setExplorerPath(data.currentPath);
+        setExplorerParent(data.parentPath);
+        setExplorerFolders(data.folders || []);
+      } else {
+        setExplorerError(data.error || "No se pudo leer el directorio.");
+      }
+    } catch (err: any) {
+      setExplorerError("Error de conexión con el explorador.");
+    } finally {
+      setExplorerLoading(false);
+    }
+  };
+
+  const openExplorer = () => {
+    setShowExplorer(true);
+    loadExplorer(minecraftPath || "");
+  };
+
+  const handleSelectFolder = async () => {
+    setSavingPath(true);
+    try {
+      // 1. Save config to DB
+      const res = await fetch("/api/minecraft/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minecraftServerPath: explorerPath }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMinecraftPath(explorerPath);
+        setShowExplorer(false);
+        
+        // 2. Trigger auto-discovery to sync
+        const scanRes = await fetch("/api/minecraft/discovery");
+        if (scanRes.ok) {
+          const scanData = await scanRes.json();
+          if (scanData.success) {
+            setStatus({
+              type: "success",
+              message: `Directorio raíz actualizado a "${explorerPath}". Auto-descubrimiento detectó ${scanData.modsCount} mods.`,
+            });
+          }
+        }
+        
+        // 3. Reload server properties from the new path
+        await fetchProperties();
+      } else {
+        setStatus({ type: "error", message: data.error || "No se pudo actualizar el directorio." });
+      }
+    } catch (err) {
+      setStatus({ type: "error", message: "Error al conectar con la base de datos." });
+    } finally {
+      setSavingPath(false);
+    }
+  };
+
+  const handleSaveProperties = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setStatus(null);
@@ -1166,12 +1262,12 @@ function GameSettingsView() {
     }));
   };
 
-  if (loading) {
+  if (loading || pathLoading) {
     return (
       <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
         <div className="flex flex-col items-center gap-2">
           <div className="w-8 h-8 border-4 border-[#FFa500] border-t-transparent rounded-full animate-spin" />
-          <span>Cargando propiedades del servidor...</span>
+          <span>Cargando configuración de juego...</span>
         </div>
       </div>
     );
@@ -1182,8 +1278,33 @@ function GameSettingsView() {
   const allowFlightChecked = properties["allow-flight"] === "true";
 
   return (
-    <div className="flex-1 p-4 overflow-y-auto">
-      <form onSubmit={handleSave} id="ajustes-servidor" className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+    <div className="flex-1 p-4 overflow-y-auto space-y-6">
+      {/* Tarjeta de Directorio Raíz */}
+      <div className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-4">
+        <div>
+          <h2 className="text-sm font-bold text-white uppercase tracking-wider">Directorio Raíz del Servidor</h2>
+          <p className="text-[10px] text-[#949BA4] mt-0.5">
+            Ruta física del VPS donde están instalados los archivos de Minecraft.
+          </p>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <div className="flex-1 bg-[#111214] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] font-mono select-all overflow-x-auto whitespace-nowrap scrollbar-none">
+            {minecraftPath || "No configurado"}
+          </div>
+          <button
+            type="button"
+            onClick={openExplorer}
+            className="bg-[#4E5058] hover:bg-[#6D6F78] text-[#F2F3F5] text-xs font-semibold py-2.5 px-4 rounded transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer h-9 shadow-sm"
+          >
+            <FolderOpen className="w-4 h-4" />
+            Examinar VPS
+          </button>
+        </div>
+      </div>
+
+      {/* Formulario de Ajustes del Servidor */}
+      <form onSubmit={handleSaveProperties} id="ajustes-servidor" className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Settings className="w-5 h-5 text-zinc-400" /> Configuración de Juego
@@ -1331,6 +1452,110 @@ function GameSettingsView() {
           </button>
         </div>
       </form>
+
+      {/* Modal del Explorador de Directorios */}
+      {showExplorer && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-100 p-4 select-none">
+          <div className="bg-[#2B2D31] w-full max-w-lg rounded-lg border border-[#1F2023] shadow-2xl flex flex-col max-h-[80vh]">
+            
+            {/* Header del Modal */}
+            <div className="p-4 border-b border-[#1F2023] flex justify-between items-center">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Folder className="w-4 h-4 text-zinc-400" /> Explorador de Directorios del VPS
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowExplorer(false)}
+                className="text-[#949BA4] hover:text-white text-xs cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            {/* Path actual */}
+            <div className="bg-[#1E1F22] px-4 py-2 text-[10px] text-[#B5BAC1] font-mono border-b border-[#1F2023] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none">
+              <span className="text-zinc-500">Ruta:</span>
+              <span>{explorerPath}</span>
+            </div>
+
+            {/* Contenido (Lista de carpetas) */}
+            <div className="flex-1 overflow-y-auto p-2 min-h-[200px] max-h-[400px]">
+              {explorerLoading ? (
+                <div className="flex items-center justify-center h-48 text-xs text-[#949BA4] gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#23A55A]" />
+                  Cargando directorios...
+                </div>
+              ) : explorerError ? (
+                <div className="text-xs text-[#F23F43] p-4 text-center">
+                  {explorerError}
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {/* Botón para subir nivel */}
+                  {explorerPath !== explorerParent && (
+                    <button
+                      key="go-parent"
+                      type="button"
+                      onClick={() => loadExplorer(explorerParent)}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded text-xs text-[#DBDEE1] hover:bg-[#1E1F22] transition-colors cursor-pointer text-left font-semibold"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-[#B5BAC1]" />
+                      <span>.. (Subir un nivel)</span>
+                    </button>
+                  )}
+
+                  {explorerFolders.length === 0 ? (
+                    <div className="text-xs text-zinc-500 p-8 text-center">
+                      No se encontraron subcarpetas.
+                    </div>
+                  ) : (
+                    explorerFolders.map((folder) => (
+                      <button
+                        key={folder}
+                        type="button"
+                        onClick={() => {
+                          const separator = explorerPath.endsWith("/") || explorerPath.endsWith("\\") ? "" : (process.platform === "win32" ? "\\" : "/");
+                          loadExplorer(explorerPath + separator + folder);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded text-xs text-[#DBDEE1] hover:bg-[#1E1F22] transition-colors cursor-pointer text-left group"
+                      >
+                        <Folder className="w-4 h-4 text-[#8a8e94] group-hover:text-[#F2F3F5] transition-colors" />
+                        <span className="truncate">{folder}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer del Modal */}
+            <div className="p-4 border-t border-[#1F2023] bg-[#1E1F22] rounded-b-lg flex justify-between items-center">
+              <span className="text-[10px] text-zinc-500 truncate max-w-[200px]">
+                Seleccionado: {explorerPath.split(process.platform === "win32" ? "\\" : "/").pop() || "/"}
+              </span>
+              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowExplorer(false)}
+                  className="bg-[#4E5058] hover:bg-[#6D6F78] text-white text-xs font-semibold py-2 px-4 rounded transition-colors cursor-pointer"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  disabled={explorerLoading || savingPath}
+                  onClick={handleSelectFolder}
+                  className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:opacity-50 text-white text-xs font-semibold py-2 px-4 rounded transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  {savingPath ? "Guardando..." : "Seleccionar esta carpeta"}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1369,162 +1594,6 @@ function FormField({ label, description, children }: { label: string; descriptio
         {description && <span className="text-[10px] text-[#949BA4] block leading-tight mt-0.5">{description}</span>}
       </div>
       {children}
-    </div>
-  );
-}
-
-// ─── Global Settings View ───────────────────────────────────────────────────
-function GlobalSettingsView() {
-  const [minecraftPath, setMinecraftPath] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [scanResult, setScanResult] = useState<{ modsCount: number; worldExists: boolean } | null>(null);
-
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const res = await fetch("/api/minecraft/config");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setMinecraftPath(data.minecraftServerPath || "");
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching config:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchConfig();
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!minecraftPath.trim()) return;
-    setSaving(true);
-    setStatus(null);
-    setScanResult(null);
-
-    try {
-      // 1. Update path in DB
-      const res = await fetch("/api/minecraft/config", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ minecraftServerPath: minecraftPath.trim() }),
-      });
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        // 2. Trigger Auto-discovery to scan folder
-        const scanRes = await fetch("/api/minecraft/discovery");
-        if (scanRes.ok) {
-          const scanData = await scanRes.json();
-          if (scanData.success) {
-            setScanResult({
-              modsCount: scanData.modsCount,
-              worldExists: scanData.worldExists,
-            });
-            setStatus({
-              type: "success",
-              message: `Configuración guardada. Escaneo completado: se encontraron ${scanData.modsCount} mods y el mapa ${scanData.worldExists ? "SÍ" : "NO"} está generado.`,
-            });
-          } else {
-            setStatus({ type: "success", message: "Configuración guardada, pero falló el escaneo de auto-descubrimiento." });
-          }
-        } else {
-          setStatus({ type: "success", message: "Configuración guardada, pero falló la comunicación con el motor de descubrimiento." });
-        }
-      } else {
-        setStatus({ type: "error", message: data.error || "Error al actualizar la configuración." });
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus({ type: "error", message: "Error de conexión al guardar la configuración." });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-8 h-8 border-4 border-[#FFa500] border-t-transparent rounded-full animate-spin" />
-          <span>Cargando configuración global...</span>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 p-4 overflow-y-auto">
-      <form onSubmit={handleSubmit} id="configuracion-rutas" className="max-w-2xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
-        <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Settings className="w-5 h-5 text-zinc-400" /> Ajustes Globales de Infraestructura
-          </h2>
-          <p className="text-xs text-[#949BA4] mt-1">
-            Establece rutas de almacenamiento dinámicas del ERP. Todos los módulos, consolas, streams y sistemas de ficheros se adaptarán inmediatamente a estas carpetas.
-          </p>
-        </div>
-
-        {status && (
-          <div
-            className={`p-3 rounded text-xs flex items-start gap-2 border ${
-              status.type === "success"
-                ? "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/30"
-                : "bg-[#F23F43]/10 text-[#F23F43] border-[#F23F43]/30"
-            }`}
-          >
-            <span className="mt-0.5 font-bold">{status.type === "success" ? "✓" : "⚠"}</span>
-            <div>{status.message}</div>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <FormField label="Carpeta Raíz Minecraft (minecraftServerPath)" description="La ruta física absoluta en el VPS del directorio de tu servidor de Minecraft.">
-            <input
-              type="text"
-              required
-              title="Ruta de Minecraft"
-              placeholder="/var/minecraft/server"
-              value={minecraftPath}
-              onChange={e => setMinecraftPath(e.target.value)}
-              className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
-            />
-          </FormField>
-
-          {scanResult && (
-            <div className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] space-y-2">
-              <h3 className="text-xs font-bold text-[#DBDEE1] uppercase tracking-wider">Resultados de Auto-Descubrimiento</h3>
-              <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                <div className="bg-[#111214] p-3 rounded flex flex-col">
-                  <span className="text-[#949BA4]">Mods Detectados</span>
-                  <span className="text-base font-bold text-white mt-1">{scanResult.modsCount} JARs</span>
-                </div>
-                <div className="bg-[#111214] p-3 rounded flex flex-col">
-                  <span className="text-[#949BA4]">Generación de Mundo</span>
-                  <span className={`text-base font-bold mt-1 ${scanResult.worldExists ? "text-[#23A55A]" : "text-[#F23F43]"}`}>
-                    {scanResult.worldExists ? "GENERADO (world)" : "NO DETECTADO"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-[#1F2023]">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 h-9"
-          >
-            {saving ? "Analizando..." : "Guardar y Analizar"}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

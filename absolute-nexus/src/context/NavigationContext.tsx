@@ -85,7 +85,6 @@ export const MODULE_CONFIG: Record<
       { id: "consola-minecraft", label: "Consola Minecraft", icon: "terminal", category: "PANEL DE CONTROL" },
       { id: "rendimiento-vps", label: "Rendimiento VPS", icon: "activity", category: "PANEL DE CONTROL" },
       { id: "configuracion-juego", label: "Configuración de Juego", icon: "settings", category: "PANEL DE CONTROL" },
-      { id: "configuracion-rutas", label: "Ajustes Globales", icon: "settings", category: "PANEL DE CONTROL" },
       { id: "backups", label: "Backups", icon: "database", category: "PANEL DE CONTROL" },
     ],
   },

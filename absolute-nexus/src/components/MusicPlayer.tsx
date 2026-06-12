@@ -85,7 +85,7 @@ export default function MusicPlayer() {
         url={streamUrl}
         playing={isPlaying}
         volume={volume / 100}
-        onProgress={(state) => {
+        onProgress={(state: any) => {
           // Sync playback progress if player is active and we aren't loading
           if (!isBusy) {
             setProgress(Math.round(state.playedSeconds));

@@ -95,6 +95,7 @@ function startServer() {
 
     // TAREA 1: CANAL CONSOLA (console-stream)
     const logPath = await getMinecraftLogPath();
+    console.log(`[Debug Socket] Client connected. resolved logPath: "${logPath}" - Exists: ${fs.existsSync(logPath)}`);
     let logWatcher = null;
     let lastSize = 0;
 
@@ -205,7 +206,9 @@ async function getMinecraftServerPath() {
   } catch (err) {
     console.error("[Prisma Sync] Error reading Minecraft path from DB in server.js:", err.message);
   }
-  return path.resolve(base);
+  const resolved = path.resolve(base);
+  console.log(`[Debug DB] getMinecraftServerPath base: "${base}" -> resolved: "${resolved}"`);
+  return resolved;
 }
 
 async function getMinecraftLogPath() {

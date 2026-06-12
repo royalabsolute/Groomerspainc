@@ -94,66 +94,69 @@ function startServer() {
     startTelemetry();
 
     // TAREA 1: CANAL CONSOLA (console-stream)
-    const logPath = await getMinecraftLogPath();
-    console.log(`[Debug Socket] Client connected. resolved logPath: "${logPath}" - Exists: ${fs.existsSync(logPath)}`);
-    let logWatcher = null;
+    let currentLogPath = "";
     let lastSize = 0;
+    let pathNotFoundSent = false;
 
-    // Send initial log lines (last 100)
-    if (fs.existsSync(logPath)) {
+    const logPollInterval = setInterval(async () => {
       try {
-        const stats = fs.statSync(logPath);
-        const size = stats.size;
-        let content = "";
-        const maxRead = 64 * 1024; // 64 KB
-        if (size > maxRead) {
-          const fd = fs.openSync(logPath, "r");
-          const buffer = Buffer.alloc(maxRead);
-          fs.readSync(fd, buffer, 0, maxRead, size - maxRead);
-          fs.closeSync(fd);
-          content = buffer.toString("utf-8");
-        } else {
-          content = fs.readFileSync(logPath, "utf-8");
+        const logPath = await getMinecraftLogPath();
+        
+        if (logPath !== currentLogPath) {
+          currentLogPath = logPath;
+          lastSize = 0;
+          pathNotFoundSent = false;
         }
-        const lines = content.split(/\r?\n/).slice(-100);
-        socket.emit("console-init", lines);
-        lastSize = size;
-      } catch (err) {
-        console.error("Error reading initial logs:", err);
-      }
 
-      // Tail log file on changes
-      try {
-        logWatcher = fs.watch(logPath, (event) => {
-          if (event === "change") {
-            try {
-              const stats = fs.statSync(logPath);
-              const newSize = stats.size;
-              if (newSize > lastSize) {
-                const fd = fs.openSync(logPath, "r");
-                const buffer = Buffer.alloc(newSize - lastSize);
-                fs.readSync(fd, buffer, 0, newSize - lastSize, lastSize);
-                fs.closeSync(fd);
-                
-                const newLines = buffer.toString("utf-8").split(/\r?\n/);
-                newLines.forEach((line) => {
-                  if (line) socket.emit("console-stream", line);
-                });
-                lastSize = newSize;
-              } else if (newSize < lastSize) {
-                lastSize = newSize;
-              }
-            } catch (err) {
-              console.error("Error reading log change:", err.message);
-            }
+        if (!fs.existsSync(currentLogPath)) {
+          if (!pathNotFoundSent) {
+            socket.emit("console-stream", "[Sistema] El archivo de logs de Minecraft no existe en la ruta configurada.");
+            pathNotFoundSent = true;
           }
-        });
+          lastSize = 0;
+          return;
+        }
+
+        pathNotFoundSent = false;
+        const stats = fs.statSync(currentLogPath);
+        const newSize = stats.size;
+
+        if (lastSize === 0) {
+          // Send initial log lines (last 100)
+          let content = "";
+          const maxRead = 64 * 1024; // 64 KB
+          if (newSize > maxRead) {
+            const fd = fs.openSync(currentLogPath, "r");
+            const buffer = Buffer.alloc(maxRead);
+            fs.readSync(fd, buffer, 0, maxRead, newSize - maxRead);
+            fs.closeSync(fd);
+            content = buffer.toString("utf-8");
+          } else {
+            content = fs.readFileSync(currentLogPath, "utf-8");
+          }
+          const lines = content.split(/\r?\n/).slice(-100);
+          socket.emit("console-init", lines);
+          lastSize = newSize;
+        } else if (newSize > lastSize) {
+          // Read new lines
+          const fd = fs.openSync(currentLogPath, "r");
+          const buffer = Buffer.alloc(newSize - lastSize);
+          fs.readSync(fd, buffer, 0, newSize - lastSize, lastSize);
+          fs.closeSync(fd);
+          
+          const newLines = buffer.toString("utf-8").split(/\r?\n/);
+          newLines.forEach((line) => {
+            if (line) socket.emit("console-stream", line);
+          });
+          lastSize = newSize;
+        } else if (newSize < lastSize) {
+          // File rolled over or truncated
+          lastSize = 0;
+        }
       } catch (err) {
-        console.error("Error setting up log watcher:", err.message);
+        console.error("Error reading console logs in poll loop:", err.message);
       }
-    } else {
-      socket.emit("console-stream", "[Sistema] El archivo de logs de Minecraft no existe en la ruta configurada.");
-    }
+    }, 250);
 
     // TAREA 2: CLIENTE RCON DIRECTO
     socket.on("console-cmd", async (cmd) => {
@@ -182,9 +185,7 @@ function startServer() {
       if (activeSockets.size === 0) {
         stopTelemetry();
       }
-      if (logWatcher) {
-        logWatcher.close();
-      }
+      clearInterval(logPollInterval);
     });
   });
 
@@ -194,7 +195,14 @@ function startServer() {
   });
 }
 
+let cachedServerPath = null;
+let lastPathQueryTime = 0;
+
 async function getMinecraftServerPath() {
+  const now = Date.now();
+  if (cachedServerPath && (now - lastPathQueryTime < 2000)) {
+    return cachedServerPath;
+  }
   let base = process.env.MINECRAFT_SERVER_PATH || "/var/minecraft/server";
   try {
     const config = await prisma.siteConfig.findUnique({
@@ -207,6 +215,8 @@ async function getMinecraftServerPath() {
     console.error("[Prisma Sync] Error reading Minecraft path from DB in server.js:", err.message);
   }
   const resolved = path.resolve(base);
+  cachedServerPath = resolved;
+  lastPathQueryTime = now;
   console.log(`[Debug DB] getMinecraftServerPath base: "${base}" -> resolved: "${resolved}"`);
   return resolved;
 }

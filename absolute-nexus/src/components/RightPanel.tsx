@@ -32,10 +32,14 @@ export default function RightPanel({
 }: RightPanelProps) {
   const { state } = useNav();
   const { activeModule, activeChannel } = state;
-  const config = MODULE_CONFIG[activeModule];
 
   // Completely hide right sidebar in Consola Minecraft channel to allow full width for logs
   if (activeModule === "it" && activeChannel === "consola-minecraft") {
+    return null;
+  }
+
+  // Hide right sidebar for Spotify
+  if (activeModule === "spotify") {
     return null;
   }
 
@@ -53,7 +57,6 @@ export default function RightPanel({
       {activeModule === "grooming" && <GroomingRightPanel />}
       {activeModule === "hotel" && <HotelRightPanel />}
       {activeModule === "chat" && <ChatRightPanel />}
-      {activeModule === "spotify" && <SpotifyRightPanel />}
       {activeModule === "home" && <HomeRightPanel />}
       {activeModule === "settings" && <SettingsRightPanel />}
     </aside>
@@ -256,23 +259,7 @@ function ChatRightPanel() {
   );
 }
 
-// ─── Spotify Right Panel ──────────────────────────────────────────────────────
-function SpotifyRightPanel() {
-  return (
-    <div className="space-y-3">
-      <SectionHeader>
-        <Music className="w-3.5 h-3.5 text-[#1DB954]" />
-        En Reproducción
-      </SectionHeader>
-      <div className="bg-[#1E1F22] rounded-lg p-3 border border-[#1F2023] space-y-2">
-        <div className="w-full aspect-square rounded bg-[#313338] flex items-center justify-center">
-          <Music className="w-10 h-10 text-[#1DB954]" />
-        </div>
-        <p className="text-xs text-[#949BA4] text-center">Conecta Spotify para ver tu canción actual</p>
-      </div>
-    </div>
-  );
-}
+
 
 // ─── Home Right Panel ─────────────────────────────────────────────────────────
 function HomeRightPanel() {

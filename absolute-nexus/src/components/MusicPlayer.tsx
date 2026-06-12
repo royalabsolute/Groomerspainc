@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useRef, useEffect } from "react";
 import {
   Play,
   Pause,
@@ -8,30 +10,12 @@ import {
   VolumeX,
   Radio,
   Users,
+  Loader2,
 } from "lucide-react";
+import { useMusic } from "@/context/MusicContext";
+import dynamic from "next/dynamic";
 
-export interface SongData {
-  id: string;
-  title: string;
-  artist: string;
-  duration: number; // in seconds
-  thumbnail: string;
-  type: "LOCAL" | "YOUTUBE";
-}
-
-interface MusicPlayerProps {
-  currentSong: SongData | null;
-  isPlaying: boolean;
-  playbackProgress: number; // in seconds
-  volume: number; // 0 to 100
-  isSyncActive: boolean;
-  onTogglePlay: () => void;
-  onSeek: (value: number) => void;
-  onVolumeChange: (value: number) => void;
-  onToggleSync: () => void;
-  onSkipBack: () => void;
-  onSkipForward: () => void;
-}
+const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
 
 // Helper to format time (e.g. 128 -> "2:08")
 function formatTime(seconds: number): string {
@@ -40,23 +24,85 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 }
 
-export default function MusicPlayer({
-  currentSong,
-  isPlaying,
-  playbackProgress,
-  volume,
-  isSyncActive,
-  onTogglePlay,
-  onSeek,
-  onVolumeChange,
-  onToggleSync,
-  onSkipBack,
-  onSkipForward,
-}: MusicPlayerProps) {
+export default function MusicPlayer() {
+  const {
+    currentSong,
+    isPlaying,
+    playbackProgress,
+    volume,
+    isSyncActive,
+    isLoading,
+    isBuffering,
+    togglePlay,
+    seek,
+    setVolume,
+    toggleSync,
+    previousSong,
+    nextSong,
+    setProgress,
+    setIsLoading,
+    setIsBuffering,
+  } = useMusic();
+
+  const playerRef = useRef<any>(null);
+
+  // Set loading state when song changes
+  useEffect(() => {
+    if (currentSong) {
+      setIsLoading(true);
+      setIsBuffering(false);
+    }
+  }, [currentSong, setIsLoading, setIsBuffering]);
+
   if (!currentSong) return null;
+
+  // Determine streaming URL and badge type based on localFilePath
+  const isLocal = !!currentSong.localFilePath || currentSong.type === "LOCAL";
+  
+  // Dynamic stream url: uses stream API if local, YouTube watch page otherwise
+  const streamUrl = currentSong.localFilePath
+    ? `/api/music/stream?id=${currentSong.id}`
+    : `https://www.youtube.com/watch?v=${currentSong.id}`;
+
+  const handleSeek = (value: number) => {
+    seek(value);
+    if (playerRef.current) {
+      playerRef.current.seekTo(value, "seconds");
+    }
+  };
+
+  const handleVolumeChange = (value: number) => {
+    setVolume(value);
+  };
+
+  const isBusy = isLoading || isBuffering;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-24 bg-[#1E1F22] border-t border-[#1F2023] z-50 flex items-center justify-between px-6 select-none shadow-2xl">
+      {/* Headless Player Engine */}
+      <ReactPlayer
+        ref={playerRef}
+        url={streamUrl}
+        playing={isPlaying}
+        volume={volume / 100}
+        onProgress={(state) => {
+          // Sync playback progress if player is active and we aren't loading
+          if (!isBusy) {
+            setProgress(Math.round(state.playedSeconds));
+          }
+        }}
+        onBuffer={() => setIsBuffering(true)}
+        onBufferEnd={() => setIsBuffering(false)}
+        onReady={() => setIsLoading(false)}
+        onStart={() => setIsLoading(false)}
+        onPlay={() => setIsLoading(false)}
+        onPause={() => setIsLoading(false)}
+        onEnded={nextSong}
+        width={0}
+        height={0}
+        style={{ display: "none" }}
+      />
+
       {/* ── Left: Song Info ── */}
       <div className="flex items-center gap-3 w-1/4 min-w-[240px]">
         <div className="w-14 h-14 bg-zinc-800 rounded-md overflow-hidden flex-shrink-0 relative group">
@@ -79,12 +125,12 @@ export default function MusicPlayer({
             </span>
             <span
               className={`text-[9px] font-bold px-1.5 py-0.5 rounded leading-none flex-shrink-0 ${
-                currentSong.type === "LOCAL"
+                isLocal
                   ? "bg-[#23A55A]/20 text-[#23A55A] border border-[#23A55A]/30"
                   : "bg-[#F23F43]/20 text-[#F23F43] border border-[#F23F43]/30"
               }`}
             >
-              {currentSong.type}
+              {isLocal ? "LOCAL" : "YOUTUBE"}
             </span>
           </div>
           <span className="text-xs text-[#B5BAC1] truncate select-text">
@@ -98,7 +144,7 @@ export default function MusicPlayer({
         {/* Buttons */}
         <div className="flex items-center gap-5">
           <button
-            onClick={onSkipBack}
+            onClick={previousSong}
             className="text-[#B5BAC1] hover:text-[#F2F3F5] transition-colors"
             title="Anterior"
           >
@@ -106,11 +152,16 @@ export default function MusicPlayer({
           </button>
           
           <button
-            onClick={onTogglePlay}
-            className="w-8 h-8 rounded-full bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center justify-center transition-all shadow-md transform active:scale-95"
-            title={isPlaying ? "Pausar" : "Reproducir"}
+            onClick={togglePlay}
+            disabled={isBusy}
+            className={`w-8 h-8 rounded-full bg-[#5865F2] hover:bg-[#4752C4] text-white flex items-center justify-center transition-all shadow-md transform active:scale-95 ${
+              isBusy ? "opacity-75 cursor-not-allowed bg-zinc-700 hover:bg-zinc-700" : ""
+            }`}
+            title={isBusy ? "Cargando..." : isPlaying ? "Pausar" : "Reproducir"}
           >
-            {isPlaying ? (
+            {isBusy ? (
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+            ) : isPlaying ? (
               <Pause className="w-4 h-4 fill-current" />
             ) : (
               <Play className="w-4 h-4 fill-current ml-0.5" />
@@ -118,7 +169,7 @@ export default function MusicPlayer({
           </button>
           
           <button
-            onClick={onSkipForward}
+            onClick={nextSong}
             className="text-[#B5BAC1] hover:text-[#F2F3F5] transition-colors"
             title="Siguiente"
           >
@@ -131,14 +182,15 @@ export default function MusicPlayer({
           <span className="text-[10px] text-[#B5BAC1] font-mono w-8 text-right">
             {formatTime(playbackProgress)}
           </span>
-          <div className="flex-grow relative flex items-center group">
+          <div className={`flex-grow relative flex items-center group ${isBusy ? "pointer-events-none opacity-50" : ""}`}>
             <input
               type="range"
               min={0}
               max={currentSong.duration || 1}
               value={playbackProgress}
-              onChange={(e) => onSeek(parseInt(e.target.value, 10))}
-              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#5865F2] group-hover:h-1.5 transition-all outline-none"
+              disabled={isBusy}
+              onChange={(e) => handleSeek(parseInt(e.target.value, 10))}
+              className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#5865F2] group-hover:h-1.5 transition-all outline-none disabled:cursor-not-allowed"
               style={{
                 background: `linear-gradient(to right, #5865F2 0%, #5865F2 ${
                   (playbackProgress / (currentSong.duration || 1)) * 100
@@ -156,7 +208,7 @@ export default function MusicPlayer({
       <div className="flex items-center justify-end gap-4 w-1/4 min-w-[200px]">
         {/* Sync / Listen Along */}
         <button
-          onClick={onToggleSync}
+          onClick={toggleSync}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border transition-all ${
             isSyncActive
               ? "bg-[#23A55A]/20 text-[#23A55A] border-[#23A55A]/40"
@@ -182,7 +234,7 @@ export default function MusicPlayer({
         {/* Volume controls */}
         <div className="flex items-center gap-2 group/volume">
           <button
-            onClick={() => onVolumeChange(volume > 0 ? 0 : 50)}
+            onClick={() => handleVolumeChange(volume > 0 ? 0 : 50)}
             className="text-[#B5BAC1] hover:text-[#F2F3F5] transition-colors"
             title="Volumen"
           >
@@ -197,7 +249,7 @@ export default function MusicPlayer({
             min={0}
             max={100}
             value={volume}
-            onChange={(e) => onVolumeChange(parseInt(e.target.value, 10))}
+            onChange={(e) => handleVolumeChange(parseInt(e.target.value, 10))}
             className="w-16 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#5865F2] outline-none"
             style={{
               background: `linear-gradient(to right, #5865F2 0%, #5865F2 ${volume}%, #2d2f34 ${volume}%, #2d2f34 100%)`,

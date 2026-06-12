@@ -3,27 +3,21 @@
 /**
  * page.tsx — Absolute Nexus Dashboard Shell
  *
- * This component is intentionally thin. It only:
- *  1. Wraps everything in <NavigationProvider>
- *  2. Manages server-state that needs to be shared between
- *     ContentArea (console UI) and RightPanel (metrics)
- *  3. Composes the 4-column Discord layout
- *
- * All navigation logic lives in NavigationContext.
- * All sidebar logic lives in AppSidebar & SecondaryPanel.
- * All content routing lives in ContentArea.
+ * Wrapped in MusicProvider and NavigationProvider to enable global audio playback,
+ * queueing, and UI updates.
  */
 
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { NavigationProvider } from "@/context/NavigationContext";
+import { MusicProvider, useMusic } from "@/context/MusicContext";
 import AppSidebar from "@/components/AppSidebar";
 import SecondaryPanel from "@/components/SecondaryPanel";
 import ContentArea from "@/components/ContentArea";
 import RightPanel from "@/components/RightPanel";
-import MusicPlayer, { SongData } from "@/components/MusicPlayer";
+import MusicPlayer from "@/components/MusicPlayer";
 
-export default function NexusDashboard() {
+function DashboardContent() {
   // ── Server state (shared between ContentArea and RightPanel) ──────────────
   const [serverStatus, setServerStatus] = useState<"RUNNING" | "STARTING" | "STOPPING" | "OFFLINE">("OFFLINE");
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
@@ -33,19 +27,7 @@ export default function NexusDashboard() {
   const [ramUsage, setRamUsage] = useState(0);
   const [diskUsage, setDiskUsage] = useState(45.2);
 
-  // ── Music Player States ────────────────────────────────────────────────────
-  const [currentSong, setCurrentSong] = useState<SongData | null>({
-    id: "lofi-focus",
-    title: "Lofi Focus Beat",
-    artist: "Absolute Nexus Music",
-    duration: 180,
-    thumbnail: "https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=120&auto=format&fit=crop&q=60",
-    type: "LOCAL",
-  });
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackProgress, setPlaybackProgress] = useState(45);
-  const [volume, setVolume] = useState(50);
-  const [isSyncActive, setIsSyncActive] = useState(false);
+  const { toastMessage } = useMusic();
 
   // ── WebSocket: logs + status + telemetry ──────────────────────────────────
   useEffect(() => {
@@ -137,58 +119,10 @@ export default function NexusDashboard() {
     };
   }, []);
 
-  // ── Music Track Progression Timer ──────────────────────────────────────────
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (isPlaying && currentSong) {
-      timer = setInterval(() => {
-        setPlaybackProgress((prev) => {
-          if (prev >= currentSong.duration) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(timer);
-  }, [isPlaying, currentSong]);
-
-  const handlePlaySong = (song: SongData) => {
-    setCurrentSong(song);
-    setPlaybackProgress(0);
-    setIsPlaying(true);
-  };
-
-  const handleTogglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSeek = (seconds: number) => {
-    setPlaybackProgress(seconds);
-  };
-
-  const handleVolumeChange = (vol: number) => {
-    setVolume(vol);
-  };
-
-  const handleToggleSync = () => {
-    setIsSyncActive(!isSyncActive);
-  };
-
-  const handleSkipBack = () => {
-    setPlaybackProgress(0);
-  };
-
-  const handleSkipForward = () => {
-    setPlaybackProgress(0);
-  };
-
   // ── Layout ─────────────────────────────────────────────────────────────────
   return (
     <NavigationProvider>
       <div className="flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans pb-24">
-
         {/* ── Col 1: App Switcher (72px) ── */}
         <AppSidebar />
 
@@ -206,10 +140,6 @@ export default function NexusDashboard() {
           cpuUsage={cpuUsage}
           ramUsage={ramUsage}
           diskUsage={diskUsage}
-          currentSong={currentSong}
-          isPlaying={isPlaying}
-          onPlaySong={handlePlaySong}
-          onTogglePlay={handleTogglePlay}
         />
 
         {/* ── Col 4: Dynamic Right Panel (240px) ── */}
@@ -219,22 +149,25 @@ export default function NexusDashboard() {
           serverStatus={serverStatus}
           playersCount={playersCount}
         />
-
       </div>
 
-      <MusicPlayer
-        currentSong={currentSong}
-        isPlaying={isPlaying}
-        playbackProgress={playbackProgress}
-        volume={volume}
-        isSyncActive={isSyncActive}
-        onTogglePlay={handleTogglePlay}
-        onSeek={handleSeek}
-        onVolumeChange={handleVolumeChange}
-        onToggleSync={handleToggleSync}
-        onSkipBack={handleSkipBack}
-        onSkipForward={handleSkipForward}
-      />
+      <MusicPlayer />
+
+      {/* Sutil Queue Notifications */}
+      {toastMessage && (
+        <div className="fixed bottom-28 right-6 bg-[#5865F2] text-white px-4 py-2.5 rounded shadow-lg z-100 flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom duration-200">
+          <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+          {toastMessage}
+        </div>
+      )}
     </NavigationProvider>
+  );
+}
+
+export default function NexusDashboard() {
+  return (
+    <MusicProvider>
+      <DashboardContent />
+    </MusicProvider>
   );
 }

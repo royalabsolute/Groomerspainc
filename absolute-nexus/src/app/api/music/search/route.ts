@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Extract and format the top 15 matches
     const videos = searchResults.videos.slice(0, 15);
-    const formattedResults = videos.map((video) => ({
+    const formattedResults = videos.map((video: any) => ({
       id: video.videoId,
       title: video.title,
       author: video.author?.name || "Unknown Channel",

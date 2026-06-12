@@ -15,7 +15,7 @@ import {
 import { useMusic } from "@/context/MusicContext";
 import dynamic from "next/dynamic";
 
-const ReactPlayer = dynamic(() => import("react-player"), { ssr: false });
+const ReactPlayer = dynamic(() => import("react-player"), { ssr: false }) as any;
 
 // Helper to format time (e.g. 128 -> "2:08")
 function formatTime(seconds: number): string {

@@ -42,6 +42,7 @@ export default function MusicPlayer() {
     setProgress,
     setIsLoading,
     setIsBuffering,
+    showToast,
   } = useMusicStore();
 
   const playerRef = useRef<any>(null);
@@ -75,33 +76,66 @@ export default function MusicPlayer() {
     setVolume(value);
   };
 
+  /**
+   * handleError — Gestión de errores del reproductor.
+   * Causas comunes:
+   *  - "Video unavailable" (eliminado, privado)
+   *  - "Playback on other websites has been disabled" (VEVO/Copyright)
+   *  - Error de red / CORS en streams locales
+   * Acción: mostrar toast informativo y saltar a la siguiente canción.
+   */
+  const handleError = (error: any) => {
+    console.warn("[MusicPlayer] Error de reproducción:", error);
+    const songTitle = currentSong?.title ?? "Canción";
+    showToast(`⚠ "${songTitle}" no disponible — saltando...`);
+    // Pequeño delay para que el toast sea visible antes de cambiar de canción
+    setTimeout(() => {
+      nextSong();
+    }, 800);
+  };
+
   const isBusy = isLoading || isBuffering;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-24 bg-[#1E1F22] border-t border-[#1F2023] z-50 flex items-center justify-between px-6 select-none shadow-2xl">
-      {/* Headless Player Engine */}
-      <ReactPlayer
-        ref={playerRef}
-        url={streamUrl}
-        playing={isPlaying}
-        volume={volume / 100}
-        onProgress={(state: any) => {
-          // Sync playback progress if player is active and we aren't loading
-          if (!isBusy) {
-            setProgress(Math.round(state.playedSeconds));
-          }
-        }}
-        onBuffer={() => setIsBuffering(true)}
-        onBufferEnd={() => setIsBuffering(false)}
-        onReady={() => setIsLoading(false)}
-        onStart={() => setIsLoading(false)}
-        onPlay={() => setIsLoading(false)}
-        onPause={() => setIsLoading(false)}
-        onEnded={nextSong}
-        width={0}
-        height={0}
-        style={{ display: "none" }}
-      />
+      {/*
+       * Headless Player Engine
+       * IMPORTANTE: No usar display:none — el iframe de YouTube necesita
+       * estar en el DOM y visible para el navegador para emitir audio.
+       * Usamos posición absoluta con dimensiones 0 y opacity-0 en su lugar.
+       */}
+      <div className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden">
+        <ReactPlayer
+          ref={playerRef}
+          url={streamUrl}
+          playing={isPlaying}
+          volume={volume / 100}
+          width="0px"
+          height="0px"
+          onProgress={(state: any) => {
+            // Sync playback progress if player is active and we aren't loading
+            if (!isBusy) {
+              setProgress(Math.round(state.playedSeconds));
+            }
+          }}
+          onBuffer={() => setIsBuffering(true)}
+          onBufferEnd={() => setIsBuffering(false)}
+          onReady={() => setIsLoading(false)}
+          onStart={() => setIsLoading(false)}
+          onPlay={() => setIsLoading(false)}
+          onPause={() => setIsLoading(false)}
+          onEnded={nextSong}
+          onError={(e: any) => handleError(e)}
+          config={{
+            youtube: {
+              playerVars: {
+                // Evitar restricciones de embed de YouTube
+                origin: typeof window !== "undefined" ? window.location.origin : "",
+              },
+            },
+          }}
+        />
+      </div>
 
       {/* ── Left: Song Info ── */}
       <div className="flex items-center gap-3 w-1/4 min-w-[240px]">

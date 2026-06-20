@@ -48,13 +48,9 @@ function startServer() {
     if (telemetryInterval) return;
     telemetryInterval = setInterval(async () => {
       try {
-        // CPU Usage calculation
-        const cpus = os.cpus();
-        const load = cpus.reduce((acc, cpu) => {
-          const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
-          const idle = cpu.times.idle;
-          return acc + ((total - idle) / total);
-        }, 0) / cpus.length * 100;
+        // CPU Usage calculation via os.loadavg()
+        const cpusCount = os.cpus().length || 1;
+        const load = (os.loadavg()[0] / cpusCount) * 100;
 
         // Memory Usage calculation
         const totalMem = os.totalmem();

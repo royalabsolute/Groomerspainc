@@ -3,7 +3,7 @@ import { spawn, ChildProcess } from "child_process";
 import fs, { existsSync, readdirSync } from "fs";
 import { join } from "path";
 import net from "net";
-import { getMinecraftServerPath, getRconPassword } from "@/lib/minecraft";
+import { getMinecraftServerPath, getRconPassword, sendRconCommand } from "@/lib/minecraft";
 import { auth } from "@/auth";
 
 // Helper function to safely check if directory is empty or doesn't exist
@@ -37,74 +37,6 @@ if (!globalMinecraft.minecraft) {
 }
 
 const state = globalMinecraft.minecraft;
-
-// RCON Packet helper creators
-function createRconPacket(id: number, type: number, payload: string): Buffer {
-  const payloadBuffer = Buffer.from(payload, "utf-8");
-  const length = 4 + 4 + payloadBuffer.length + 2; // id(4) + type(4) + payload + null term(1) + padding(1)
-  const buf = Buffer.alloc(4 + length);
-
-  buf.writeInt32LE(length, 0);
-  buf.writeInt32LE(id, 4);
-  buf.writeInt32LE(type, 8);
-  payloadBuffer.copy(buf, 12);
-  buf.writeUInt8(0, 12 + payloadBuffer.length); // null terminator for string
-  buf.writeUInt8(0, 13 + payloadBuffer.length); // padding byte
-
-  return buf;
-}
-
-function parseRconPacket(buf: Buffer) {
-  if (buf.length < 12) return { id: -1, type: -1, payload: "" };
-  const length = buf.readInt32LE(0);
-  const id = buf.readInt32LE(4);
-  const type = buf.readInt32LE(8);
-  const payload = buf.toString("utf-8", 12, buf.length - 2);
-  return { id, type, payload };
-}
-
-// Native TCP Source RCON client promise
-function sendRconCommand(host: string, port: number, pass: string, command: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ host, port }, () => {
-      // Send authentication packet (Type 3 = SERVERDATA_AUTH)
-      const authPacket = createRconPacket(1234, 3, pass);
-      socket.write(authPacket);
-    });
-
-    let authenticated = false;
-
-    socket.on("data", (data) => {
-      const { id, type, payload } = parseRconPacket(data);
-      if (!authenticated) {
-        // Expected Type 2 = SERVERDATA_RESPONSE_VALUE (Auth confirmation)
-        if (id === 1234) {
-          authenticated = true;
-          // Auth success, send execution command (Type 2 = SERVERDATA_EXECCOMMAND)
-          const cmdPacket = createRconPacket(5678, 2, command);
-          socket.write(cmdPacket);
-        } else if (id === -1) {
-          socket.destroy();
-          reject(new Error("RCON Authentication Failed (Incorrect Password)"));
-        }
-      } else {
-        // Output from the run command
-        socket.destroy();
-        resolve(payload);
-      }
-    });
-
-    socket.on("error", (err) => {
-      socket.destroy();
-      reject(err);
-    });
-
-    socket.setTimeout(3000, () => {
-      socket.destroy();
-      reject(new Error("RCON Connection Timeout"));
-    });
-  });
-}
 
 function isPortOpen(port: number, host: string = "127.0.0.1"): Promise<boolean> {
   return new Promise((resolve) => {

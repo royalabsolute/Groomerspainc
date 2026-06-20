@@ -6,39 +6,6 @@ import { auth } from "@/auth";
 
 const execAsync = promisify(exec);
 
-function cpuAverage() {
-  let totalIdle = 0;
-  let totalTick = 0;
-  const cpus = os.cpus();
-  if (!cpus || cpus.length === 0) {
-    return { idle: 0, total: 0 };
-  }
-  cpus.forEach((cpu) => {
-    for (const type in cpu.times) {
-      totalTick += cpu.times[type as keyof typeof cpu.times];
-    }
-    totalIdle += cpu.times.idle;
-  });
-  return { idle: totalIdle / cpus.length, total: totalTick / cpus.length };
-}
-
-function getCpuUsage(): Promise<number> {
-  return new Promise((resolve) => {
-    const startMeasure = cpuAverage();
-    setTimeout(() => {
-      const endMeasure = cpuAverage();
-      const idleDifference = endMeasure.idle - startMeasure.idle;
-      const totalDifference = endMeasure.total - startMeasure.total;
-      if (totalDifference === 0) {
-        resolve(0);
-        return;
-      }
-      const percentageCPU = 100 - Math.round((100 * idleDifference) / totalDifference);
-      resolve(Math.min(100, Math.max(0, percentageCPU)));
-    }, 100);
-  });
-}
-
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -53,8 +20,9 @@ export async function GET(request: NextRequest) {
     const ramUsedGB = (usedMem / (1024 * 1024 * 1024)).toFixed(1);
     const ramTotalGB = (totalMem / (1024 * 1024 * 1024)).toFixed(1);
 
-    // CPU Metrics
-    const cpuUsagePct = await getCpuUsage();
+    // CPU Metrics via os.loadavg()
+    const cpusCount = os.cpus().length || 1;
+    const cpuUsagePct = Math.min(100, Math.max(0, parseFloat(((os.loadavg()[0] / cpusCount) * 100).toFixed(1))));
 
     // Processes List
     let processes: Array<{ pid: number; name: string; mem: number; cpu: number }> = [];
@@ -80,9 +48,9 @@ export async function GET(request: NextRequest) {
       processes.sort((a, b) => b.cpu - a.cpu);
     } else {
       try {
-        const { stdout } = await execAsync("ps -eo pid,comm,%mem,%cpu --sort=-%cpu | head -n 15");
+        const { stdout } = await execAsync("ps -eo pid,comm,%cpu,%mem --sort=-%cpu | head -n 16");
         const lines = stdout.trim().split("\n");
-        // Header: PID COMMAND %MEM %CPU
+        // Header: PID COMMAND %CPU %MEM
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
@@ -91,9 +59,9 @@ export async function GET(request: NextRequest) {
           if (parts.length >= 4) {
             const pid = parseInt(parts[0], 10);
             const name = parts[1];
-            const mem = parseFloat(parts[2]);
-            const cpu = parseFloat(parts[3]);
-            processes.push({ pid, name, mem, cpu });
+            const cpu = parseFloat(parts[2]);
+            const mem = parseFloat(parts[3]);
+            processes.push({ pid, name, cpu, mem });
           }
         }
       } catch (err) {

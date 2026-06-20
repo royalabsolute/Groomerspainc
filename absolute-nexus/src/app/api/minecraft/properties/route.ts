@@ -55,7 +55,7 @@ function stringifyProperties(properties: Record<string, any>): string {
 }
 
 // GET: Retrieve and parse server.properties
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     if (!session || !session.user) {
@@ -80,11 +80,19 @@ export async function GET() {
           fs.writeFileSync(fallbackPath, DEFAULT_PROPERTIES, "utf-8");
         }
         const content = fs.readFileSync(fallbackPath, "utf-8");
+        const raw = req.nextUrl.searchParams.get("raw") === "true";
+        if (raw) {
+          return NextResponse.json({ success: true, content, isMock: true });
+        }
         return NextResponse.json({ success: true, properties: parseProperties(content), isMock: true });
       }
     }
 
     const content = fs.readFileSync(propertiesPath, "utf-8");
+    const raw = req.nextUrl.searchParams.get("raw") === "true";
+    if (raw) {
+      return NextResponse.json({ success: true, content });
+    }
     return NextResponse.json({ success: true, properties: parseProperties(content) });
   } catch (error: any) {
     console.error("Properties API GET error:", error);
@@ -101,13 +109,26 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { properties } = body;
-
-    if (!properties || typeof properties !== "object") {
-      return NextResponse.json({ success: false, error: "Parámetro 'properties' inválido o ausente." }, { status: 400 });
-    }
+    const { properties, rawContent } = body;
 
     const propertiesPath = await getPropertiesPath();
+
+    if (rawContent !== undefined) {
+      try {
+        fs.writeFileSync(propertiesPath, rawContent, "utf-8");
+      } catch (err: any) {
+        console.warn(`Could not write to ${propertiesPath}: ${err.message}. Writing to local mock instead.`);
+        const fallbackPath = path.join(process.cwd(), "server.properties");
+        fs.writeFileSync(fallbackPath, rawContent, "utf-8");
+        return NextResponse.json({ success: true, isMock: true });
+      }
+      return NextResponse.json({ success: true, message: "Ajustes del servidor guardados correctamente." });
+    }
+
+    if (!properties || typeof properties !== "object") {
+      return NextResponse.json({ success: false, error: "Parámetro 'properties' o 'rawContent' inválido o ausente." }, { status: 400 });
+    }
+
     const newContent = stringifyProperties(properties);
 
     try {

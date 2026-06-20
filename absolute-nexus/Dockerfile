@@ -26,8 +26,11 @@ RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prism
 # Generar el cliente Prisma optimizado para PostgreSQL
 RUN npx prisma generate
 
-# Recompilar binarios nativos para la plataforma Linux del contenedor (fix lightningcss)
-RUN npm rebuild lightningcss --update-binary 2>/dev/null || npm rebuild lightningcss
+# Fix lightningcss: el lockfile generado en Windows no incluye el binario linux-x64-gnu.
+# Detectamos la versión instalada y forzamos la instalación del paquete opcional Linux.
+RUN LNCSV=$(node -e "console.log(require('./node_modules/lightningcss/package.json').version)") && \
+    npm install --no-save --prefer-online "lightningcss-linux-x64-gnu@${LNCSV}" || \
+    npm install --no-save --prefer-online lightningcss
 
 # Compilar la aplicación Next.js en modo standalone
 RUN npm run build

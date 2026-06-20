@@ -32,8 +32,9 @@ docker compose build --no-cache
 echo "Levantando el contenedor de Absolute Nexus..."
 docker compose up -d
 
-# 7. Borrar imágenes viejas huérfanas
-echo "Limpiando imágenes viejas..."
-docker image prune -f
+# 7. Limpieza profunda de Docker para evitar saturación de disco
+echo "Limpiando contenedores, imágenes huérfanas y caché de construcción..."
+docker system prune -f
+docker builder prune -f
 
 echo "=== ACTUALIZACIÓN COMPLETADA CON ÉXITO ==="

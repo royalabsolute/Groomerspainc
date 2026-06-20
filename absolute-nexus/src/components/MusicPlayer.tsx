@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   Play,
   Pause,
@@ -47,11 +47,16 @@ export default function MusicPlayer() {
 
   const playerRef = useRef<any>(null);
 
-  // Set loading state when song changes
+  // Tracks whether the ReactPlayer instance has fired onReady
+  // (only then is seekTo safe to call on the ref)
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+
+  // Reset ready + loading state whenever the song changes
   useEffect(() => {
     if (currentSong) {
       setIsLoading(true);
       setIsBuffering(false);
+      setIsPlayerReady(false); // ref may point to new player instance
     }
   }, [currentSong, setIsLoading, setIsBuffering]);
 
@@ -66,9 +71,21 @@ export default function MusicPlayer() {
     : `https://www.youtube.com/watch?v=${currentSong.id}`;
 
   const handleSeek = (value: number) => {
-    seek(value);
-    if (playerRef.current) {
+    // Update UI progress immediately (optimistic update)
+    setProgress(value);
+    // Guard: only call seekTo when the player instance is ready and the method exists.
+    // next/dynamic wraps ReactPlayer, so seekTo may not exist before onReady.
+    if (
+      isPlayerReady &&
+      playerRef.current &&
+      typeof playerRef.current.seekTo === "function"
+    ) {
       playerRef.current.seekTo(value, "seconds");
+    } else {
+      console.warn(
+        "[MusicPlayer] seekTo skipped — player not ready yet.",
+        { isPlayerReady, hasRef: !!playerRef.current }
+      );
     }
   };
 
@@ -120,7 +137,11 @@ export default function MusicPlayer() {
           }}
           onBuffer={() => setIsBuffering(true)}
           onBufferEnd={() => setIsBuffering(false)}
-          onReady={() => setIsLoading(false)}
+          onReady={() => {
+            // Mark the instance as ready — seekTo is now safe to call
+            setIsLoading(false);
+            setIsPlayerReady(true);
+          }}
           onStart={() => setIsLoading(false)}
           onPlay={() => setIsLoading(false)}
           onPause={() => setIsLoading(false)}
@@ -216,13 +237,13 @@ export default function MusicPlayer() {
           <span className="text-[10px] text-[#B5BAC1] font-mono w-8 text-right">
             {formatTime(playbackProgress)}
           </span>
-          <div className={`flex-grow relative flex items-center group ${isBusy ? "pointer-events-none opacity-50" : ""}`}>
+          <div className={`flex-grow relative flex items-center group ${(isBusy || !isPlayerReady) ? "pointer-events-none opacity-50" : ""}`}>
             <input
               type="range"
               min={0}
               max={currentSong.duration || 1}
               value={playbackProgress}
-              disabled={isBusy}
+              disabled={isBusy || !isPlayerReady}
               onChange={(e) => handleSeek(parseInt(e.target.value, 10))}
               className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#5865F2] group-hover:h-1.5 transition-all outline-none disabled:cursor-not-allowed"
               style={{

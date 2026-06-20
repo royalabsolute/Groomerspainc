@@ -7,8 +7,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 
-# Clean install of all dependencies
-RUN npm ci
+# Eliminar el lockfile generado en Windows y regenerar para Linux.
+# Esto garantiza que npm resuelva los binarios nativos correctos (lightningcss, @tailwindcss/oxide, etc.)
+RUN rm -f package-lock.json && npm install
 
 # Stage 2: Rebuild the source code
 FROM node:20-slim AS builder
@@ -25,12 +26,6 @@ RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prism
 
 # Generar el cliente Prisma optimizado para PostgreSQL
 RUN npx prisma generate
-
-# Fix lightningcss: el lockfile generado en Windows no incluye el binario linux-x64-gnu.
-# Detectamos la versión instalada y forzamos la instalación del paquete opcional Linux.
-RUN LNCSV=$(node -e "console.log(require('./node_modules/lightningcss/package.json').version)") && \
-    npm install --no-save --prefer-online "lightningcss-linux-x64-gnu@${LNCSV}" || \
-    npm install --no-save --prefer-online lightningcss
 
 # Compilar la aplicación Next.js en modo standalone
 RUN npm run build

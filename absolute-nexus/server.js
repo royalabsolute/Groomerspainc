@@ -4,6 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const net = require("net");
 const { Server } = require("socket.io");
+const mcUtils = require("minecraft-server-util");
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -61,6 +62,18 @@ function startServer() {
         // Check ports status (22, 25565, 25575)
         const portStatus = await checkPorts([22, 25565, 25575]);
 
+        let mcPlayers = 0;
+        let mcMaxPlayers = 20;
+        try {
+          if (portStatus[25565]) {
+            const mcStatus = await mcUtils.status("127.0.0.1", 25565, { timeout: 1000, enableSRV: false });
+            mcPlayers = mcStatus.players.online;
+            mcMaxPlayers = mcStatus.players.max;
+          }
+        } catch (mcErr) {
+          // Fallback if status fails
+        }
+
         io.emit("telemetry-stream", {
           cpu: load.toFixed(1),
           ram: ramPct.toFixed(1),
@@ -68,7 +81,11 @@ function startServer() {
             used: (usedMem / (1024 ** 3)).toFixed(2),
             total: (totalMem / (1024 ** 3)).toFixed(2)
           },
-          ports: portStatus
+          ports: portStatus,
+          minecraft: {
+            online: mcPlayers,
+            max: mcMaxPlayers
+          }
         });
       } catch (err) {
         console.error("Telemetry error:", err);

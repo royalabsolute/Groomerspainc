@@ -100,10 +100,27 @@ export async function POST(request: NextRequest) {
     // --- Action: STATUS ---
     if (action === "status") {
       const isRunning = await isPortOpen(25565);
+      let mcPlayers = 0;
+      let mcMaxPlayers = 20;
+      let motd = "";
+      if (isRunning) {
+        try {
+          const mcUtils = require("minecraft-server-util");
+          const mcStatus = await mcUtils.status("127.0.0.1", 25565, { timeout: 1000, enableSRV: false });
+          mcPlayers = mcStatus.players.online || 0;
+          mcMaxPlayers = mcStatus.players.max || 20;
+          motd = mcStatus.motd?.clean || "";
+        } catch (mcErr) {
+          // status fallback
+        }
+      }
       return NextResponse.json({
         success: true,
         status: isRunning ? "RUNNING" : "OFFLINE",
         logsCount: state.logs.length,
+        playersCount: mcPlayers,
+        playersMax: mcMaxPlayers,
+        motd
       });
     }
 

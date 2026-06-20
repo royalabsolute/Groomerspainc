@@ -60,6 +60,7 @@ interface ContentAreaProps {
   setConsoleLogs: (logs: string[]) => void;
   uptime: string;
   playersCount: number;
+  playersMax: number;
   cpuUsage: number;
   ramUsage: number;
   diskUsage: number;
@@ -98,6 +99,7 @@ export default function ContentArea({
   setConsoleLogs,
   uptime,
   playersCount,
+  playersMax,
   cpuUsage,
   ramUsage,
   diskUsage,
@@ -164,6 +166,7 @@ export default function ContentArea({
           setConsoleLogs={setConsoleLogs}
           uptime={uptime}
           playersCount={playersCount}
+          playersMax={playersMax}
         />
       )}
 
@@ -223,6 +226,7 @@ function MinecraftConsoleView({
   setConsoleLogs,
   uptime,
   playersCount,
+  playersMax,
 }: {
   serverStatus: "RUNNING" | "STARTING" | "STOPPING" | "OFFLINE";
   setServerStatus: (s: "RUNNING" | "STARTING" | "STOPPING" | "OFFLINE") => void;
@@ -230,6 +234,7 @@ function MinecraftConsoleView({
   setConsoleLogs: (logs: string[]) => void;
   uptime: string;
   playersCount: number;
+  playersMax: number;
 }) {
   const [commandInput, setCommandInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -364,7 +369,7 @@ function MinecraftConsoleView({
         <StatusCard icon={Server} label="Servidor" value={serverStatus} status={serverStatus} />
         <StatusCard icon={Activity} label="Dirección IP" value={publicIp} />
         <StatusCard icon={Activity} label="Tiempo Activo" value={uptime} />
-        <StatusCard icon={Users} label="Jugadores" value={`${playersCount} / 20`} />
+        <StatusCard icon={Users} label="Jugadores" value={`${playersCount} / ${playersMax}`} />
         <StatusCard icon={Settings} label="Mods Activos" value={`${discoveryData.modsCount} JARs`} />
         <StatusCard icon={HardDrive} label="Mundo / Mapa" value={discoveryData.worldExists ? "Generado" : "No Detectado"} status={discoveryData.worldExists ? "RUNNING" : "OFFLINE"} />
       </div>
@@ -476,7 +481,10 @@ function VPSPerformanceView({ cpuUsage: initialCpu, ramUsage: initialRam, diskUs
     cpuUsage: initialCpu,
     ramUsedGB: initialRam,
     ramTotalGB: 16.0,
-    ramUsage: parseFloat(((initialRam / 16.0) * 100).toFixed(1))
+    ramUsage: parseFloat(((initialRam / 16.0) * 100).toFixed(1)),
+    diskUsedGB: diskUsage,
+    diskTotalGB: 100.0,
+    diskUsagePct: parseFloat(((diskUsage / 100.0) * 100).toFixed(1))
   });
   const [processes, setProcesses] = useState<Array<{ pid: number; name: string; mem: number; cpu: number }>>([]);
   const [history, setHistory] = useState<Array<{ time: string; cpu: number; ram: number }>>([]);
@@ -548,7 +556,7 @@ function VPSPerformanceView({ cpuUsage: initialCpu, ramUsage: initialRam, diskUs
           {[
             { label: "Carga CPU",          value: `${telemetry.cpuUsage}%`,       sub: "4 vCPUs AMD EPYC 2.4GHz" },
             { label: "Memoria RAM",        value: `${telemetry.ramUsedGB} GB`,     sub: `De ${telemetry.ramTotalGB} GB (${telemetry.ramUsage}%)` },
-            { label: "Almacenamiento NVMe",value: `${diskUsage} GB`,    sub: "Utilizado de 100 GB SSD" },
+            { label: "Almacenamiento NVMe",value: `${telemetry.diskUsedGB} GB`,    sub: `Utilizado de ${telemetry.diskTotalGB} GB SSD (${telemetry.diskUsagePct}%)` },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] flex flex-col items-center gap-2">
               <span className="text-xs text-[#949BA4] font-bold uppercase tracking-wider">{label}</span>

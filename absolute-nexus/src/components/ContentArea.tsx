@@ -60,6 +60,7 @@ interface ContentAreaProps {
   setConsoleLogs: (logs: string[]) => void;
   uptime: string;
   playersCount: number;
+  playersMax: number;
   cpuUsage: number;
   ramUsage: number;
   diskUsage: number;
@@ -98,6 +99,7 @@ export default function ContentArea({
   setConsoleLogs,
   uptime,
   playersCount,
+  playersMax,
   cpuUsage,
   ramUsage,
   diskUsage,
@@ -164,6 +166,7 @@ export default function ContentArea({
           setConsoleLogs={setConsoleLogs}
           uptime={uptime}
           playersCount={playersCount}
+          playersMax={playersMax}
         />
       )}
 
@@ -223,6 +226,7 @@ function MinecraftConsoleView({
   setConsoleLogs,
   uptime,
   playersCount,
+  playersMax,
 }: {
   serverStatus: "RUNNING" | "STARTING" | "STOPPING" | "OFFLINE";
   setServerStatus: (s: "RUNNING" | "STARTING" | "STOPPING" | "OFFLINE") => void;
@@ -230,12 +234,14 @@ function MinecraftConsoleView({
   setConsoleLogs: (logs: string[]) => void;
   uptime: string;
   playersCount: number;
+  playersMax: number;
 }) {
   const [commandInput, setCommandInput] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSending, setIsSending] = useState(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
+  const [publicIp, setPublicIp] = useState("mc.absolutenexus.net");
 
   // Auto-discovery state
   const [discoveryData, setDiscoveryData] = useState<{ modsCount: number; worldExists: boolean }>({
@@ -269,6 +275,23 @@ function MinecraftConsoleView({
     return () => clearInterval(interval);
   }, [serverStatus]);
 
+  useEffect(() => {
+    const fetchIp = async () => {
+      try {
+        const res = await fetch("/api/vps/ip");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.ip) {
+            setPublicIp(data.ip);
+          }
+        }
+      } catch (e) {
+        console.error("IP fetch error:", e);
+      }
+    };
+    fetchIp();
+  }, []);
+
   const triggerPowerAction = async (action: "start" | "stop" | "restart") => {
     if (action === "start") setServerStatus("STARTING");
     if (action === "stop") setServerStatus("STOPPING");
@@ -291,22 +314,38 @@ function MinecraftConsoleView({
     setCommandInput("");
     setIsSending(true);
 
-    const socket = (window as any).socket;
-    if (socket && socket.connected) {
-      socket.emit("console-cmd", cmd);
-      setIsSending(false);
-    } else {
-      try {
-        await fetch("/api/minecraft/control", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "command", command: cmd }),
-        });
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsSending(false);
+    try {
+      const res = await fetch("/api/minecraft/rcon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command: cmd }),
+      });
+      const data = await res.json();
+      const timestamp = new Date().toTimeString().split(" ")[0];
+      if (data.success) {
+        const responseLines = data.response.split(/\r?\n/).filter(Boolean);
+        setConsoleLogs([
+          ...consoleLogs,
+          `${timestamp} - [RCON Command] > ${cmd}`,
+          ...responseLines.map((line: string) => `${timestamp} - [RCON]: ${line}`),
+        ]);
+      } else {
+        setConsoleLogs([
+          ...consoleLogs,
+          `${timestamp} - [RCON Command] > ${cmd}`,
+          `${timestamp} - [RCON Error]: ${data.error || "Unknown error"}`,
+        ]);
       }
+    } catch (e: any) {
+      console.error(e);
+      const timestamp = new Date().toTimeString().split(" ")[0];
+      setConsoleLogs([
+        ...consoleLogs,
+        `${timestamp} - [RCON Command] > ${cmd}`,
+        `${timestamp} - [RCON Error]: ${e.message}`,
+      ]);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -328,9 +367,9 @@ function MinecraftConsoleView({
       {/* Status cards */}
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 shrink-0">
         <StatusCard icon={Server} label="Servidor" value={serverStatus} status={serverStatus} />
-        <StatusCard icon={Activity} label="Dirección IP" value="mc.absolutenexus.net" />
+        <StatusCard icon={Activity} label="Dirección IP" value={publicIp} />
         <StatusCard icon={Activity} label="Tiempo Activo" value={uptime} />
-        <StatusCard icon={Users} label="Jugadores" value={`${playersCount} / 20`} />
+        <StatusCard icon={Users} label="Jugadores" value={`${playersCount} / ${playersMax}`} />
         <StatusCard icon={Settings} label="Mods Activos" value={`${discoveryData.modsCount} JARs`} />
         <StatusCard icon={HardDrive} label="Mundo / Mapa" value={discoveryData.worldExists ? "Generado" : "No Detectado"} status={discoveryData.worldExists ? "RUNNING" : "OFFLINE"} />
       </div>
@@ -442,7 +481,10 @@ function VPSPerformanceView({ cpuUsage: initialCpu, ramUsage: initialRam, diskUs
     cpuUsage: initialCpu,
     ramUsedGB: initialRam,
     ramTotalGB: 16.0,
-    ramUsage: parseFloat(((initialRam / 16.0) * 100).toFixed(1))
+    ramUsage: parseFloat(((initialRam / 16.0) * 100).toFixed(1)),
+    diskUsedGB: diskUsage,
+    diskTotalGB: 100.0,
+    diskUsagePct: parseFloat(((diskUsage / 100.0) * 100).toFixed(1))
   });
   const [processes, setProcesses] = useState<Array<{ pid: number; name: string; mem: number; cpu: number }>>([]);
   const [history, setHistory] = useState<Array<{ time: string; cpu: number; ram: number }>>([]);
@@ -514,7 +556,7 @@ function VPSPerformanceView({ cpuUsage: initialCpu, ramUsage: initialRam, diskUs
           {[
             { label: "Carga CPU",          value: `${telemetry.cpuUsage}%`,       sub: "4 vCPUs AMD EPYC 2.4GHz" },
             { label: "Memoria RAM",        value: `${telemetry.ramUsedGB} GB`,     sub: `De ${telemetry.ramTotalGB} GB (${telemetry.ramUsage}%)` },
-            { label: "Almacenamiento NVMe",value: `${diskUsage} GB`,    sub: "Utilizado de 100 GB SSD" },
+            { label: "Almacenamiento NVMe",value: `${telemetry.diskUsedGB} GB`,    sub: `Utilizado de ${telemetry.diskTotalGB} GB SSD (${telemetry.diskUsagePct}%)` },
           ].map(({ label, value, sub }) => (
             <div key={label} className="bg-[#1E1F22] rounded-lg p-4 border border-[#1F2023] flex flex-col items-center gap-2">
               <span className="text-xs text-[#949BA4] font-bold uppercase tracking-wider">{label}</span>
@@ -1072,7 +1114,7 @@ function MusicModuleView() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#313338] select-none p-4 space-y-4">
       {/* Search Bar header */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
           <input
             type="text"
@@ -1094,7 +1136,7 @@ function MusicModuleView() {
       {/* Playlist / Songs Container */}
       <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
         {/* Table Header */}
-        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase flex-shrink-0">
+        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase shrink-0">
           <div className="col-span-1 text-center">#</div>
           <div className="col-span-6">Título</div>
           <div className="col-span-3">Artista</div>
@@ -1145,7 +1187,7 @@ function MusicModuleView() {
 
                   {/* Title & Thumbnail */}
                   <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden shrink-0">
                       {song.thumbnail ? (
                         <img
                           src={song.thumbnail}
@@ -1168,7 +1210,7 @@ function MusicModuleView() {
                           {song.title}
                         </span>
                         <span
-                          className={`text-[8px] font-bold px-1 rounded flex-shrink-0 ${
+                          className={`text-[8px] font-bold px-1 rounded shrink-0 ${
                             song.type === "LOCAL"
                               ? "bg-[#23A55A]/10 text-[#23A55A] border border-[#23A55A]/20"
                               : "bg-[#F23F43]/10 text-[#F23F43] border border-[#F23F43]/20"
@@ -1241,6 +1283,9 @@ function GameSettingsView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<"standard" | "raw">("standard");
+  const [rawContent, setRawContent] = useState("");
+  const [rawLoading, setRawLoading] = useState(false);
 
   // States for Directorio Raíz and FolderSelector
   const [minecraftPath, setMinecraftPath] = useState("");
@@ -1442,6 +1487,52 @@ function GameSettingsView() {
           </p>
         </div>
 
+        {/* Tab navigation */}
+        <div className="flex border-b border-[#1F2023] gap-4 mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("standard");
+              setStatus(null);
+            }}
+            className={`pb-2 px-1 text-sm font-semibold transition-colors cursor-pointer ${
+              activeTab === "standard"
+                ? "text-[#5865F2] border-b-2 border-[#5865F2]"
+                : "text-[#949BA4] hover:text-[#DBDEE1]"
+            }`}
+          >
+            Ajustes Básicos
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              setActiveTab("raw");
+              setStatus(null);
+              setRawLoading(true);
+              try {
+                const res = await fetch("/api/minecraft/properties?raw=true");
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.success) {
+                    setRawContent(data.content || "");
+                  }
+                }
+              } catch (err) {
+                console.error("Error fetching raw properties:", err);
+              } finally {
+                setRawLoading(false);
+              }
+            }}
+            className={`pb-2 px-1 text-sm font-semibold transition-colors cursor-pointer ${
+              activeTab === "raw"
+                ? "text-[#5865F2] border-b-2 border-[#5865F2]"
+                : "text-[#949BA4] hover:text-[#DBDEE1]"
+            }`}
+          >
+            Editor Raw (Avanzado)
+          </button>
+        </div>
+
         {status && (
           <div
             className={`p-3 rounded text-xs flex items-start gap-2 border ${
@@ -1455,130 +1546,186 @@ function GameSettingsView() {
           </div>
         )}
 
-        {/* Section 1: General */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Configuración General</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Nombre del Mundo (level-name)" description="Nombre del directorio del mundo en el servidor.">
-              <input
-                type="text"
-                title="Nombre del Mundo"
-                placeholder="world"
-                value={properties["level-name"] || "world"}
-                onChange={e => updateProp("level-name", e.target.value)}
-                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
-              />
-            </FormField>
+        {activeTab === "standard" && (
+          <>
+            {/* Section 1: General */}
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Configuración General</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label="Nombre del Mundo (level-name)" description="Nombre del directorio del mundo en el servidor.">
+                  <input
+                    type="text"
+                    title="Nombre del Mundo"
+                    placeholder="world"
+                    value={properties["level-name"] || "world"}
+                    onChange={e => updateProp("level-name", e.target.value)}
+                    className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+                  />
+                </FormField>
 
-            <FormField label="Máximo de Jugadores" description="Cantidad máxima de jugadores simultáneos permitidos.">
-              <input
-                type="number"
-                min="1"
-                max="999"
-                title="Máximo de Jugadores"
-                placeholder="20"
-                value={properties["max-players"] || "20"}
-                onChange={e => updateProp("max-players", e.target.value)}
-                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
-              />
-            </FormField>
-          </div>
+                <FormField label="Máximo de Jugadores" description="Cantidad máxima de jugadores simultáneos permitidos.">
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    title="Máximo de Jugadores"
+                    placeholder="20"
+                    value={properties["max-players"] || "20"}
+                    onChange={e => updateProp("max-players", e.target.value)}
+                    className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+                  />
+                </FormField>
+              </div>
 
-          <FormField label="Mensaje del Día (MOTD)" description="El mensaje publicitario que se muestra en la lista de servidores del juego.">
-            <input
-              type="text"
-              title="Mensaje del Día"
-              placeholder="Absolute Minecraft Server"
-              value={properties["motd"] || "A Minecraft Server"}
-              onChange={e => updateProp("motd", e.target.value)}
-              className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
-            />
-          </FormField>
-        </div>
+              <FormField label="Mensaje del Día (MOTD)" description="El mensaje publicitario que se muestra en la lista de servidores del juego.">
+                <input
+                  type="text"
+                  title="Mensaje del Día"
+                  placeholder="Absolute Minecraft Server"
+                  value={properties["motd"] || "A Minecraft Server"}
+                  onChange={e => updateProp("motd", e.target.value)}
+                  className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+                />
+              </FormField>
+            </div>
 
-        {/* Section 2: Mechanics */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Mecánicas de Juego</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Toggle
-              label="Habilitar PVP"
-              description="Permite que los jugadores se inflijan daño entre sí."
-              checked={pvpChecked}
-              onChange={v => updateProp("pvp", v ? "true" : "false")}
-            />
+            {/* Section 2: Mechanics */}
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Mecánicas de Juego</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Toggle
+                  label="Habilitar PVP"
+                  description="Permite que los jugadores se inflijan daño entre sí."
+                  checked={pvpChecked}
+                  onChange={v => updateProp("pvp", v ? "true" : "false")}
+                />
 
-            <FormField label="Dificultad de Juego" description="Nivel de dificultad para los mobs y mecánicas de supervivencia.">
-              <select
-                value={properties["difficulty"] || "easy"}
-                onChange={e => updateProp("difficulty", e.target.value)}
-                title="Dificultad del juego"
-                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+                <FormField label="Dificultad de Juego" description="Nivel de dificultad para los mobs and mecánicas de supervivencia.">
+                  <select
+                    value={properties["difficulty"] || "easy"}
+                    onChange={e => updateProp("difficulty", e.target.value)}
+                    title="Dificultad del juego"
+                    className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+                  >
+                    <option value="peaceful">Pacífico (Peaceful)</option>
+                    <option value="easy">Fácil (Easy)</option>
+                    <option value="normal">Normal (Normal)</option>
+                    <option value="hard">Difícil (Hard)</option>
+                  </select>
+                </FormField>
+
+                <FormField label="Modo de Juego Predeterminado" description="El modo de juego asignado por defecto al unirse.">
+                  <select
+                    value={properties["gamemode"] || "survival"}
+                    onChange={e => updateProp("gamemode", e.target.value)}
+                    title="Modo de juego predeterminado"
+                    className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+                  >
+                    <option value="survival">Supervivencia (Survival)</option>
+                    <option value="creative">Creativo (Creative)</option>
+                    <option value="adventure">Aventura (Adventure)</option>
+                    <option value="spectator">Espectador (Spectator)</option>
+                  </select>
+                </FormField>
+
+                <Toggle
+                  label="Permitir Vuelo (allow-flight)"
+                  description="Permite a los jugadores volar si usan mods habilitados."
+                  checked={allowFlightChecked}
+                  onChange={v => updateProp("allow-flight", v ? "true" : "false")}
+                />
+              </div>
+            </div>
+
+            {/* Section 3: Network & Security */}
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Red y Seguridad</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Toggle
+                  label="Modo Online (online-mode)"
+                  description="Verifica cuentas con Mojang. Desactívalo para permitir cuentas 'No Premium' (Offline)."
+                  checked={onlineModeChecked}
+                  onChange={v => updateProp("online-mode", v ? "true" : "false")}
+                />
+
+                <FormField label="Protección de Spawn (Bloques)" description="Radio del área de spawn protegida contra modificaciones de jugadores no OPs.">
+                  <input
+                    type="number"
+                    min="0"
+                    title="Protección de Spawn"
+                    placeholder="16"
+                    value={properties["spawn-protection"] || "16"}
+                    onChange={e => updateProp("spawn-protection", e.target.value)}
+                    className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
+                  />
+                </FormField>
+              </div>
+            </div>
+
+            {/* Save button footer */}
+            <div className="flex justify-end pt-4 border-t border-[#1F2023]">
+              <button
+                type="submit"
+                disabled={saving}
+                className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 h-9"
               >
-                <option value="peaceful">Pacífico (Peaceful)</option>
-                <option value="easy">Fácil (Easy)</option>
-                <option value="normal">Normal (Normal)</option>
-                <option value="hard">Difícil (Hard)</option>
-              </select>
-            </FormField>
+                {saving ? "Guardando..." : "Guardar Cambios"}
+              </button>
+            </div>
+          </>
+        )}
 
-            <FormField label="Modo de Juego Predeterminado" description="El modo de juego asignado por defecto al unirse.">
-              <select
-                value={properties["gamemode"] || "survival"}
-                onChange={e => updateProp("gamemode", e.target.value)}
-                title="Modo de juego predeterminado"
-                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
-              >
-                <option value="survival">Supervivencia (Survival)</option>
-                <option value="creative">Creativo (Creative)</option>
-                <option value="adventure">Aventura (Adventure)</option>
-                <option value="spectator">Espectador (Spectator)</option>
-              </select>
-            </FormField>
-
-            <Toggle
-              label="Permitir Vuelo (allow-flight)"
-              description="Permite a los jugadores volar si usan mods habilitados."
-              checked={allowFlightChecked}
-              onChange={v => updateProp("allow-flight", v ? "true" : "false")}
-            />
+        {activeTab === "raw" && (
+          <div className="space-y-4">
+            {rawLoading ? (
+              <div className="flex items-center justify-center h-48 text-xs text-[#949BA4] gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-[#FFa500]" />
+                Cargando server.properties...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <textarea
+                  value={rawContent}
+                  onChange={(e) => setRawContent(e.target.value)}
+                  placeholder="# Minecraft Server Properties"
+                  className="w-full h-96 bg-[#111214] text-[#DBDEE1] font-mono text-xs p-4 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] resize-none whitespace-pre overflow-x-auto"
+                />
+                <div className="flex justify-end pt-4 border-t border-[#1F2023]">
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={async () => {
+                      setSaving(true);
+                      setStatus(null);
+                      try {
+                        const res = await fetch("/api/minecraft/properties", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ rawContent }),
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                          setStatus({ type: "success", message: "Archivo server.properties sobrescrito con éxito." });
+                          await fetchProperties(); // Sync standard properties list
+                        } else {
+                          setStatus({ type: "error", message: data.error || "Error al sobrescribir el archivo." });
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        setStatus({ type: "error", message: "Error al guardar el archivo raw." });
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm h-9 flex items-center animate-in fade-in"
+                  >
+                    {saving ? "Guardando..." : "Guardar Archivo Completo"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Section 3: Network & Security */}
-        <div className="space-y-3">
-          <h3 className="text-[10px] font-bold text-[#949BA4] tracking-wider uppercase">Red y Seguridad</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Toggle
-              label="Modo Online (online-mode)"
-              description="Verifica cuentas con Mojang. Desactívalo para permitir cuentas 'No Premium' (Offline)."
-              checked={onlineModeChecked}
-              onChange={v => updateProp("online-mode", v ? "true" : "false")}
-            />
-
-            <FormField label="Protección de Spawn (Bloques)" description="Radio del área de spawn protegida contra modificaciones de jugadores no OPs.">
-              <input
-                type="number"
-                min="0"
-                title="Protección de Spawn"
-                placeholder="16"
-                value={properties["spawn-protection"] || "16"}
-                onChange={e => updateProp("spawn-protection", e.target.value)}
-                className="w-full bg-[#111214] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors font-mono"
-              />
-            </FormField>
-          </div>
-        </div>
-
-        {/* Save button footer */}
-        <div className="flex justify-end pt-4 border-t border-[#1F2023]">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2 px-6 rounded transition-colors cursor-pointer shadow-sm flex items-center gap-1.5 h-9"
-          >
-            {saving ? "Guardando..." : "Guardar Cambios"}
-          </button>
-        </div>
+        )}
       </form>
 
       {/* Modal del Explorador de Directorios */}

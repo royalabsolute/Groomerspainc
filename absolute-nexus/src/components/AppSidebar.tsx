@@ -69,6 +69,7 @@ function AppPill({
             ? "rounded-2xl text-white shadow-lg"
             : "rounded-3xl bg-[#313338] text-[#B5BAC1] hover:rounded-2xl hover:text-white"
         }`}
+        /* eslint-disable-next-line react/jsx-no-inline-styles */
         style={
           isActive
             ? { backgroundColor: color }

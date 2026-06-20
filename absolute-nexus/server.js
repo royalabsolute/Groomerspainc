@@ -4,6 +4,7 @@ const fs = require("fs");
 const os = require("os");
 const net = require("net");
 const { Server } = require("socket.io");
+const mcUtils = require("minecraft-server-util");
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -63,13 +64,9 @@ function startServer() {
     if (telemetryInterval) return;
     telemetryInterval = setInterval(async () => {
       try {
-        // CPU Usage calculation
-        const cpus = os.cpus();
-        const load = cpus.reduce((acc, cpu) => {
-          const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
-          const idle = cpu.times.idle;
-          return acc + ((total - idle) / total);
-        }, 0) / cpus.length * 100;
+        // CPU Usage calculation via os.loadavg()
+        const cpusCount = os.cpus().length || 1;
+        const load = (os.loadavg()[0] / cpusCount) * 100;
 
         // Memory Usage calculation
         const totalMem = os.totalmem();
@@ -80,6 +77,18 @@ function startServer() {
         // Check ports status (22, 25565, 25575)
         const portStatus = await checkPorts([22, 25565, 25575]);
 
+        let mcPlayers = 0;
+        let mcMaxPlayers = 20;
+        try {
+          if (portStatus[25565]) {
+            const mcStatus = await mcUtils.status("127.0.0.1", 25565, { timeout: 1000, enableSRV: false });
+            mcPlayers = mcStatus.players.online;
+            mcMaxPlayers = mcStatus.players.max;
+          }
+        } catch (mcErr) {
+          // Fallback if status fails
+        }
+
         io.emit("telemetry-stream", {
           cpu: load.toFixed(1),
           ram: ramPct.toFixed(1),
@@ -87,7 +96,11 @@ function startServer() {
             used: (usedMem / (1024 ** 3)).toFixed(2),
             total: (totalMem / (1024 ** 3)).toFixed(2)
           },
-          ports: portStatus
+          ports: portStatus,
+          minecraft: {
+            online: mcPlayers,
+            max: mcMaxPlayers
+          }
         });
       } catch (err) {
         console.error("Telemetry error:", err);

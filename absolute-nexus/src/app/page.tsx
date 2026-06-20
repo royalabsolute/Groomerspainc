@@ -23,6 +23,7 @@ function DashboardContent() {
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const [uptime, setUptime] = useState("—");
   const [playersCount, setPlayersCount] = useState(0);
+  const [playersMax, setPlayersMax] = useState(20);
   const [cpuUsage, setCpuUsage] = useState(0);
   const [ramUsage, setRamUsage] = useState(0);
   const [diskUsage, setDiskUsage] = useState(45.2);
@@ -50,11 +51,13 @@ function DashboardContent() {
           if (d.success) {
             if (d.status === "RUNNING") {
               setServerStatus("RUNNING");
-              setPlayersCount(3);
+              setPlayersCount(d.playersCount ?? 0);
+              setPlayersMax(d.playersMax ?? 20);
               setUptime("Online");
             } else {
               setServerStatus("OFFLINE");
               setPlayersCount(0);
+              setPlayersMax(20);
               setUptime("Offline");
             }
           }
@@ -74,18 +77,26 @@ function DashboardContent() {
       });
     });
 
-    socket.on("telemetry-stream", (data: { cpu: string; ram: string; ramRaw: { used: string; total: string }; ports: Record<string, boolean> }) => {
+    socket.on("telemetry-stream", (data: { 
+      cpu: string; 
+      ram: string; 
+      ramRaw: { used: string; total: string }; 
+      ports: Record<string, boolean>;
+      minecraft?: { online: number; max: number };
+    }) => {
       setCpuUsage(parseFloat(data.cpu));
       setRamUsage(parseFloat(data.ramRaw.used));
 
       const isMcRunning = !!data.ports["25565"];
       setServerStatus((prev) => {
         if (isMcRunning) {
-          setPlayersCount(3); // Simulated default players count
+          setPlayersCount(data.minecraft?.online ?? 0);
+          setPlayersMax(data.minecraft?.max ?? 20);
           setUptime("Online");
           return "RUNNING";
         } else {
           setPlayersCount(0);
+          setPlayersMax(20);
           setUptime("Offline");
           if (prev === "STARTING") return "STARTING";
           if (prev === "STOPPING") return "STOPPING";
@@ -137,6 +148,7 @@ function DashboardContent() {
           setConsoleLogs={setConsoleLogs}
           uptime={uptime}
           playersCount={playersCount}
+          playersMax={playersMax}
           cpuUsage={cpuUsage}
           ramUsage={ramUsage}
           diskUsage={diskUsage}

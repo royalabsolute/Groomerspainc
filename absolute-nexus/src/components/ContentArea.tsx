@@ -1072,7 +1072,7 @@ function MusicModuleView() {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#313338] select-none p-4 space-y-4">
       {/* Search Bar header */}
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
           <input
             type="text"
@@ -1094,7 +1094,7 @@ function MusicModuleView() {
       {/* Playlist / Songs Container */}
       <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
         {/* Table Header */}
-        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase flex-shrink-0">
+        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase shrink-0">
           <div className="col-span-1 text-center">#</div>
           <div className="col-span-6">Título</div>
           <div className="col-span-3">Artista</div>
@@ -1145,7 +1145,7 @@ function MusicModuleView() {
 
                   {/* Title & Thumbnail */}
                   <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden flex-shrink-0">
+                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden shrink-0">
                       {song.thumbnail ? (
                         <img
                           src={song.thumbnail}
@@ -1168,7 +1168,7 @@ function MusicModuleView() {
                           {song.title}
                         </span>
                         <span
-                          className={`text-[8px] font-bold px-1 rounded flex-shrink-0 ${
+                          className={`text-[8px] font-bold px-1 rounded shrink-0 ${
                             song.type === "LOCAL"
                               ? "bg-[#23A55A]/10 text-[#23A55A] border border-[#23A55A]/20"
                               : "bg-[#F23F43]/10 text-[#F23F43] border border-[#F23F43]/20"

@@ -26,6 +26,9 @@ RUN sed -i 's/provider = "sqlite"/provider = "postgresql"/g' prisma/schema.prism
 # Generar el cliente Prisma optimizado para PostgreSQL
 RUN npx prisma generate
 
+# Recompilar binarios nativos para la plataforma Linux del contenedor (fix lightningcss)
+RUN npm rebuild lightningcss --update-binary 2>/dev/null || npm rebuild lightningcss
+
 # Compilar la aplicación Next.js en modo standalone
 RUN npm run build
 

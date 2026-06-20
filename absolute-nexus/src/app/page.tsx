@@ -130,10 +130,12 @@ function DashboardContent() {
     };
   }, []);
 
+  const currentSong = useMusicStore((state) => state.currentSong);
+
   // ── Layout ─────────────────────────────────────────────────────────────────
   return (
     <NavigationProvider>
-      <div className="flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans pb-24">
+      <div className={`flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans ${currentSong ? "pb-24" : ""}`}>
         {/* ── Col 1: App Switcher (72px) ── */}
         <AppSidebar />
 
@@ -167,7 +169,7 @@ function DashboardContent() {
 
       {/* Sutil Queue Notifications */}
       {toastMessage && (
-        <div className="fixed bottom-28 right-6 bg-[#5865F2] text-white px-4 py-2.5 rounded shadow-lg z-100 flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom duration-200">
+        <div className={`fixed ${currentSong ? "bottom-28" : "bottom-6"} right-6 bg-[#5865F2] text-white px-4 py-2.5 rounded shadow-lg z-100 flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom duration-200`}>
           <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
           {toastMessage}
         </div>

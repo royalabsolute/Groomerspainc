@@ -48,8 +48,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useMusic } from "@/context/MusicContext";
-import type { SongData } from "@/context/MusicContext";
+import { useMusicStore } from "@/store/useMusicStore";
+import type { SongData } from "@/store/useMusicStore";
 
 // ─── Props passed from page.tsx (server state) ────────────────────────────────
 interface ContentAreaProps {
@@ -919,7 +919,7 @@ function MusicModuleView() {
   const [isSearching, setIsSearching] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const { currentSong, isPlaying, togglePlay, addToQueue, showToast } = useMusic();
+  const { currentSong, isPlaying, togglePlay, addToQueue, showToast } = useMusicStore();
 
   const fetchFavorites = async () => {
     try {

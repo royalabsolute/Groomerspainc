@@ -10,7 +10,7 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 import { NavigationProvider } from "@/context/NavigationContext";
-import { MusicProvider, useMusic } from "@/context/MusicContext";
+import { useMusicStore } from "@/store/useMusicStore";
 import AppSidebar from "@/components/AppSidebar";
 import SecondaryPanel from "@/components/SecondaryPanel";
 import ContentArea from "@/components/ContentArea";
@@ -27,7 +27,7 @@ function DashboardContent() {
   const [ramUsage, setRamUsage] = useState(0);
   const [diskUsage, setDiskUsage] = useState(45.2);
 
-  const { toastMessage } = useMusic();
+  const toastMessage = useMusicStore((state) => state.toastMessage);
 
   // ── WebSocket: logs + status + telemetry ──────────────────────────────────
   useEffect(() => {
@@ -166,8 +166,6 @@ function DashboardContent() {
 
 export default function NexusDashboard() {
   return (
-    <MusicProvider>
-      <DashboardContent />
-    </MusicProvider>
+    <DashboardContent />
   );
 }

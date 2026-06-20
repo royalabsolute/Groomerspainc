@@ -12,7 +12,7 @@ import {
   Users,
   Loader2,
 } from "lucide-react";
-import { useMusic } from "@/context/MusicContext";
+import { useMusicStore } from "@/store/useMusicStore";
 import dynamic from "next/dynamic";
 
 const ReactPlayer = dynamic(() => import("react-player"), { ssr: false }) as any;
@@ -42,7 +42,7 @@ export default function MusicPlayer() {
     setProgress,
     setIsLoading,
     setIsBuffering,
-  } = useMusic();
+  } = useMusicStore();
 
   const playerRef = useRef<any>(null);
 

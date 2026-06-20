@@ -40,6 +40,21 @@ function startServer() {
     }
   });
 
+  // Dedicated namespace for music module and WebRTC synchronization
+  const musicIo = io.of("/music");
+  musicIo.on("connection", (socket) => {
+    console.log(`[Socket Music] Cliente conectado al namespace /music: ${socket.id}`);
+    
+    socket.on("join-room", (roomId) => {
+      socket.join(roomId);
+      console.log(`[Socket Music] Cliente ${socket.id} se unió a la sala: ${roomId}`);
+    });
+    
+    socket.on("disconnect", () => {
+      console.log(`[Socket Music] Cliente desconectado del namespace /music: ${socket.id}`);
+    });
+  });
+
   // Telemetry stream interval
   const activeSockets = new Set();
   let telemetryInterval = null;

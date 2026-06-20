@@ -34,7 +34,6 @@ export default function MusicPlayer() {
     isLoading,
     isBuffering,
     togglePlay,
-    seek,
     setVolume,
     toggleSync,
     previousSong,

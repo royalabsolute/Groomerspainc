@@ -1,7 +1,7 @@
 async function run() {
   try {
     const { Innertube } = await import('youtubei.js');
-    const yt = await Innertube.create();
+    const yt = await Innertube.create({ clientType: 'TV_EMBEDDED' });
     console.log('Created default Innertube instance on VPS');
     const info = await yt.getBasicInfo('n61ULEU7CO0');
     console.log('getBasicInfo succeeded on VPS!');

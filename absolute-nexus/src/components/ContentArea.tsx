@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect, useRef } from "react";
+import { io as socketIO } from "socket.io-client";
 import {
   Hash,
   Bell,
@@ -193,8 +194,8 @@ export default function ContentArea({
       {/* Hotel placeholder */}
       {activeModule === "hotel" && <PlaceholderView icon={BedDouble} label="Hotelera Pet" color="#F43F5E" subtitle="Módulo de reservas y habitaciones (próximamente)" />}
 
-      {/* Chat placeholder */}
-      {activeModule === "chat" && <PlaceholderView icon={MessageSquare} label="Chat Interno" color="#60A5FA" subtitle="Sistema de mensajería interna (próximamente)" />}
+      {/* Chat Interno — Real-time WebSocket Chat */}
+      {activeModule === "chat" && <ChatView />}
 
       {/* Spotify (Absolute Nexus Music) view */}
       {activeModule === "spotify" && (
@@ -1869,6 +1870,261 @@ function FormField({ label, description, children }: { label: string; descriptio
         {description && <span className="text-[10px] text-[#949BA4] block leading-tight mt-0.5">{description}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ─── ChatView ─────────────────────────────────────────────────────────────────
+// Real-time Discord-style internal chat using Socket.io /chat namespace.
+
+interface ChatMessage {
+  id: string;
+  content: string;
+  channelId: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+    avatarUrl: string | null;
+  };
+}
+
+function ChatView() {
+  const { state } = useNav();
+  const { activeChannel } = state;
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
+  const currentChannelRef = useRef<string>(activeChannel);
+
+  // Fetch current session userId from NextAuth
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.user) setUserId(data.user.id ?? data.user.email ?? "anon");
+      })
+      .catch(() => {});
+  }, []);
+
+  // Connect to /chat namespace once on mount
+  useEffect(() => {
+    const socket = socketIO("/chat", {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 10,
+    });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setIsConnected(true);
+      socket.emit("join-channel", currentChannelRef.current);
+    });
+    socket.on("disconnect", () => setIsConnected(false));
+    socket.on("new-message", (msg: ChatMessage) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    return () => { socket.disconnect(); };
+  }, []);
+
+  // When channel changes: join new room + fetch history
+  useEffect(() => {
+    currentChannelRef.current = activeChannel;
+    setMessages([]);
+    setIsLoading(true);
+    if (socketRef.current?.connected) {
+      socketRef.current.emit("join-channel", activeChannel);
+    }
+    fetch(`/api/chat/messages?channelId=${activeChannel}`)
+      .then((r) => r.json())
+      .then((data: ChatMessage[]) => { if (Array.isArray(data)) setMessages(data); })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [activeChannel]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = () => {
+    const trimmed = input.trim();
+    if (!trimmed || !userId || !socketRef.current) return;
+    socketRef.current.emit("send-message", {
+      channelId: activeChannel,
+      content: trimmed,
+      userId,
+    });
+    setInput("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  };
+
+  const getAvatar = (user: ChatMessage["user"]) => {
+    const src = user.avatarUrl || user.image;
+    const initial = (user.name || user.email || "A")[0].toUpperCase();
+    const palette = ["#5865F2", "#23A55A", "#F23F43", "#FFa500", "#60A5FA", "#A78BFA"];
+    const bg = palette[initial.charCodeAt(0) % palette.length];
+    if (src) {
+      return <img src={src} alt={user.name ?? user.email} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />;
+    }
+    return (
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+        style={{ backgroundColor: bg }}
+      >
+        {initial}
+      </div>
+    );
+  };
+
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+
+  const fmtDate = (iso: string) => {
+    const d = new Date(iso);
+    const t = new Date();
+    const y = new Date(t);
+    y.setDate(t.getDate() - 1);
+    if (d.toDateString() === t.toDateString()) return "Hoy";
+    if (d.toDateString() === y.toDateString()) return "Ayer";
+    return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  const renderMessages = () => {
+    const items: React.ReactNode[] = [];
+    let lastDate = "";
+    let lastUid = "";
+    let lastTs = 0;
+
+    messages.forEach((msg, i) => {
+      const msgDate = fmtDate(msg.createdAt);
+      const msgTs = new Date(msg.createdAt).getTime();
+      // Compact if same user within 5 minutes
+      const compact = lastUid === msg.user.id && msgTs - lastTs < 300000;
+
+      if (msgDate !== lastDate) {
+        items.push(
+          <div key={`div-${i}`} className="flex items-center gap-3 my-4 px-4">
+            <div className="flex-1 h-px bg-[#3F4147]" />
+            <span className="text-[11px] font-semibold text-[#80848E] whitespace-nowrap">{msgDate}</span>
+            <div className="flex-1 h-px bg-[#3F4147]" />
+          </div>
+        );
+        lastDate = msgDate;
+        lastUid = "";
+      }
+
+      if (compact) {
+        items.push(
+          <div key={msg.id} className="group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035] rounded">
+            <div className="w-10 flex-shrink-0 flex justify-center items-center pt-0.5">
+              <span className="text-[10px] text-[#80848E] opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none">
+                {fmt(msg.createdAt)}
+              </span>
+            </div>
+            <p className="text-[#DBDEE1] text-sm leading-relaxed break-words min-w-0">{msg.content}</p>
+          </div>
+        );
+      } else {
+        items.push(
+          <div key={msg.id} className="group flex items-start gap-3 px-4 py-2 hover:bg-[#2e3035] rounded mt-1">
+            {getAvatar(msg.user)}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-2 mb-0.5">
+                <span className="font-semibold text-[#F2F3F5] text-sm">
+                  {msg.user.name || msg.user.email}
+                </span>
+                <span className="text-[11px] text-[#80848E]">{fmt(msg.createdAt)}</span>
+              </div>
+              <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>
+            </div>
+          </div>
+        );
+        lastUid = msg.user.id;
+      }
+      lastTs = msgTs;
+    });
+    return items;
+  };
+
+  return (
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      {/* Messages list */}
+      <div className="flex-1 overflow-y-auto py-2">
+        {isLoading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex items-center gap-2 text-[#949BA4]">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Cargando mensajes...</span>
+            </div>
+          </div>
+        )}
+        {!isLoading && messages.length === 0 && (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+            <div className="w-16 h-16 rounded-full bg-[#5865F2]/20 flex items-center justify-center">
+              <MessageSquare className="w-8 h-8 text-[#5865F2]" />
+            </div>
+            <div>
+              <p className="font-bold text-[#F2F3F5] text-lg">¡Bienvenido a #{activeChannel}!</p>
+              <p className="text-[#949BA4] text-sm mt-1">
+                Este es el inicio del canal. ¡Sé el primero en escribir algo!
+              </p>
+            </div>
+          </div>
+        )}
+        {!isLoading && renderMessages()}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Reconnecting banner */}
+      {!isConnected && (
+        <div className="px-4 py-1.5 bg-[#F23F43]/10 border-t border-[#F23F43]/20 shrink-0 flex items-center gap-2">
+          <Loader2 className="w-3 h-3 animate-spin text-[#F23F43]" />
+          <p className="text-[11px] text-[#F23F43]">Reconectando al servidor de chat...</p>
+        </div>
+      )}
+
+      {/* Input bar — pressed to the bottom */}
+      <div className="px-4 pb-6 pt-3 shrink-0">
+        <div className="flex items-center gap-2 bg-[#383A40] rounded-lg px-4 py-3 border border-[#383A40] focus-within:border-[#5865F2]/60 transition-colors">
+          <input
+            id="chat-input"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={`Mensaje #${activeChannel}`}
+            disabled={!isConnected}
+            className="flex-1 bg-transparent text-[#DBDEE1] text-sm placeholder-[#72767D] outline-none disabled:opacity-50"
+            autoComplete="off"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!isConnected || !input.trim()}
+            className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Enviar (Enter)"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-[10px] text-[#72767D] mt-1 px-1">
+          Presiona{" "}
+          <kbd className="bg-[#2B2D31] px-1 py-0.5 rounded text-[10px] font-mono text-[#B5BAC1]">
+            Enter
+          </kbd>{" "}
+          para enviar
+        </p>
+      </div>
     </div>
   );
 }

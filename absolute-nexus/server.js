@@ -56,6 +56,38 @@ function startServer() {
     });
   });
 
+  // ── Chat Interno namespace ─────────────────────────────────────────────────
+  const chatIo = io.of("/chat");
+  chatIo.on("connection", (socket) => {
+    console.log(`[Socket Chat] Cliente conectado: ${socket.id}`);
+
+    // Cliente se une a un canal (room)
+    socket.on("join-channel", (channelId) => {
+      socket.join(channelId);
+      console.log(`[Socket Chat] ${socket.id} se unió al canal: ${channelId}`);
+    });
+
+    // Cliente envía un mensaje
+    socket.on("send-message", async ({ channelId, content, userId }) => {
+      if (!channelId || !content || !userId) return;
+      try {
+        const message = await prisma.message.create({
+          data: { channelId, content: content.trim(), userId },
+          include: { user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } } },
+        });
+        // Emitir el mensaje a todos en el canal (incluido el remitente)
+        chatIo.to(channelId).emit("new-message", message);
+      } catch (err) {
+        console.error("[Socket Chat] Error guardando mensaje:", err.message);
+        socket.emit("chat-error", { error: "No se pudo enviar el mensaje." });
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`[Socket Chat] Cliente desconectado: ${socket.id}`);
+    });
+  });
+
   // Telemetry stream interval
   const activeSockets = new Set();
   let telemetryInterval = null;

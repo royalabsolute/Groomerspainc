@@ -60,6 +60,7 @@ import {
 } from "recharts";
 import { useMusicStore } from "@/store/useMusicStore";
 import type { SongData } from "@/store/useMusicStore";
+import SyncedLyricsView from "@/components/SyncedLyricsView";
 
 // ─── Props passed from page.tsx (server state) ────────────────────────────────
 interface ContentAreaProps {
@@ -1122,167 +1123,183 @@ function MusicModuleView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#313338] select-none p-4 space-y-4">
-      {/* Search Bar header */}
-      <div className="shrink-0">
-        <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
-          <input
-            type="text"
-            placeholder="Buscar canciones en YouTube (presiona Enter)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-transparent text-[#F2F3F5] text-sm pl-4 pr-10 py-3 outline-none placeholder-[#949BA4]"
-          />
-          <button type="submit" className="absolute right-3 text-[#949BA4] hover:text-white transition-colors" title="Buscar">
-            {isSearching ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Search className="w-5 h-5" />
-            )}
-          </button>
-        </form>
-      </div>
-
-      {/* Playlist / Songs Container */}
-      <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
-        {/* Table Header */}
-        <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase shrink-0">
-          <div className="col-span-1 text-center">#</div>
-          <div className="col-span-6">Título</div>
-          <div className="col-span-3">Artista</div>
-          <div className="col-span-2 text-right">Duración</div>
+    <div className="flex-1 flex flex-row min-h-0 bg-[#313338] select-none p-4 gap-4 overflow-hidden">
+      {/* Left Column: Search & Playlist */}
+      <div className="flex-1 flex flex-col min-h-0 space-y-4">
+        {/* Search Bar header */}
+        <div className="shrink-0">
+          <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
+            <input
+              type="text"
+              placeholder="Buscar canciones en YouTube (presiona Enter)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent text-[#F2F3F5] text-sm pl-4 pr-10 py-3 outline-none placeholder-[#949BA4]"
+            />
+            <button type="submit" className="absolute right-3 text-[#949BA4] hover:text-white transition-colors" title="Buscar">
+              {isSearching ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Search className="w-5 h-5" />
+              )}
+            </button>
+          </form>
         </div>
 
-        {/* Scrollable song list */}
-        <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-[#1F2023]/30 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22] px-2 py-1">
-          {songs.length === 0 ? (
-            <div className="p-6 text-center text-[#B5BAC1] text-sm italic">
-              No se encontraron canciones. Intenta otra búsqueda.
-            </div>
-          ) : (
-            songs.map((song, index) => {
-              const isCurrent = currentSong?.id === song.id;
-              const isPlayingCurrent = isCurrent && isPlaying;
-              const isDownloading = downloadingId === song.id;
-              const isFavorite = favoriteSongs.some((f) => f.id === song.id);
+        {/* Playlist / Songs Container */}
+        <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
+          {/* Table Header */}
+          <div className="bg-[#2B2D31] px-6 py-3 border-b border-[#1F2023] grid grid-cols-12 text-xs font-bold text-[#949BA4] tracking-wider uppercase shrink-0">
+            <div className="col-span-1 text-center">#</div>
+            <div className="col-span-6">Título</div>
+            <div className="col-span-3">Artista</div>
+            <div className="col-span-2 text-right">Duración</div>
+          </div>
 
-              return (
-                <div
-                  key={song.id}
-                  className={`grid grid-cols-12 items-center px-4 py-2.5 rounded-md transition-colors duration-150 group hover:bg-[#35373C]/50 ${
-                    isCurrent ? "bg-[#35373C]/30" : ""
-                  }`}
-                >
-                  {/* Number / Play Action */}
-                  <div className="col-span-1 flex items-center justify-center">
-                    <button
-                      onClick={() => (isCurrent ? togglePlay() : addToQueue(song))}
-                      className="text-[#B5BAC1] group-hover:text-white transition-colors"
-                      title={isPlayingCurrent ? "Pausar" : "Reproducir / Añadir a cola"}
-                    >
-                      {isPlayingCurrent ? (
-                        <div className="flex items-end gap-0.5 h-3">
-                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-full" />
-                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-2/3" />
-                          <span className="w-0.75 bg-[#23A55A] animate-pulse h-1/2" />
-                        </div>
-                      ) : (
-                        <span className="group-hover:hidden text-xs font-mono">
-                          {index + 1}
-                        </span>
-                      )}
-                      <Play className="w-3.5 h-3.5 fill-current hidden group-hover:block" />
-                    </button>
-                  </div>
+          {/* Scrollable song list */}
+          <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-[#1F2023]/30 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22] px-2 py-1">
+            {songs.length === 0 ? (
+              <div className="p-6 text-center text-[#B5BAC1] text-sm italic">
+                No se encontraron canciones. Intenta otra búsqueda.
+              </div>
+            ) : (
+              songs.map((song, index) => {
+                const isCurrent = currentSong?.id === song.id;
+                const isPlayingCurrent = isCurrent && isPlaying;
+                const isDownloading = downloadingId === song.id;
+                const isFavorite = favoriteSongs.some((f) => f.id === song.id);
 
-                  {/* Title & Thumbnail */}
-                  <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
-                    <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden shrink-0">
-                      {song.thumbnail ? (
-                        <img
-                          src={song.thumbnail}
-                          alt={song.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-xs">
-                          🎵
-                        </div>
-                      )}
+                return (
+                  <div
+                    key={song.id}
+                    className={`grid grid-cols-12 items-center px-4 py-2.5 rounded-md transition-colors duration-150 group hover:bg-[#35373C]/50 ${
+                      isCurrent ? "bg-[#35373C]/30" : ""
+                    }`}
+                  >
+                    {/* Number / Play Action */}
+                    <div className="col-span-1 flex items-center justify-center">
+                      <button
+                        onClick={() => (isCurrent ? togglePlay() : addToQueue(song))}
+                        className="text-[#B5BAC1] group-hover:text-white transition-colors"
+                        title={isPlayingCurrent ? "Pausar" : "Reproducir / Añadir a cola"}
+                      >
+                        {isPlayingCurrent ? (
+                          <div className="flex items-end gap-0.5 h-3">
+                            <span className="w-0.75 bg-[#23A55A] animate-pulse h-full" />
+                            <span className="w-0.75 bg-[#23A55A] animate-pulse h-2/3" />
+                            <span className="w-0.75 bg-[#23A55A] animate-pulse h-1/2" />
+                          </div>
+                        ) : (
+                          <span className="group-hover:hidden text-xs font-mono">
+                            {index + 1}
+                          </span>
+                        )}
+                        <Play className="w-3.5 h-3.5 fill-current hidden group-hover:block" />
+                      </button>
                     </div>
-                    <div className="min-w-0 flex flex-col">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`font-semibold text-sm truncate ${
-                            isCurrent ? "text-[#5865F2]" : "text-[#F2F3F5]"
-                          }`}
-                        >
-                          {song.title}
-                        </span>
-                        <span
-                          className={`text-[8px] font-bold px-1 rounded shrink-0 ${
-                            song.type === "LOCAL"
-                              ? "bg-[#23A55A]/10 text-[#23A55A] border border-[#23A55A]/20"
-                              : "bg-[#F23F43]/10 text-[#F23F43] border border-[#F23F43]/20"
-                          }`}
-                        >
-                          {song.type}
-                        </span>
-                        
-                        {/* Heart icon for favorite status */}
-                        <button
-                          onClick={() => handleToggleFavorite(song)}
-                          className={`focus:outline-none transition-colors ml-1 ${
-                            isFavorite ? "text-[#F23F43]" : "text-[#B5BAC1] hover:text-[#F23F43]"
-                          }`}
-                          title={isFavorite ? "En Favoritos" : "Marcar Favorita"}
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-current" : ""}`} />
-                        </button>
+
+                    {/* Title & Thumbnail */}
+                    <div className="col-span-6 flex items-center gap-3 min-w-0 pr-4">
+                      <div className="w-10 h-10 bg-zinc-800 rounded overflow-hidden shrink-0">
+                        {song.thumbnail ? (
+                          <img
+                            src={song.thumbnail}
+                            alt={song.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs">
+                            🎵
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-semibold text-sm truncate ${
+                              isCurrent ? "text-[#5865F2]" : "text-[#F2F3F5]"
+                            }`}
+                          >
+                            {song.title}
+                          </span>
+                          <span
+                            className={`text-[8px] font-bold px-1 rounded shrink-0 ${
+                              song.type === "LOCAL"
+                                ? "bg-[#23A55A]/10 text-[#23A55A] border border-[#23A55A]/20"
+                                : "bg-[#F23F43]/10 text-[#F23F43] border border-[#F23F43]/20"
+                            }`}
+                          >
+                            {song.type}
+                          </span>
+                          
+                          {/* Heart icon for favorite status */}
+                          <button
+                            onClick={() => handleToggleFavorite(song)}
+                            className={`focus:outline-none transition-colors ml-1 ${
+                              isFavorite ? "text-[#F23F43]" : "text-[#B5BAC1] hover:text-[#F23F43]"
+                            }`}
+                            title={isFavorite ? "En Favoritos" : "Marcar Favorita"}
+                          >
+                            <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-current" : ""}`} />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Artist */}
-                  <div className="col-span-3 text-[#B5BAC1] text-xs truncate">
-                    {song.artist}
-                  </div>
+                    {/* Artist */}
+                    <div className="col-span-3 text-[#B5BAC1] text-xs truncate">
+                      {song.artist}
+                    </div>
 
-                  {/* Duration & Actions */}
-                  <div className="col-span-2 flex items-center justify-end gap-3 pr-2">
-                    {/* Hover action: download to VPS */}
-                    {song.type === "YOUTUBE" && (
-                      <button
-                        onClick={() => handleDownload(song)}
-                        disabled={isDownloading}
-                        className={`transition-colors flex items-center justify-center ${
-                          isDownloading
-                            ? "text-[#FFa500]"
-                            : "text-[#B5BAC1] hover:text-[#5865F2] opacity-0 group-hover:opacity-100"
-                        }`}
-                        title={isDownloading ? "Descargando..." : "Descargar al VPS"}
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <DownloadCloud className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
+                    {/* Duration & Actions */}
+                    <div className="col-span-2 flex items-center justify-end gap-3 pr-2">
+                      {/* Hover action: download to VPS */}
+                      {song.type === "YOUTUBE" && (
+                        <button
+                          onClick={() => handleDownload(song)}
+                          disabled={isDownloading}
+                          className={`transition-colors flex items-center justify-center ${
+                            isDownloading
+                              ? "text-[#FFa500]"
+                              : "text-[#B5BAC1] hover:text-[#5865F2] opacity-0 group-hover:opacity-100"
+                          }`}
+                          title={isDownloading ? "Descargando..." : "Descargar al VPS"}
+                        >
+                          {isDownloading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <DownloadCloud className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
 
-                    <span className="text-[#B5BAC1] text-xs font-mono group-hover:hidden">
-                      {formatSongDuration(song.duration)}
-                    </span>
-                    <span className="text-[#5865F2] text-xs font-bold hidden group-hover:inline">
-                      {isPlayingCurrent ? "PAUSAR" : "REPRODUCIR"}
-                    </span>
+                      <span className="text-[#B5BAC1] text-xs font-mono group-hover:hidden">
+                        {formatSongDuration(song.duration)}
+                      </span>
+                      <span className="text-[#5865F2] text-xs font-bold hidden group-hover:inline">
+                        {isPlayingCurrent ? "PAUSAR" : "REPRODUCIR"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Right Column: Synced Lyrics */}
+      {currentSong && (
+        <div className="w-80 bg-[#2B2D31] rounded-lg border border-[#1F2023] flex flex-col min-h-0 p-4 shrink-0 overflow-hidden">
+          <div className="text-xs font-bold text-[#949BA4] uppercase border-b border-[#1F2023] pb-2 mb-2 tracking-wider flex items-center justify-between shrink-0">
+            <span>🎤 Letras Sincronizadas</span>
+            <span className="text-[9px] text-[#23A55A] font-bold bg-[#23A55A]/10 border border-[#23A55A]/25 px-1.5 py-0.5 rounded">LRCLIB</span>
+          </div>
+          <div className="flex-grow flex-shrink min-h-0 overflow-hidden">
+            <SyncedLyricsView />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

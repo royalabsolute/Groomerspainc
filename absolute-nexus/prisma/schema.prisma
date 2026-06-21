@@ -301,8 +301,19 @@ model Song {
   thumbnail     String
   localFilePath String?    // Path on the VPS storage
   playlists     Playlist[]
+  lyrics        Lyrics?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+}
+
+model Lyrics {
+  id           String   @id @default(cuid())
+  songId       String   @unique
+  song         Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  provider     String   @default("LRCLIB")
+  plainLyrics  String?
+  syncedLyrics String?
+  updatedAt    DateTime @updatedAt
 }
 
 model Playlist {

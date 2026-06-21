@@ -37,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "prisma": "^5.19.1",
+    "ssh2": "^1.17.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

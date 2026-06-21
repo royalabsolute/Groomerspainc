@@ -42,6 +42,10 @@ export default function MusicPlayer() {
     setIsLoading,
     setIsBuffering,
     showToast,
+    setLyrics,
+    setPlaybackProgressMs,
+    seekTarget,
+    clearSeekTarget,
   } = useMusicStore();
 
   const playerRef = useRef<any>(null);
@@ -49,6 +53,50 @@ export default function MusicPlayer() {
   // Tracks whether the ReactPlayer instance has fired onReady
   // (only then is seekTo safe to call on the ref)
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+
+  // Fetch lyrics when the current song changes
+  useEffect(() => {
+    if (!currentSong) return;
+
+    const fetchLyrics = async () => {
+      try {
+        const queryParams = new URLSearchParams({
+          songId: currentSong.id,
+          title: currentSong.title,
+          artist: currentSong.artist,
+          duration: currentSong.duration.toString(),
+        });
+        const res = await fetch(`/api/music/lyrics?${queryParams}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setLyrics(data.syncedLyrics || data.plainLyrics || "");
+          } else {
+            setLyrics("");
+          }
+        } else {
+          setLyrics("");
+        }
+      } catch (err) {
+        console.error("[MusicPlayer] Error fetching lyrics:", err);
+        setLyrics("");
+      }
+    };
+
+    fetchLyrics();
+  }, [currentSong, setLyrics]);
+
+  // Handle programmatically initiated seeks (e.g. clicking a lyrics line)
+  useEffect(() => {
+    if (seekTarget !== null && isPlayerReady && playerRef.current) {
+      if (typeof playerRef.current.seekTo === "function") {
+        playerRef.current.seekTo(seekTarget, "seconds");
+        setProgress(seekTarget);
+        setPlaybackProgressMs(seekTarget * 1000);
+      }
+      clearSeekTarget();
+    }
+  }, [seekTarget, isPlayerReady, setProgress, setPlaybackProgressMs, clearSeekTarget]);
 
   // Reset ready + loading state whenever the song changes
   useEffect(() => {
@@ -72,6 +120,7 @@ export default function MusicPlayer() {
   const handleSeek = (value: number) => {
     // Update UI progress immediately (optimistic update)
     setProgress(value);
+    setPlaybackProgressMs(value * 1000);
     // Guard: only call seekTo when the player instance is ready and the method exists.
     // next/dynamic wraps ReactPlayer, so seekTo may not exist before onReady.
     if (
@@ -132,6 +181,7 @@ export default function MusicPlayer() {
             // Sync playback progress if player is active and we aren't loading
             if (!isBusy) {
               setProgress(Math.round(state.playedSeconds));
+              setPlaybackProgressMs(Math.round(state.playedSeconds * 1000));
             }
           }}
           onBuffer={() => setIsBuffering(true)}

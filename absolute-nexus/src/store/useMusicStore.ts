@@ -22,6 +22,8 @@ interface MusicState {
   isBuffering: boolean;
   toastMessage: string | null;
   toastTimeoutId: any | null;
+  playbackProgressMs: number;
+  currentLyrics: string;
 
   playSong: (song: SongData) => void;
   addToQueue: (song: SongData) => void;
@@ -31,11 +33,15 @@ interface MusicState {
   togglePlay: () => void;
   seek: (seconds: number) => void;
   seekTo: (seconds: number) => void;
+  seekTarget: number | null;
+  clearSeekTarget: () => void;
   setVolume: (vol: number) => void;
   toggleSync: () => void;
   setIsLoading: (loading: boolean) => void;
   setIsBuffering: (buffering: boolean) => void;
   setProgress: (progress: number) => void;
+  setLyrics: (lyrics: string) => void;
+  setPlaybackProgressMs: (ms: number) => void;
   showToast: (msg: string) => void;
 }
 
@@ -43,8 +49,11 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   currentSong: null,
   isPlaying: false,
   playbackProgress: 0,
+  playbackProgressMs: 0,
+  currentLyrics: "",
   volume: 50,
   isSyncActive: false,
+  seekTarget: null,
   queue: [],
   history: [],
   isLoading: false,
@@ -73,6 +82,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     set({
       currentSong: song,
       playbackProgress: 0,
+      playbackProgressMs: 0,
+      currentLyrics: "",
       isPlaying: true,
     });
   },
@@ -83,6 +94,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
       set({
         currentSong: song,
         playbackProgress: 0,
+        playbackProgressMs: 0,
+        currentLyrics: "",
         isPlaying: true,
       });
     } else {
@@ -105,6 +118,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     set({
       currentSong: next,
       playbackProgress: 0,
+      playbackProgressMs: 0,
+      currentLyrics: "",
       isPlaying: true,
       queue: q.slice(1),
     });
@@ -124,6 +139,8 @@ export const useMusicStore = create<MusicState>((set, get) => ({
     set({
       currentSong: prev,
       playbackProgress: 0,
+      playbackProgressMs: 0,
+      currentLyrics: "",
       isPlaying: true,
       history: hist.slice(0, -1),
     });
@@ -139,11 +156,15 @@ export const useMusicStore = create<MusicState>((set, get) => ({
   },
 
   seek: (seconds) => {
-    set({ playbackProgress: seconds });
+    set({ playbackProgress: seconds, playbackProgressMs: seconds * 1000 });
   },
 
   seekTo: (seconds) => {
-    set({ playbackProgress: seconds });
+    set({ seekTarget: seconds, playbackProgress: seconds, playbackProgressMs: seconds * 1000 });
+  },
+
+  clearSeekTarget: () => {
+    set({ seekTarget: null });
   },
 
   setVolume: (vol) => {
@@ -164,5 +185,13 @@ export const useMusicStore = create<MusicState>((set, get) => ({
 
   setProgress: (progress) => {
     set({ playbackProgress: progress });
+  },
+
+  setLyrics: (lyrics) => {
+    set({ currentLyrics: lyrics });
+  },
+
+  setPlaybackProgressMs: (ms) => {
+    set({ playbackProgressMs: ms });
   },
 }));

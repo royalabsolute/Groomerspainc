@@ -38,6 +38,17 @@ export async function GET(req: NextRequest) {
             },
           },
         },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 50,

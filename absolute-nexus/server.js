@@ -112,6 +112,11 @@ function startServer() {
               include: {
                 user: { select: { id: true, name: true, email: true } }
               }
+            },
+            reactions: {
+              include: {
+                user: { select: { id: true, name: true, email: true } }
+              }
             }
           },
         });
@@ -120,6 +125,37 @@ function startServer() {
       } catch (err) {
         console.error("[Socket Chat] Error guardando mensaje:", err.message);
         socket.emit("chat-error", { error: "No se pudo enviar el mensaje." });
+      }
+    });
+
+    // Cliente edita un mensaje
+    socket.on("edit-message", async ({ messageId, content }) => {
+      if (!messageId || !content) return;
+      try {
+        const message = await prisma.message.update({
+          where: { id: messageId },
+          data: {
+            content: content.trim(),
+            isEdited: true
+          },
+          include: {
+            user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } },
+            replyTo: {
+              include: {
+                user: { select: { id: true, name: true, email: true } }
+              }
+            },
+            reactions: {
+              include: {
+                user: { select: { id: true, name: true, email: true } }
+              }
+            }
+          }
+        });
+        chatIo.to(message.channelId).emit("message-edited", message);
+      } catch (err) {
+        console.error("[Socket Chat] Error editando mensaje:", err.message);
+        socket.emit("chat-error", { error: "No se pudo editar el mensaje." });
       }
     });
 
@@ -133,6 +169,64 @@ function startServer() {
       } catch (err) {
         console.error("[Socket Chat] Error eliminando mensaje:", err.message);
         socket.emit("chat-error", { error: "No se pudo eliminar el mensaje." });
+      }
+    });
+
+    // Eventos de escritura
+    socket.on("typing-start", ({ channelId, userId, userName }) => {
+      if (!channelId || !userId) return;
+      socket.to(channelId).emit("user-typing-start", { channelId, userId, userName });
+    });
+
+    socket.on("typing-stop", ({ channelId, userId }) => {
+      if (!channelId || !userId) return;
+      socket.to(channelId).emit("user-typing-stop", { channelId, userId });
+    });
+
+    // Reacciones
+    socket.on("toggle-reaction", async ({ messageId, userId, emoji }) => {
+      if (!messageId || !userId || !emoji) return;
+      try {
+        const existing = await prisma.reaction.findFirst({
+          where: {
+            messageId,
+            userId,
+            emoji
+          }
+        });
+
+        if (existing) {
+          await prisma.reaction.delete({
+            where: { id: existing.id }
+          });
+        } else {
+          await prisma.reaction.create({
+            data: {
+              messageId,
+              userId,
+              emoji
+            }
+          });
+        }
+
+        const reactions = await prisma.reaction.findMany({
+          where: { messageId },
+          include: {
+            user: { select: { id: true, name: true, email: true } }
+          }
+        });
+
+        const msg = await prisma.message.findUnique({
+          where: { id: messageId },
+          select: { channelId: true }
+        });
+
+        if (msg) {
+          chatIo.to(msg.channelId).emit("reaction-updated", { messageId, reactions });
+        }
+      } catch (err) {
+        console.error("[Socket Chat] Error en toggle-reaction:", err.message);
+        socket.emit("chat-error", { error: "No se pudo procesar la reacción." });
       }
     });
 

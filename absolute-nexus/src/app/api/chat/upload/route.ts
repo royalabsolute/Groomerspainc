@@ -30,13 +30,15 @@ export async function POST(req: NextRequest) {
     // Escribir el archivo en disco
     await fs.writeFile(filePath, buffer);
 
-    // Determinar el tipo de archivo (image, video, file)
+    // Determinar el tipo de archivo (image, video, audio, file)
     let type = "file";
     const mime = file.type.toLowerCase();
     if (mime.startsWith("image/")) {
       type = "image";
     } else if (mime.startsWith("video/")) {
       type = "video";
+    } else if (mime.startsWith("audio/")) {
+      type = "audio";
     }
 
     return NextResponse.json({

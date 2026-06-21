@@ -42,7 +42,11 @@ import {
   Paperclip,
   CornerUpLeft,
   Trash2,
+  Mic,
+  MicOff,
+  Pencil,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
 import EmojiPicker, { Theme } from "emoji-picker-react";
@@ -1890,6 +1894,17 @@ interface ChatMessage {
   attachmentUrl?: string | null;
   attachmentType?: string | null;
   replyToId?: string | null;
+  isEdited?: boolean;
+  reactions?: Array<{
+    id: string;
+    emoji: string;
+    userId: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  }>;
   replyTo?: {
     id: string;
     content: string;
@@ -1917,6 +1932,7 @@ function ChatView() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [socket, setSocket] = useState<ReturnType<typeof socketIO> | null>(null);
   const currentChannelRef = useRef<string>(activeChannel);
@@ -1931,12 +1947,27 @@ function ChatView() {
   // Phase 6 Additions
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
-  // Fetch current session userId from NextAuth
+  // New additions for edits, reactions, voice recording, typing indicator
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editInput, setEditInput] = useState("");
+  const [activeReactionPickerMessageId, setActiveReactionPickerMessageId] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<{ [userId: string]: string }>({});
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTypingRef = useRef(false);
+
+  // Fetch current session userId and userName from NextAuth
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
       .then((data) => {
-        if (data?.user) setUserId(data.user.id ?? data.user.email ?? "anon");
+        if (data?.user) {
+          setUserId(data.user.id ?? data.user.email ?? "anon");
+          setUserName(data.user.name ?? data.user.email ?? "Admin-Nexus");
+        }
       })
       .catch(() => {});
   }, []);
@@ -1960,7 +1991,7 @@ function ChatView() {
     };
   }, []);
 
-  // Handle incoming messages and deletions
+  // Handle incoming messages, edits, deletions, reactions, and typing indicators
   useEffect(() => {
     if (!socket) return;
     const handleNewMessage = (msg: ChatMessage) => {
@@ -1970,16 +2001,52 @@ function ChatView() {
       }
     };
 
+    const handleMessageEdited = (editedMsg: ChatMessage) => {
+      console.log("Mensaje editado del servidor:", editedMsg);
+      if (editedMsg.channelId === currentChannelRef.current) {
+        setMessages((prev) => prev.map((msg) => msg.id === editedMsg.id ? editedMsg : msg));
+      }
+    };
+
     const handleMessageDeleted = (deletedId: string) => {
       console.log("Mensaje eliminado del servidor:", deletedId);
       setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
     };
 
+    const handleUserTypingStart = ({ channelId, userId: tUserId, userName: tUserName }: { channelId: string; userId: string; userName: string }) => {
+      if (channelId === currentChannelRef.current) {
+        setTypingUsers((prev) => ({ ...prev, [tUserId]: tUserName || `Usuario-${tUserId.substring(0, 4)}` }));
+      }
+    };
+
+    const handleUserTypingStop = ({ channelId, userId: tUserId }: { channelId: string; userId: string }) => {
+      if (channelId === currentChannelRef.current) {
+        setTypingUsers((prev) => {
+          const copy = { ...prev };
+          delete copy[tUserId];
+          return copy;
+        });
+      }
+    };
+
+    const handleReactionUpdated = ({ messageId, reactions }: { messageId: string; reactions: any[] }) => {
+      setMessages((prev) => prev.map((msg) => msg.id === messageId ? { ...msg, reactions } : msg));
+    };
+
     socket.on("new-message", handleNewMessage);
+    socket.on("message-edited", handleMessageEdited);
     socket.on("message-deleted", handleMessageDeleted);
+    socket.on("user-typing-start", handleUserTypingStart);
+    socket.on("user-typing-stop", handleUserTypingStop);
+    socket.on("reaction-updated", handleReactionUpdated);
+
     return () => {
       socket.off("new-message", handleNewMessage);
+      socket.off("message-edited", handleMessageEdited);
       socket.off("message-deleted", handleMessageDeleted);
+      socket.off("user-typing-start", handleUserTypingStart);
+      socket.off("user-typing-stop", handleUserTypingStop);
+      socket.off("reaction-updated", handleReactionUpdated);
     };
   }, [socket]);
 
@@ -1987,6 +2054,9 @@ function ChatView() {
   useEffect(() => {
     currentChannelRef.current = activeChannel;
     setMessages([]);
+    setTypingUsers({});
+    isTypingRef.current = false;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setIsLoading(true);
     if (socket?.connected) {
       socket.emit("join-channel", activeChannel);
@@ -2035,11 +2105,113 @@ function ChatView() {
     socket.emit("delete-message", { messageId });
   };
 
+  const handleReactionToggle = (messageId: string, emoji: string) => {
+    if (socket && userId) {
+      socket.emit("toggle-reaction", { messageId, userId, emoji });
+    }
+  };
+
+  const handleEditMessage = (messageId: string, newContent: string) => {
+    if (socket && newContent.trim()) {
+      socket.emit("edit-message", { messageId, content: newContent });
+    }
+    setEditingMessageId(null);
+    setEditInput("");
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+
+    if (!isTypingRef.current && userId && socket) {
+      isTypingRef.current = true;
+      socket.emit("typing-start", { channelId: activeChannel, userId, userName: userName || "Usuario" });
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTypingRef.current && userId && socket) {
+        isTypingRef.current = false;
+        socket.emit("typing-stop", { channelId: activeChannel, userId });
+      }
+    }, 2000);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+        await uploadAudioNote(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("No se pudo iniciar la grabación de audio:", err);
+      alert("Permiso de micrófono denegado o no disponible.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const uploadAudioNote = async (blob: Blob) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", blob, "voice-note.webm");
+      const res = await fetch("/api/chat/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Error al subir nota de voz");
+      const uploadData = await res.json();
+      
+      if (socket && userId) {
+        const payload = {
+          channelId: activeChannel,
+          content: "",
+          userId,
+          attachmentUrl: uploadData.url,
+          attachmentType: "audio",
+          replyToId: replyingTo?.id || null,
+        };
+        socket.emit("send-message", payload);
+        setReplyingTo(null);
+      }
+    } catch (err: any) {
+      alert(err.message || "Error al enviar nota de voz");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed && !selectedFile) return;
     if (!userId || !socket) return;
+
+    // Stop typing indicator on send
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      socket.emit("typing-stop", { channelId: activeChannel, userId });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    }
 
     setIsUploading(true);
     let attachmentUrl: string | undefined = undefined;
@@ -2128,6 +2300,13 @@ function ChatView() {
         </div>
       );
     }
+    if (msg.attachmentType === "audio") {
+      return (
+        <div className="mt-2 max-w-xs">
+          <audio src={msg.attachmentUrl} controls className="w-full bg-[#2B2D31] rounded-md outline-none text-[#F2F3F5]" />
+        </div>
+      );
+    }
     const fileName = msg.attachmentUrl.split("/").pop() || "archivo";
     return (
       <div className="mt-2 flex items-center gap-3 p-3 rounded bg-[#2B2D31] border border-[#1F2023] max-w-md shadow-sm">
@@ -2149,6 +2328,174 @@ function ChatView() {
     );
   };
 
+  const groupReactions = (reactionsList: any[]) => {
+    const groups: { [emoji: string]: { count: number; users: string[]; me: boolean } } = {};
+    reactionsList?.forEach((r) => {
+      if (!groups[r.emoji]) {
+        groups[r.emoji] = { count: 0, users: [], me: false };
+      }
+      groups[r.emoji].count += 1;
+      groups[r.emoji].users.push(r.user.name || r.user.email);
+      if (r.userId === userId) {
+        groups[r.emoji].me = true;
+      }
+    });
+    return groups;
+  };
+
+  const renderMessageContent = (msg: ChatMessage) => {
+    if (editingMessageId === msg.id) {
+      return (
+        <div className="mt-1.5 flex flex-col gap-1.5 w-full">
+          <input
+            type="text"
+            value={editInput}
+            onChange={(e) => setEditInput(e.target.value)}
+            className="w-full bg-[#383a40] text-[#dbdee1] text-sm px-3 py-2 rounded outline-none border border-[#5865f2]"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleEditMessage(msg.id, editInput);
+              } else if (e.key === "Escape") {
+                setEditingMessageId(null);
+                setEditInput("");
+              }
+            }}
+          />
+          <div className="flex gap-2 text-[10px]">
+            <span className="text-[#949ba4]">
+              Presiona <span className="text-[#dbdee1] font-semibold">Enter</span> para guardar • <span className="text-[#dbdee1] font-semibold">Esc</span> para cancelar
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-sm flex flex-col items-start">
+        {msg.content && (
+          <div className="text-[#dbdee1] text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+            <ReactMarkdown
+              components={{
+                code({ className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const isInline = !match && !String(children).includes('\n');
+                  return isInline ? (
+                    <code className="bg-[#1e1f22] text-[#e0c068] px-1 py-0.5 rounded font-mono text-xs" {...props}>
+                      {children}
+                    </code>
+                  ) : (
+                    <pre className="bg-[#1e1f22] p-2.5 rounded text-xs font-mono text-[#dbdee1] overflow-x-auto my-1.5 border border-[#1f2023] max-w-full select-text">
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    </pre>
+                  );
+                }
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
+          </div>
+        )}
+        {msg.isEdited && (
+          <span className="text-[10px] text-[#949ba4] mt-0.5 select-none">(editado)</span>
+        )}
+      </div>
+    );
+  };
+
+  const renderReactions = (msg: ChatMessage) => {
+    if (!msg.reactions || msg.reactions.length === 0) return null;
+    const grouped = groupReactions(msg.reactions);
+    return (
+      <div className="flex flex-wrap gap-1.5 mt-2 select-none">
+        {Object.entries(grouped).map(([emoji, data]) => (
+          <button
+            key={emoji}
+            onClick={() => handleReactionToggle(msg.id, emoji)}
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded border transition-colors cursor-pointer text-xs ${
+              data.me
+                ? "bg-[#5865F2]/10 border-[#5865F2] text-[#5865F2]"
+                : "bg-[#2B2D31] border-[#1F2023] text-[#B5BAC1] hover:bg-[#35373C]"
+            }`}
+            title={data.users.join(", ")}
+          >
+            <span>{emoji}</span>
+            <span className="text-[10px] font-bold">{data.count}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  const buildActionsOverlay = (msg: ChatMessage) => {
+    return (
+      <div className="absolute right-4 -top-3.5 hidden group-hover:flex items-center gap-1 bg-[#313338] border border-[#1F2023] rounded px-1.5 py-0.5 shadow-md z-20">
+        {/* Reacciones Popover */}
+        <div className="relative">
+          <button
+            onClick={() => setActiveReactionPickerMessageId(activeReactionPickerMessageId === msg.id ? null : msg.id)}
+            className="p-1 text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded transition-colors cursor-pointer"
+            title="Reaccionar"
+          >
+            <Smile className="w-3.5 h-3.5" />
+          </button>
+          {activeReactionPickerMessageId === msg.id && (
+            <div className="absolute bottom-7 right-0 flex gap-1.5 bg-[#2b2d31] border border-[#1f2023] rounded-md p-1.5 shadow-lg z-30 animate-in fade-in zoom-in-95 duration-100">
+              {["👍", "❤️", "😂", "😮", "😢", "🔥"].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => {
+                    handleReactionToggle(msg.id, emoji);
+                    setActiveReactionPickerMessageId(null);
+                  }}
+                  className="hover:scale-125 transition-transform text-sm cursor-pointer"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Responder */}
+        <button
+          onClick={() => setReplyingTo(msg)}
+          className="p-1 text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded transition-colors cursor-pointer"
+          title="Responder"
+        >
+          <CornerUpLeft className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Editar */}
+        {userId && msg.user.id === userId && (
+          <button
+            onClick={() => {
+              setEditingMessageId(msg.id);
+              setEditInput(msg.content);
+            }}
+            className="p-1 text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded transition-colors cursor-pointer"
+            title="Editar"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Eliminar */}
+        {userId && msg.user.id === userId && (
+          <button
+            onClick={() => handleDeleteMessage(msg.id)}
+            className="p-1 text-[#f23f43] hover:bg-[#f23f43]/10 rounded transition-colors cursor-pointer"
+            title="Eliminar mensaje"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+    );
+  };
+
   const renderMessages = () => {
     const items: React.ReactNode[] = [];
     let lastDate = "";
@@ -2158,7 +2505,6 @@ function ChatView() {
     messages.forEach((msg, i) => {
       const msgDate = fmtDate(msg.createdAt);
       const msgTs = new Date(msg.createdAt).getTime();
-      // Compact if same user within 5 minutes and not a reply
       const compact = lastUid === msg.user.id && msgTs - lastTs < 300000 && !msg.replyTo;
 
       if (msgDate !== lastDate) {
@@ -2173,29 +2519,6 @@ function ChatView() {
         lastUid = "";
       }
 
-      // Hover actions overlay
-      const actionsOverlay = (
-        <div className="absolute right-4 top-1 hidden group-hover:flex items-center gap-1 bg-[#313338] border border-[#1F2023] rounded px-1 py-0.5 shadow-md z-10">
-          <button
-            onClick={() => setReplyingTo(msg)}
-            className="p-1 text-[#B5BAC1] hover:text-white hover:bg-[#35373C] rounded transition-colors cursor-pointer"
-            title="Responder"
-          >
-            <CornerUpLeft className="w-3.5 h-3.5" />
-          </button>
-          {userId && msg.user.id === userId && (
-            <button
-              onClick={() => handleDeleteMessage(msg.id)}
-              className="p-1 text-[#F23F43] hover:bg-[#F23F43]/10 rounded transition-colors cursor-pointer"
-              title="Eliminar mensaje"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-      );
-
-      // Curved line linking replies
       const replyCitation = msg.replyTo && (
         <div className="flex items-center gap-1.5 text-[11px] text-[#B5BAC1] pl-14 mb-0.5 select-none relative">
           <div className="absolute left-[33px] top-[9px] w-[18px] h-[10px] border-l-2 border-t-2 border-[#4F545C] rounded-tl-[4px]" />
@@ -2211,15 +2534,16 @@ function ChatView() {
       if (compact) {
         items.push(
           <div key={msg.id} className="relative group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035] rounded">
-            {actionsOverlay}
+            {buildActionsOverlay(msg)}
             <div className="w-10 flex-shrink-0 flex justify-center items-center pt-0.5">
               <span className="text-[10px] text-[#80848E] opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none">
                 {fmt(msg.createdAt)}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
+              {renderMessageContent(msg)}
               {renderAttachment(msg)}
+              {renderReactions(msg)}
             </div>
           </div>
         );
@@ -2228,7 +2552,7 @@ function ChatView() {
           <div key={msg.id} className="flex flex-col mt-1.5">
             {replyCitation}
             <div className="relative group flex items-start gap-3 px-4 py-1.5 hover:bg-[#2e3035] rounded">
-              {actionsOverlay}
+              {buildActionsOverlay(msg)}
               {getAvatar(msg.user)}
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2 mb-0.5">
@@ -2237,8 +2561,9 @@ function ChatView() {
                   </span>
                   <span className="text-[11px] text-[#80848E]">{fmt(msg.createdAt)}</span>
                 </div>
-                {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
+                {renderMessageContent(msg)}
                 {renderAttachment(msg)}
+                {renderReactions(msg)}
               </div>
             </div>
           </div>
@@ -2278,6 +2603,16 @@ function ChatView() {
         {!isLoading && renderMessages()}
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Typing indicator */}
+      {Object.keys(typingUsers).length > 0 && (
+        <div className="px-4 py-1 flex items-center gap-1.5 text-xs text-[#949BA4] select-none animate-pulse">
+          <span className="font-semibold text-[#DBDEE1]">
+            {Object.values(typingUsers).join(", ")}
+          </span>
+          <span>{Object.keys(typingUsers).length === 1 ? "está escribiendo..." : "están escribiendo..."}</span>
+        </div>
+      )}
 
       {/* Reconnecting banner */}
       {!isConnected && (
@@ -2366,21 +2701,34 @@ function ChatView() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={!isConnected || isUploading}
+            disabled={!isConnected || isUploading || isRecording}
             className="text-[#80848E] hover:text-[#DBDEE1] transition-colors disabled:opacity-30 cursor-pointer shrink-0"
             title="Adjuntar archivo"
           >
             <Paperclip className="w-5 h-5" />
           </button>
 
+          {/* Grabación de Audio */}
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={!isConnected || isUploading}
+            className={`transition-colors disabled:opacity-30 cursor-pointer shrink-0 ${
+              isRecording ? "text-[#F23F43] animate-pulse scale-110" : "text-[#80848E] hover:text-[#DBDEE1]"
+            }`}
+            title={isRecording ? "Detener y enviar audio" : "Grabar nota de voz"}
+          >
+            {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </button>
+
           <input
             ref={inputRef}
             id="chat-input"
             type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={`Mensaje #${activeChannel}`}
-            disabled={!isConnected || isUploading}
+            value={isRecording ? "Grabando audio..." : input}
+            onChange={handleInputChange}
+            placeholder={isRecording ? "Haz clic en el micrófono de nuevo para detener y enviar" : `Mensaje #${activeChannel}`}
+            disabled={!isConnected || isUploading || isRecording}
             className="flex-1 bg-transparent text-[#DBDEE1] text-sm placeholder-[#72767D] outline-none disabled:opacity-50"
             autoComplete="off"
           />
@@ -2389,7 +2737,7 @@ function ChatView() {
           <button
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            disabled={!isConnected || isUploading}
+            disabled={!isConnected || isUploading || isRecording}
             className="text-[#80848E] hover:text-[#DBDEE1] transition-colors disabled:opacity-30 cursor-pointer shrink-0 mr-1"
             title="Emojis"
           >
@@ -2398,7 +2746,7 @@ function ChatView() {
 
           <button
             type="submit"
-            disabled={!isConnected || (!input.trim() && !selectedFile) || isUploading}
+            disabled={!isConnected || (!input.trim() && !selectedFile) || isUploading || isRecording}
             className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
             title="Enviar (Enter)"
           >

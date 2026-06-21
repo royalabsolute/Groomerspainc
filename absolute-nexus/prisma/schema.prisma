@@ -18,6 +18,7 @@ model User {
   createdAt DateTime @default(now())
   playlists Playlist[]
   messages  Message[]
+  reactions Reaction[]
 }
 
 
@@ -332,6 +333,8 @@ model Message {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachmentUrl  String?
   attachmentType String?
+  isEdited       Boolean  @default(false)
+  reactions      Reaction[]
   
   // Self-relation fields for message replies
   replyToId      String?
@@ -341,4 +344,16 @@ model Message {
   createdAt      DateTime @default(now())
 
   @@index([channelId, createdAt])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([userId])
 }

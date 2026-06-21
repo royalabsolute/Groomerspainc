@@ -83,6 +83,20 @@ function startServer() {
     socket.on("send-message", async ({ channelId, content, userId }) => {
       if (!channelId || !content || !userId) return;
       try {
+        // Asegurar que el usuario existe (por si la DB fue reiniciada y se mantiene la sesión JWT)
+        let dbUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (!dbUser) {
+          dbUser = await prisma.user.create({
+            data: {
+              id: userId,
+              email: `${userId}@absolutenexus.net`,
+              name: `Admin-${userId.substring(0, 4)}`,
+              password: "dummy-password",
+            }
+          });
+          console.log(`[Socket Chat] Usuario temporal creado automáticamente: ${userId}`);
+        }
+
         const message = await prisma.message.create({
           data: { channelId, content: content.trim(), userId },
           include: { user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } } },

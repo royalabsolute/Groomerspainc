@@ -1901,7 +1901,7 @@ function ChatView() {
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
+  const [socket, setSocket] = useState<ReturnType<typeof socketIO> | null>(null);
   const currentChannelRef = useRef<string>(activeChannel);
 
   // Fetch current session userId from NextAuth
@@ -1916,41 +1916,53 @@ function ChatView() {
 
   // Connect to /chat namespace once on mount
   useEffect(() => {
-    const socket = socketIO("/chat", {
+    const s = socketIO("/chat", {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
     });
-    socketRef.current = socket;
+    setSocket(s);
 
-    socket.on("connect", () => {
+    s.on("connect", () => {
       setIsConnected(true);
-      socket.emit("join-channel", currentChannelRef.current);
+      s.emit("join-channel", currentChannelRef.current);
     });
-    socket.on("disconnect", () => setIsConnected(false));
-    socket.on("new-message", (msg: ChatMessage) => {
-      console.log("Mensaje recibido:", msg);
+    s.on("disconnect", () => setIsConnected(false));
+
+    return () => {
+      s.disconnect();
+    };
+  }, []);
+
+  // Handle incoming messages
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewMessage = (msg: ChatMessage) => {
+      console.log("Recibido del servidor:", msg);
       if (msg.channelId === currentChannelRef.current) {
         setMessages((prev) => [...prev, msg]);
       }
-    });
+    };
 
-    return () => { socket.disconnect(); };
-  }, []);
+    socket.on("new-message", handleNewMessage);
+    return () => {
+      socket.off("new-message", handleNewMessage);
+    };
+  }, [socket]);
 
   // When channel changes: join new room + fetch history
   useEffect(() => {
     currentChannelRef.current = activeChannel;
     setMessages([]);
     setIsLoading(true);
-    if (socketRef.current?.connected) {
-      socketRef.current.emit("join-channel", activeChannel);
+    if (socket?.connected) {
+      socket.emit("join-channel", activeChannel);
     }
     fetch(`/api/chat/messages?channelId=${activeChannel}`)
       .then((r) => r.json())
       .then((data: ChatMessage[]) => { if (Array.isArray(data)) setMessages(data); })
       .catch(() => {})
       .finally(() => setIsLoading(false));
-  }, [activeChannel]);
+  }, [activeChannel, socket]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -1959,14 +1971,14 @@ function ChatView() {
 
   const handleSend = () => {
     const trimmed = input.trim();
-    if (!trimmed || !userId || !socketRef.current) return;
+    if (!trimmed || !userId || !socket) return;
     const payload = {
       channelId: activeChannel,
       content: trimmed,
       userId,
     };
     console.log("Mensaje enviado:", payload);
-    socketRef.current.emit("send-message", payload);
+    socket.emit("send-message", payload);
     setInput("");
   };
 

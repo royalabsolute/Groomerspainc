@@ -536,91 +536,418 @@ function ChannelButton({
 
 // ─── Music Sidebar (Col 2) ───────────────────────────────────────────────────
 
+interface DBPlaylist {
+  id: string;
+  name: string;
+  isPublic: boolean;
+  createdAt: string;
+}
+
+interface DBRoom {
+  id: string;
+  name: string;
+  description: string | null;
+  isLive: boolean;
+  activeUsers: number;
+  createdAt: string;
+}
+
 function MusicSidebar() {
   const { state, setChannel } = useNav();
   const { activeChannel } = state;
 
-  const playlists = [
-    { id: "now-playing", label: "Buscador YouTube" },
-    { id: "favorites", label: "Favoritos" },
-  ];
+  // ── Playlists state ──────────────────────────────────────────────────────
+  const [playlists, setPlaylists] = useState<DBPlaylist[]>([]);
+  const [loadingPlaylists, setLoadingPlaylists] = useState(true);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
+  const [playlistError, setPlaylistError] = useState("");
 
-  const liveRooms: any[] = [];
+  // ── Rooms state ──────────────────────────────────────────────────────────
+  const [rooms, setRooms] = useState<DBRoom[]>([]);
+  const [loadingRooms, setLoadingRooms] = useState(true);
+  const [showRoomModal, setShowRoomModal] = useState(false);
+  const [newRoomName, setNewRoomName] = useState("");
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [roomError, setRoomError] = useState("");
+
+  // ── Data fetching ────────────────────────────────────────────────────────
+  const fetchPlaylists = async () => {
+    try {
+      setLoadingPlaylists(true);
+      const res = await fetch("/api/music/playlists");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setPlaylists(data.playlists);
+      }
+    } catch (e) {
+      console.error("[MusicSidebar] Error fetching playlists:", e);
+    } finally {
+      setLoadingPlaylists(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      setLoadingRooms(true);
+      const res = await fetch("/api/music/rooms");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) setRooms(data.rooms);
+      }
+    } catch (e) {
+      console.error("[MusicSidebar] Error fetching rooms:", e);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlaylists();
+    fetchRooms();
+  }, []);
+
+  // ── Create playlist ──────────────────────────────────────────────────────
+  const handleCreatePlaylist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newPlaylistName.trim();
+    if (!name) return;
+
+    setPlaylistError("");
+    setCreatingPlaylist(true);
+    try {
+      const res = await fetch("/api/music/playlists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear");
+
+      setPlaylists((prev) => [...prev, data.playlist]);
+      setNewPlaylistName("");
+      setShowPlaylistModal(false);
+      // Switch to new playlist channel
+      setChannel(`playlist-${data.playlist.id}`);
+    } catch (err: any) {
+      setPlaylistError(err.message);
+    } finally {
+      setCreatingPlaylist(false);
+    }
+  };
+
+  // ── Delete playlist ──────────────────────────────────────────────────────
+  const handleDeletePlaylist = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar la playlist "${name}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await fetch(`/api/music/playlists?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setPlaylists((prev) => prev.filter((p) => p.id !== id));
+        if (activeChannel === `playlist-${id}`) setChannel("now-playing");
+      }
+    } catch (e) {
+      console.error("[MusicSidebar] Error deleting playlist:", e);
+    }
+  };
+
+  // ── Create room ──────────────────────────────────────────────────────────
+  const handleCreateRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newRoomName.trim();
+    if (!name) return;
+
+    setRoomError("");
+    setCreatingRoom(true);
+    try {
+      const res = await fetch("/api/music/rooms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al crear");
+
+      setRooms((prev) => [...prev, data.room]);
+      setNewRoomName("");
+      setShowRoomModal(false);
+      setChannel(`room-${data.room.id}`);
+    } catch (err: any) {
+      setRoomError(err.message);
+    } finally {
+      setCreatingRoom(false);
+    }
+  };
+
+  // ── Delete room ──────────────────────────────────────────────────────────
+  const handleDeleteRoom = async (id: string, name: string) => {
+    if (!confirm(`¿Eliminar la sala "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/music/rooms?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setRooms((prev) => prev.filter((r) => r.id !== id));
+        if (activeChannel === `room-${id}`) setChannel("now-playing");
+      }
+    } catch (e) {
+      console.error("[MusicSidebar] Error deleting room:", e);
+    }
+  };
 
   return (
-    <div className="flex-grow space-y-4">
-      {/* Playlists Category */}
+    <div className="flex-grow space-y-4 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22]">
+      {/* ── Playlists ─────────────────────────────────────────────────────── */}
       <div>
-        <div className="px-2 pb-1 text-xs font-bold text-[#949BA4] tracking-wider uppercase">
-          🎧 Tus Playlists
-        </div>
-        <div className="space-y-0.5">
-          {playlists.map((pl) => {
-            const isActive = activeChannel === pl.id;
+        {/* Fixed navigation items */}
+        <div className="space-y-0.5 mb-2">
+          {[
+            { id: "now-playing", label: "Buscador YouTube" },
+            { id: "favorites", label: "Favoritos" },
+          ].map((item) => {
+            const isActive = activeChannel === item.id;
             return (
               <button
-                key={pl.id}
-                onClick={() => setChannel(pl.id)}
+                key={item.id}
+                onClick={() => setChannel(item.id)}
                 className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 ${
-                  isActive
-                    ? "bg-[#35373C] text-white"
-                    : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
+                  isActive ? "bg-[#35373C] text-white" : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
                 }`}
               >
                 <Music className="w-4 h-4 text-[#80848E] flex-shrink-0" />
-                <span className="truncate">{pl.label}</span>
+                <span className="truncate">{item.label}</span>
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* Live Rooms Category */}
-      <div>
-        <div className="px-2 pb-1 text-xs font-bold text-[#949BA4] tracking-wider uppercase">
-          🌐 Salas en Vivo
+        {/* Dynamic playlists section */}
+        <div className="flex items-center justify-between px-2 pb-1">
+          <span className="text-xs font-bold text-[#949BA4] tracking-wider uppercase">
+            🎧 Tus Playlists
+          </span>
+          <button
+            onClick={() => { setShowPlaylistModal(true); setPlaylistError(""); setNewPlaylistName(""); }}
+            className="text-[#949BA4] hover:text-white transition-colors cursor-pointer p-0.5 rounded hover:bg-[#35373C]"
+            title="Crear Playlist"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
+
         <div className="space-y-0.5">
-          {liveRooms.length === 0 ? (
+          {loadingPlaylists ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#949BA4]">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Cargando...</span>
+            </div>
+          ) : playlists.length === 0 ? (
             <div className="px-2 py-1.5 text-xs text-[#949BA4] italic">
-              Cargando desde base de datos...
+              No hay playlists aún
             </div>
           ) : (
-            liveRooms.map((room) => {
-              const isActive = activeChannel === room.id;
+            playlists.map((pl) => {
+              const isActive = activeChannel === `playlist-${pl.id}`;
               return (
-                <button
-                  key={room.id}
-                  onClick={() => setChannel(room.id)}
+                <div
+                  key={pl.id}
                   className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
-                    isActive
-                      ? "bg-[#35373C] text-white"
-                      : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
+                    isActive ? "bg-[#35373C] text-white" : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <Users className="w-4 h-4 text-[#80848E] flex-shrink-0" />
-                    <span className="truncate">{room.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {room.isLive && (
-                      <span className="bg-[#23A55A] text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
-                        LIVE
-                      </span>
-                    )}
-                    {room.activeUsers > 0 && (
-                      <span className="text-[10px] text-[#B5BAC1] bg-[#1E1F22] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                        <span className="w-1.5 h-1.5 bg-[#23A55A] rounded-full inline-block animate-pulse" />
-                        {room.activeUsers}
-                      </span>
-                    )}
-                  </div>
-                </button>
+                  <button
+                    onClick={() => setChannel(`playlist-${pl.id}`)}
+                    className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer"
+                  >
+                    <Music className="w-4 h-4 text-[#80848E] flex-shrink-0" />
+                    <span className="truncate">{pl.name}</span>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeletePlaylist(pl.id, pl.name); }}
+                    className="opacity-0 group-hover:opacity-100 text-[#949BA4] hover:text-[#F23F43] transition-all cursor-pointer p-0.5 rounded hover:bg-[#35373C]/80"
+                    title="Eliminar Playlist"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               );
             })
           )}
         </div>
       </div>
+
+      {/* ── Live Rooms ────────────────────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between px-2 pb-1">
+          <span className="text-xs font-bold text-[#949BA4] tracking-wider uppercase">
+            🌐 Salas en Vivo
+          </span>
+          <button
+            onClick={() => { setShowRoomModal(true); setRoomError(""); setNewRoomName(""); }}
+            className="text-[#949BA4] hover:text-white transition-colors cursor-pointer p-0.5 rounded hover:bg-[#35373C]"
+            title="Crear Sala en Vivo"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="space-y-0.5">
+          {loadingRooms ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-[#949BA4]">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Cargando...</span>
+            </div>
+          ) : rooms.length === 0 ? (
+            <div className="px-2 py-1.5 text-xs text-[#949BA4] italic">
+              No hay salas creadas
+            </div>
+          ) : (
+            rooms.map((room) => {
+              const isActive = activeChannel === `room-${room.id}`;
+              return (
+                <div
+                  key={room.id}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
+                    isActive ? "bg-[#35373C] text-white" : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
+                  }`}
+                >
+                  <button
+                    onClick={() => setChannel(`room-${room.id}`)}
+                    className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer"
+                  >
+                    <Users className="w-4 h-4 text-[#80848E] flex-shrink-0" />
+                    <span className="truncate">{room.name}</span>
+                    {room.isLive && (
+                      <span className="bg-[#23A55A] text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none flex-shrink-0">
+                        LIVE
+                      </span>
+                    )}
+                    {room.activeUsers > 0 && (
+                      <span className="text-[10px] text-[#B5BAC1] bg-[#1E1F22] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 flex-shrink-0">
+                        <span className="w-1.5 h-1.5 bg-[#23A55A] rounded-full inline-block animate-pulse" />
+                        {room.activeUsers}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteRoom(room.id, room.name); }}
+                    className="opacity-0 group-hover:opacity-100 text-[#949BA4] hover:text-[#F23F43] transition-all cursor-pointer p-0.5 rounded hover:bg-[#35373C]/80"
+                    title="Eliminar Sala"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ── Create Playlist Modal ──────────────────────────────────────────── */}
+      {showPlaylistModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-lg bg-[#2B2D31] shadow-xl border border-[#1F2023] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1F2023] flex justify-between items-center bg-[#313338]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide">Nueva Playlist</h3>
+              <button onClick={() => setShowPlaylistModal(false)} className="text-[#949BA4] hover:text-white text-lg leading-none">×</button>
+            </div>
+            <form onSubmit={handleCreatePlaylist} className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#949BA4] uppercase tracking-wider block mb-1.5">
+                  Nombre
+                </label>
+                <div className="relative flex items-center">
+                  <Music className="absolute left-3 w-4 h-4 text-[#949BA4]" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Mi Playlist..."
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                    maxLength={60}
+                    className="w-full bg-[#1E1F22] text-[#DBDEE1] text-sm pl-9 pr-3 py-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]/60 transition-colors placeholder-[#72767D]"
+                  />
+                </div>
+              </div>
+              {playlistError && (
+                <div className="p-2.5 bg-[#F23F43]/10 border border-[#F23F43]/20 rounded text-xs text-[#F23F43]">
+                  {playlistError}
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPlaylistModal(false)}
+                  className="text-white text-xs font-semibold py-2 px-4 hover:underline"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingPlaylist || !newPlaylistName.trim()}
+                  className="bg-[#5865F2] hover:bg-[#4752C4] disabled:opacity-50 text-white text-xs font-semibold py-2 px-5 rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {creatingPlaylist ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {creatingPlaylist ? "Creando..." : "Crear"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create Room Modal ──────────────────────────────────────────────── */}
+      {showRoomModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-lg bg-[#2B2D31] shadow-xl border border-[#1F2023] overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1F2023] flex justify-between items-center bg-[#313338]">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide">Nueva Sala en Vivo</h3>
+              <button onClick={() => setShowRoomModal(false)} className="text-[#949BA4] hover:text-white text-lg leading-none">×</button>
+            </div>
+            <form onSubmit={handleCreateRoom} className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-[#949BA4] uppercase tracking-wider block mb-1.5">
+                  Nombre de la Sala
+                </label>
+                <div className="relative flex items-center">
+                  <Users className="absolute left-3 w-4 h-4 text-[#949BA4]" />
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="Sala General..."
+                    value={newRoomName}
+                    onChange={(e) => setNewRoomName(e.target.value)}
+                    maxLength={60}
+                    className="w-full bg-[#1E1F22] text-[#DBDEE1] text-sm pl-9 pr-3 py-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]/60 transition-colors placeholder-[#72767D]"
+                  />
+                </div>
+              </div>
+              {roomError && (
+                <div className="p-2.5 bg-[#F23F43]/10 border border-[#F23F43]/20 rounded text-xs text-[#F23F43]">
+                  {roomError}
+                </div>
+              )}
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowRoomModal(false)}
+                  className="text-white text-xs font-semibold py-2 px-4 hover:underline"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingRoom || !newRoomName.trim()}
+                  className="bg-[#23A55A] hover:bg-[#1a8547] disabled:opacity-50 text-white text-xs font-semibold py-2 px-5 rounded transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {creatingRoom ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {creatingRoom ? "Creando..." : "Crear Sala"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

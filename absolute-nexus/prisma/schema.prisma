@@ -327,6 +327,16 @@ model Playlist {
   updatedAt DateTime @updatedAt
 }
 
+model LiveRoom {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isLive      Boolean  @default(false)
+  activeUsers Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // ── Chat Interno ──────────────────────────────────────────────────────────────
 model Channel {
   id        String    @id @default(cuid())

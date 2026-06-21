@@ -112,10 +112,13 @@ export default function MusicPlayer() {
   // Determine streaming URL and badge type based on localFilePath
   const isLocal = !!currentSong.localFilePath || currentSong.type === "LOCAL";
   
-  // Dynamic stream url: uses stream API if local, YouTube watch page otherwise
-  const streamUrl = currentSong.localFilePath
+  // Dynamic stream url:
+  // - LOCAL songs: served from VPS disk via ?id=
+  // - YOUTUBE songs: proxied through our InnerTube engine via ?videoId=
+  //   This bypasses YouTube iframe embed restrictions (VEVO, Copyright blocks)
+  const streamUrl = currentSong.localFilePath || currentSong.type === "LOCAL"
     ? `/api/music/stream?id=${currentSong.id}`
-    : currentSong.url || `https://www.youtube.com/watch?v=${currentSong.id}`;
+    : `/api/music/stream?videoId=${currentSong.id}`;
 
   const handleSeek = (value: number) => {
     // Update UI progress immediately (optimistic update)
@@ -164,10 +167,11 @@ export default function MusicPlayer() {
   return (
     <div className="fixed bottom-0 left-0 right-0 h-24 bg-[#1E1F22] border-t border-[#1F2023] z-50 flex items-center justify-between px-6 select-none shadow-2xl">
       {/*
-       * Headless Player Engine
-       * IMPORTANTE: No usar display:none — el iframe de YouTube necesita
-       * estar en el DOM y visible para el navegador para emitir audio.
-       * Usamos posición absoluta con dimensiones 0 y opacity-0 en su lugar.
+       * Headless Audio Engine — HTML5 Native Mode
+       * Ahora usamos nuestro propio endpoint /api/music/stream?videoId=
+       * que actúa como proxy InnerTube. ReactPlayer detecta la URL como
+       * un archivo de audio directo y usa el player HTML5 <audio>,
+       * evitando completamente el iframe de YouTube y sus bloqueos de copyright.
        */}
       <div className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden">
         <ReactPlayer
@@ -197,10 +201,11 @@ export default function MusicPlayer() {
           onEnded={nextSong}
           onError={(e: any) => handleError(e)}
           config={{
-            youtube: {
-              playerVars: {
-                // Evitar restricciones de embed de YouTube
-                origin: typeof window !== "undefined" ? window.location.origin : "",
+            file: {
+              // Force HTML5 audio element — no iframes, no Flash
+              forceAudio: true,
+              attributes: {
+                preload: "auto",
               },
             },
           }}

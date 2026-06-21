@@ -67,6 +67,12 @@ function startServer() {
       console.log(`[Socket Chat] ${socket.id} se unió al canal: ${channelId}`);
     });
 
+    // Canal creado
+    socket.on("channel-created", (channel) => {
+      chatIo.emit("channel-created", channel);
+      console.log(`[Socket Chat] Canal creado notificado a todos: ${channel.name}`);
+    });
+
     // Cliente envía un mensaje
     socket.on("send-message", async ({ channelId, content, userId }) => {
       if (!channelId || !content || !userId) return;

@@ -28,11 +28,11 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 50,
     });
 
-    return NextResponse.json(messages);
+    return NextResponse.json(messages.reverse());
   } catch (err) {
     console.error("[API /chat/messages] Error:", err);
     return NextResponse.json(

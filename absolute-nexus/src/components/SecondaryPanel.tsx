@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Hash,
   Folder,
@@ -26,9 +26,11 @@ import {
   Cpu,
   Database,
   Code,
+  Loader2,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG, Channel } from "@/context/NavigationContext";
 import { signOut } from "next-auth/react";
+import { io as socketIO } from "socket.io-client";
 
 // ─── Channel icon resolver ────────────────────────────────────────────────────
 
@@ -106,6 +108,8 @@ export default function SecondaryPanel() {
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22]">
         {activeModule === "spotify" ? (
           <MusicSidebar />
+        ) : activeModule === "chat" ? (
+          <ChatSidebar />
         ) : (
           <>
             {/* Ungrouped channels */}
@@ -203,6 +207,237 @@ export default function SecondaryPanel() {
         </div>
       </div>
     </section>
+  );
+}
+
+// ─── Chat Sidebar ─────────────────────────────────────────────────────────────
+
+interface DBChannel {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+function ChatSidebar() {
+  const { state, setChannel } = useNav();
+  const { activeChannel } = state;
+  const [channels, setChannels] = useState<DBChannel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
+
+  // Fetch channels list
+  const fetchChannels = async () => {
+    try {
+      const res = await fetch("/api/chat/channels");
+      if (res.ok) {
+        const data = await res.json();
+        setChannels(data);
+      }
+    } catch (err) {
+      console.error("Error fetching channels:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChannels();
+
+    // Setup socket to listen for channel creation
+    const socket = socketIO("/chat", {
+      transports: ["websocket", "polling"],
+      reconnectionAttempts: 10,
+    });
+    socketRef.current = socket;
+
+    socket.on("channel-created", (newChannel: DBChannel) => {
+      setChannels((prev) => {
+        if (prev.some((c) => c.id === newChannel.id)) return prev;
+        return [...prev, newChannel];
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  const handleCreateChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newChannelName.trim();
+    if (!name) return;
+
+    setError("");
+    setCreating(true);
+
+    try {
+      const res = await fetch("/api/chat/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error al crear el canal");
+      }
+
+      // Emit socket event to notify other clients
+      if (socketRef.current) {
+        socketRef.current.emit("channel-created", data);
+      }
+
+      setChannels((prev) => {
+        if (prev.some((c) => c.id === data.id)) return prev;
+        return [...prev, data];
+      });
+
+      // Switch to the newly created channel
+      setChannel(data.id);
+
+      // Close modal
+      setNewChannelName("");
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setError(err.message || "Error inesperado");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="flex-grow space-y-4">
+      <div className="pt-2">
+        {/* Category Header with "+" button */}
+        <div className="w-full flex items-center justify-between px-2 pb-1 text-xs font-bold text-[#949BA4] tracking-wider uppercase">
+          <span className="flex items-center gap-1">
+            <ChevronDown className="w-3 h-3" />
+            Canales de Texto
+          </span>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-[#949BA4] hover:text-white transition-colors cursor-pointer p-0.5 rounded hover:bg-[#35373C]"
+            title="Crear Canal"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Loading / Channels List */}
+        {loading ? (
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-[#949BA4]">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Cargando canales...</span>
+          </div>
+        ) : (
+          <div className="space-y-0.5 mt-1">
+            {channels.map((ch) => {
+              const isActive = activeChannel === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  onClick={() => setChannel(ch.id)}
+                  className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
+                    isActive
+                      ? "bg-[#404249] text-white"
+                      : "text-[#949BA4] hover:bg-[#313338] hover:text-white"
+                  }`}
+                >
+                  <Hash
+                    className={`w-5 h-5 shrink-0 transition-colors ${
+                      isActive ? "text-white" : "text-[#80848E] group-hover:text-[#DBDEE1]"
+                    }`}
+                  />
+                  <span className="truncate">{ch.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Creation Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-lg bg-[#313338] shadow-xl border border-[#1F2023] overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-[#1F2023] flex justify-between items-center bg-[#2B2D31]">
+              <h3 className="text-base font-bold text-white uppercase tracking-wide">Crear canal de texto</h3>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setError("");
+                  setNewChannelName("");
+                }}
+                className="text-[#949BA4] hover:text-white transition-colors text-lg"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateChannel}>
+              <div className="p-6 space-y-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="channel-name" className="text-xs font-bold text-[#949BA4] uppercase tracking-wider">
+                    Nombre del canal
+                  </label>
+                  <div className="relative flex items-center">
+                    <Hash className="absolute left-3 w-4 h-4 text-[#949BA4]" />
+                    <input
+                      id="channel-name"
+                      type="text"
+                      required
+                      placeholder="nuevo-canal"
+                      value={newChannelName}
+                      onChange={(e) => setNewChannelName(e.target.value)}
+                      className="w-full bg-[#1E1F22] text-[#DBDEE1] text-sm pl-9 pr-3 py-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]/60 transition-colors placeholder-[#72767D]"
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  </div>
+                  <span className="text-[10px] text-[#949BA4]">
+                    Los nombres deben ser en minúsculas, sin espacios y pueden contener guiones.
+                  </span>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-[#F23F43]/10 border border-[#F23F43]/20 rounded text-xs text-[#F23F43]">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 bg-[#2B2D31] border-t border-[#1F2023] flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setError("");
+                    setNewChannelName("");
+                  }}
+                  className="bg-transparent hover:underline text-white text-xs font-semibold py-2 px-4 rounded transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !newChannelName.trim()}
+                  className="bg-[#5865F2] hover:bg-[#4752C4] disabled:opacity-50 text-white text-xs font-semibold py-2 px-5 rounded transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  {creating ? "Creando..." : "Crear canal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -62,20 +62,21 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // ── Branch B: Stream from YouTube via InnerTube (youtubei.js) ────────────
+    // ── Branch B: Stream from YouTube via InnerTube (youtubei.js v17) ────────
     if (videoId) {
-      // Lazy-import to avoid bundling issues in dev
+      // Dynamic import needed because youtubei.js is ESM-only (type: module)
       const { Innertube } = await import("youtubei.js");
 
+      // Create InnerTube instance - use minimal config for server-side
       const yt = await Innertube.create({
-        // TV_EMBEDDED client has fewer restrictions than WEB for audio extraction
-        client_type: "TV_EMBEDDED" as any,
         generate_session_locally: true,
-        retrieve_player: false,
+        retrieve_player: true,
       });
 
-      // Get stream info
-      const info = await yt.getInfo(videoId);
+      // Get video info and select the best audio-only format
+      const info = await yt.getBasicInfo(videoId);
+
+      // chooseFormat returns the best adaptive audio format
       const format = info.chooseFormat({
         type: "audio",
         quality: "best",
@@ -84,43 +85,44 @@ export async function GET(request: NextRequest) {
 
       if (!format || !format.url) {
         console.error(`[Stream] No audio format found for videoId: ${videoId}`);
-        return new Response("No se pudo obtener el stream de audio", { status: 502 });
+        return new Response("No se pudo obtener el stream de audio para este video", { status: 502 });
       }
 
       const audioUrl = format.url;
-      const contentType = format.mime_type || "audio/webm;codecs=opus";
+      const contentType = (format as any).mime_type || "audio/webm;codecs=opus";
 
-      // Forward the range header to YouTube's CDN for seek support
+      // Forward the range header to YouTube's CDN for seek/scrub support
       const rangeHeader = request.headers.get("range");
       const upstreamHeaders: Record<string, string> = {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36",
-        "Accept": "*/*",
-        "Origin": "https://www.youtube.com",
-        "Referer": "https://www.youtube.com/",
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
+        Accept: "*/*",
+        Origin: "https://www.youtube.com",
+        Referer: "https://www.youtube.com/",
       };
       if (rangeHeader) {
         upstreamHeaders["Range"] = rangeHeader;
       }
 
-      // Fetch audio from YouTube's CDN and proxy it through our server
+      // Proxy the audio stream from YouTube's CDN through our server
       const upstream = await fetch(audioUrl, { headers: upstreamHeaders });
 
       if (!upstream.ok || !upstream.body) {
-        console.error(`[Stream] YouTube CDN responded ${upstream.status} for ${videoId}`);
+        console.error(
+          `[Stream] YouTube CDN responded ${upstream.status} for videoId ${videoId}`
+        );
         return new Response("Error obteniendo audio desde YouTube CDN", {
-          status: upstream.status,
+          status: upstream.status || 502,
         });
       }
 
       const responseHeaders: Record<string, string> = {
         "Content-Type": contentType,
         "Accept-Ranges": "bytes",
-        "Cache-Control": "no-cache",
-        // Allow player to access the stream from the browser
+        "Cache-Control": "no-store",
         "Access-Control-Allow-Origin": "*",
       };
 
-      // Propagate Content-Length and Content-Range if available
       const upstreamLength = upstream.headers.get("content-length");
       const upstreamRange = upstream.headers.get("content-range");
       if (upstreamLength) responseHeaders["Content-Length"] = upstreamLength;
@@ -134,7 +136,7 @@ export async function GET(request: NextRequest) {
 
     return new Response("Se requiere el parámetro ?id= o ?videoId=", { status: 400 });
   } catch (error: any) {
-    console.error("[Stream] Error:", error?.message || error);
+    console.error("[Stream] Error:", error?.message ?? String(error));
     return new Response("Internal Server Error", { status: 500 });
   }
 }

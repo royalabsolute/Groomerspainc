@@ -1,8 +1,11 @@
 async function run() {
   try {
     const { Innertube } = await import('youtubei.js');
-    const yt = await Innertube.create({ clientType: 'TV_EMBEDDED' });
-    console.log('Created default Innertube instance on VPS');
+    const yt = await Innertube.create({ 
+      clientType: 'TV_EMBEDDED',
+      retrieve_player: false
+    });
+    console.log('Created TV_EMBEDDED Innertube instance on VPS (retrieve_player: false)');
     const info = await yt.getBasicInfo('n61ULEU7CO0');
     console.log('getBasicInfo succeeded on VPS!');
     const format = info.chooseFormat({ type: 'audio', quality: 'best' });

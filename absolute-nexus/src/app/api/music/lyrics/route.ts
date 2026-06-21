@@ -7,6 +7,7 @@ const titleCleanupPatterns = [
   /\s*\(.*?(official|video|audio|lyrics|lyric|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit).*?\)/gi,
   /\s*\[.*?(official|video|audio|lyrics|lyric|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit).*?\]/gi,
   /\s*【.*?】/g,
+  /\s*\b(official video|music video|lyric video|official audio|lyrics video|official music video|video oficial|audio oficial)\b/gi,
   /\s*\|.*$/g,
   /\s*-\s*(official|video|audio|lyrics|lyric|visualizer).*$/gi,
   /\s*\(feat\..*?\)/gi,
@@ -17,16 +18,11 @@ const titleCleanupPatterns = [
 
 const artistSeparators = [" & ", " and ", ", ", " x ", " X ", " feat. ", " feat ", " ft. ", " ft ", " featuring ", " with "];
 
-function cleanTitle(title: string): string {
-  let cleaned = title.trim();
-  for (const pattern of titleCleanupPatterns) {
-    cleaned = cleaned.replace(pattern, "");
-  }
-  return cleaned.trim();
-}
-
 function cleanArtist(artist: string): string {
   let cleaned = artist.trim();
+  // Remove VEVO suffix (e.g. ShakiraVEVO -> Shakira, Shakira Vevo -> Shakira)
+  cleaned = cleaned.replace(/\s*vevo\s*$/gi, "");
+
   for (const separator of artistSeparators) {
     const lowerSeparators = separator.toLowerCase();
     const idx = cleaned.toLowerCase().indexOf(lowerSeparators);
@@ -35,6 +31,35 @@ function cleanArtist(artist: string): string {
       break;
     }
   }
+  return cleaned.trim();
+}
+
+function cleanTitle(title: string, artist?: string): string {
+  let cleaned = title.trim();
+  for (const pattern of titleCleanupPatterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+
+  if (artist) {
+    const cleanedArtist = cleanArtist(artist);
+    const escapedArtist = cleanedArtist.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    
+    // Pattern: Artist - Title (case-insensitive)
+    const prefixRegex = new RegExp(`^${escapedArtist}\\s*[-–—:|~]+\\s*`, 'i');
+    if (prefixRegex.test(cleaned)) {
+      cleaned = cleaned.replace(prefixRegex, '');
+    } else {
+      // Pattern: Title - Artist (case-insensitive)
+      const suffixRegex = new RegExp(`\\s*[-–—:|~]+\\s*${escapedArtist}$`, 'i');
+      if (suffixRegex.test(cleaned)) {
+        cleaned = cleaned.replace(suffixRegex, '');
+      }
+    }
+  }
+
+  // Clean any dangling dashes or extra spaces
+  cleaned = cleaned.replace(/^\s*[-–—:|~]+\s*/, '').replace(/\s*[-–—:|~]+\s*$/, '');
+
   return cleaned.trim();
 }
 
@@ -85,8 +110,8 @@ export async function GET(req: NextRequest) {
     console.log(`[Lyrics API] Cache miss for song: ${songId}. Querying LRCLIB...`);
 
     // Clean metadata for better query matching
-    const cleanedTitle = cleanTitle(title || "");
     const cleanedArtist = cleanArtist(artist || "");
+    const cleanedTitle = cleanTitle(title || "", cleanedArtist);
     const duration = durationStr ? parseInt(durationStr, 10) : 0;
 
     let lyricsData: { plainLyrics?: string | null; syncedLyrics?: string | null; provider: string } | null = null;

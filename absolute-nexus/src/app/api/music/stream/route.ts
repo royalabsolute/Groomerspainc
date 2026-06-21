@@ -67,70 +67,26 @@ export async function GET(request: NextRequest) {
       // Dynamic import needed because youtubei.js is ESM-only (type: module)
       const { Innertube } = await import("youtubei.js");
 
-      // Create InnerTube instance - use minimal config for server-side
-      const yt = await Innertube.create({
-        generate_session_locally: true,
-        retrieve_player: true,
+      const yt = await Innertube.create({ clientType: "ANDROID" });
+      const stream = await yt.download(videoId, { type: "audio", quality: "best" });
+      
+      // Conversión crítica para Next.js
+      const webStream = new ReadableStream({
+        async start(controller) {
+          for await (const chunk of stream) {
+            controller.enqueue(chunk as any);
+          }
+          controller.close();
+        }
       });
-
-      // Get video info and select the best audio-only format
-      const info = await yt.getBasicInfo(videoId);
-
-      // chooseFormat returns the best adaptive audio format
-      const format = info.chooseFormat({
-        type: "audio",
-        quality: "best",
-        format: "any",
-      });
-
-      if (!format || !format.url) {
-        console.error(`[Stream] No audio format found for videoId: ${videoId}`);
-        return new Response("No se pudo obtener el stream de audio para este video", { status: 502 });
-      }
-
-      const audioUrl = format.url;
-      const contentType = (format as any).mime_type || "audio/webm;codecs=opus";
-
-      // Forward the range header to YouTube's CDN for seek/scrub support
-      const rangeHeader = request.headers.get("range");
-      const upstreamHeaders: Record<string, string> = {
-        "User-Agent":
-          "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Mobile Safari/537.36",
-        Accept: "*/*",
-        Origin: "https://www.youtube.com",
-        Referer: "https://www.youtube.com/",
-      };
-      if (rangeHeader) {
-        upstreamHeaders["Range"] = rangeHeader;
-      }
-
-      // Proxy the audio stream from YouTube's CDN through our server
-      const upstream = await fetch(audioUrl, { headers: upstreamHeaders });
-
-      if (!upstream.ok || !upstream.body) {
-        console.error(
-          `[Stream] YouTube CDN responded ${upstream.status} for videoId ${videoId}`
-        );
-        return new Response("Error obteniendo audio desde YouTube CDN", {
-          status: upstream.status || 502,
-        });
-      }
-
-      const responseHeaders: Record<string, string> = {
-        "Content-Type": contentType,
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "no-store",
-        "Access-Control-Allow-Origin": "*",
-      };
-
-      const upstreamLength = upstream.headers.get("content-length");
-      const upstreamRange = upstream.headers.get("content-range");
-      if (upstreamLength) responseHeaders["Content-Length"] = upstreamLength;
-      if (upstreamRange) responseHeaders["Content-Range"] = upstreamRange;
-
-      return new Response(upstream.body, {
-        status: rangeHeader ? 206 : 200,
-        headers: responseHeaders,
+      
+      return new Response(webStream, {
+        headers: {
+          "Content-Type": "audio/mp4",
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin": "*",
+        }
       });
     }
 

@@ -967,6 +967,10 @@ function MusicModuleView() {
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { currentSong, isPlaying, togglePlay, addToQueue, playSong, showToast } = useMusicStore();
+  const { state } = useNav();
+  const { activeChannel } = state;
+
+  const displayedSongs = activeChannel === "favorites" ? favoriteSongs : songs;
 
   const fetchFavorites = async () => {
     try {
@@ -1122,24 +1126,26 @@ function MusicModuleView() {
       {/* Left Column: Search & Playlist */}
       <div className="flex-1 flex flex-col min-h-0 space-y-4">
         {/* Search Bar header */}
-        <div className="shrink-0">
-          <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
-            <input
-              type="text"
-              placeholder="Buscar canciones en YouTube (presiona Enter)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent text-[#F2F3F5] text-sm pl-4 pr-10 py-3 outline-none placeholder-[#949BA4]"
-            />
-            <button type="submit" className="absolute right-3 text-[#949BA4] hover:text-white transition-colors" title="Buscar">
-              {isSearching ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Search className="w-5 h-5" />
-              )}
-            </button>
-          </form>
-        </div>
+        {activeChannel !== "favorites" && (
+          <div className="shrink-0">
+            <form onSubmit={handleSearch} className="relative flex items-center bg-[#1E1F22] rounded-md overflow-hidden border border-[#1F2023] focus-within:border-[#5865F2] transition-colors">
+              <input
+                type="text"
+                placeholder="Buscar canciones en YouTube (presiona Enter)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-[#F2F3F5] text-sm pl-4 pr-10 py-3 outline-none placeholder-[#949BA4]"
+              />
+              <button type="submit" className="absolute right-3 text-[#949BA4] hover:text-white transition-colors" title="Buscar">
+                {isSearching ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Playlist / Songs Container */}
         <div className="flex-1 bg-[#2B2D31] rounded-lg border border-[#1F2023] overflow-hidden flex flex-col min-h-0">
@@ -1153,12 +1159,23 @@ function MusicModuleView() {
 
           {/* Scrollable song list */}
           <div className="flex-1 overflow-y-auto min-h-0 divide-y divide-[#1F2023]/30 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[#1E1F22] px-2 py-1">
-            {songs.length === 0 ? (
-              <div className="p-6 text-center text-[#B5BAC1] text-sm italic">
-                No se encontraron canciones. Intenta otra búsqueda.
-              </div>
+            {displayedSongs.length === 0 ? (
+              activeChannel === "favorites" ? (
+                <div className="p-12 flex flex-col items-center justify-center text-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-zinc-800/40 flex items-center justify-center text-zinc-400">
+                    <Heart className="w-8 h-8" />
+                  </div>
+                  <p className="text-[#B5BAC1] text-sm italic">
+                    No tienes canciones favoritas aún. Busca en YouTube y guárdalas.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-6 text-center text-[#B5BAC1] text-sm italic">
+                  No se encontraron canciones. Intenta otra búsqueda.
+                </div>
+              )
             ) : (
-              songs.map((song, index) => {
+              displayedSongs.map((song, index) => {
                 const isCurrent = currentSong?.id === song.id;
                 const isPlayingCurrent = isCurrent && isPlaying;
                 const isDownloading = downloadingId === song.id;

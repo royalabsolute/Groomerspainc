@@ -951,13 +951,7 @@ function SettingsUsersView() {
 
 // ─── Music Module View (Col 3) ────────────────────────────────────────────────
 
-const INITIAL_SONGS: SongData[] = [
-  { id: "lofi-1", title: "Midnight Coffee", artist: "Lofi Beats", duration: 154, thumbnail: "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
-  { id: "lofi-2", title: "Coding Session", artist: "Focus Chill", duration: 210, thumbnail: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
-  { id: "lofi-3", title: "Chill Rain", artist: "Rainy Day", duration: 185, thumbnail: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=120&auto=format&fit=crop&q=60", type: "YOUTUBE" },
-  { id: "lofi-4", title: "Late Night Drive", artist: "Synthwave Breeze", duration: 245, thumbnail: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&auto=format&fit=crop&q=60", type: "YOUTUBE" },
-  { id: "lofi-5", title: "Morning Walk", artist: "Sunny Day Vibe", duration: 198, thumbnail: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=120&auto=format&fit=crop&q=60", type: "LOCAL" },
-];
+const INITIAL_SONGS: SongData[] = [];
 
 function formatSongDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
@@ -972,7 +966,7 @@ function MusicModuleView() {
   const [isSearching, setIsSearching] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const { currentSong, isPlaying, togglePlay, addToQueue, showToast } = useMusicStore();
+  const { currentSong, isPlaying, togglePlay, addToQueue, playSong, showToast } = useMusicStore();
 
   const fetchFavorites = async () => {
     try {
@@ -1028,11 +1022,12 @@ function MusicModuleView() {
             return {
               id: r.id,
               title: r.title,
-              artist: r.author || "Unknown Artist",
-              duration: r.seconds || 0,
+              artist: r.artist || "Unknown Artist",
+              duration: r.durationSeconds || 0,
               thumbnail: r.thumbnail,
               type: fav?.localFilePath ? "LOCAL" : "YOUTUBE",
               localFilePath: fav?.localFilePath || null,
+              url: r.url,
             };
           });
           setSongs(searchResults);
@@ -1179,9 +1174,9 @@ function MusicModuleView() {
                     {/* Number / Play Action */}
                     <div className="col-span-1 flex items-center justify-center">
                       <button
-                        onClick={() => (isCurrent ? togglePlay() : addToQueue(song))}
+                        onClick={() => (isCurrent ? togglePlay() : playSong(song))}
                         className="text-[#B5BAC1] group-hover:text-white transition-colors"
-                        title={isPlayingCurrent ? "Pausar" : "Reproducir / Añadir a cola"}
+                        title={isPlayingCurrent ? "Pausar" : "Reproducir canción"}
                       >
                         {isPlayingCurrent ? (
                           <div className="flex items-end gap-0.5 h-3">
@@ -1276,9 +1271,12 @@ function MusicModuleView() {
                       <span className="text-[#B5BAC1] text-xs font-mono group-hover:hidden">
                         {formatSongDuration(song.duration)}
                       </span>
-                      <span className="text-[#5865F2] text-xs font-bold hidden group-hover:inline">
+                      <button
+                        onClick={() => (isCurrent ? togglePlay() : playSong(song))}
+                        className="text-[#5865F2] text-xs font-bold hidden group-hover:inline focus:outline-none"
+                      >
                         {isPlayingCurrent ? "PAUSAR" : "REPRODUCIR"}
-                      </span>
+                      </button>
                     </div>
                   </div>
                 );

@@ -22,15 +22,16 @@ export async function GET(request: NextRequest) {
     // Perform search using yt-search without Google API quota limitations
     const searchResults = await ytSearch(query);
 
-    // Extract and format the top 15 matches
-    const videos = searchResults.videos.slice(0, 15);
+    // Extract and format the top 10 matches
+    const videos = searchResults.videos.slice(0, 10);
     const formattedResults = videos.map((video: any) => ({
       id: video.videoId,
       title: video.title,
-      author: video.author?.name || "Unknown Channel",
+      artist: video.author?.name || "Unknown Channel",
       duration: video.timestamp, // Formatted duration e.g. "4:15"
-      seconds: video.seconds,    // Playback duration in seconds
+      durationSeconds: video.seconds,    // Playback duration in seconds
       thumbnail: video.thumbnail || video.image,
+      url: video.url,
     }));
 
     return NextResponse.json({

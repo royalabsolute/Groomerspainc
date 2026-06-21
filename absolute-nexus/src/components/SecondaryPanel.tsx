@@ -543,14 +543,9 @@ function MusicSidebar() {
   const playlists = [
     { id: "now-playing", label: "Buscador YouTube" },
     { id: "favorites", label: "Favoritos" },
-    { id: "chill", label: "Chill & Lofi" },
-    { id: "gaming", label: "Gaming Mix" },
   ];
 
-  const liveRooms = [
-    { id: "room-general", label: "Sala General", activeUsers: 3, isLive: false },
-    { id: "room-lofi", label: "Lo-Fi Radio 24/7", activeUsers: 0, isLive: true },
-  ];
+  const liveRooms: any[] = [];
 
   return (
     <div className="flex-grow space-y-4">
@@ -586,38 +581,44 @@ function MusicSidebar() {
           🌐 Salas en Vivo
         </div>
         <div className="space-y-0.5">
-          {liveRooms.map((room) => {
-            const isActive = activeChannel === room.id;
-            return (
-              <button
-                key={room.id}
-                onClick={() => setChannel(room.id)}
-                className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
-                  isActive
-                    ? "bg-[#35373C] text-white"
-                    : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
-                }`}
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Users className="w-4 h-4 text-[#80848E] flex-shrink-0" />
-                  <span className="truncate">{room.label}</span>
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {room.isLive && (
-                    <span className="bg-[#23A55A] text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
-                      LIVE
-                    </span>
-                  )}
-                  {room.activeUsers > 0 && (
-                    <span className="text-[10px] text-[#B5BAC1] bg-[#1E1F22] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                      <span className="w-1.5 h-1.5 bg-[#23A55A] rounded-full inline-block animate-pulse" />
-                      {room.activeUsers}
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+          {liveRooms.length === 0 ? (
+            <div className="px-2 py-1.5 text-xs text-[#949BA4] italic">
+              Cargando desde base de datos...
+            </div>
+          ) : (
+            liveRooms.map((room) => {
+              const isActive = activeChannel === room.id;
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => setChannel(room.id)}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
+                    isActive
+                      ? "bg-[#35373C] text-white"
+                      : "text-[#949BA4] hover:bg-[#35373C]/60 hover:text-[#DBDEE1]"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <Users className="w-4 h-4 text-[#80848E] flex-shrink-0" />
+                    <span className="truncate">{room.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {room.isLive && (
+                      <span className="bg-[#23A55A] text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
+                        LIVE
+                      </span>
+                    )}
+                    {room.activeUsers > 0 && (
+                      <span className="text-[10px] text-[#B5BAC1] bg-[#1E1F22] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                        <span className="w-1.5 h-1.5 bg-[#23A55A] rounded-full inline-block animate-pulse" />
+                        {room.activeUsers}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

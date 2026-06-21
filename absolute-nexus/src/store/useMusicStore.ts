@@ -8,6 +8,7 @@ export interface SongData {
   thumbnail: string;
   type: "LOCAL" | "YOUTUBE";
   localFilePath?: string | null;
+  url?: string;
 }
 
 interface MusicState {

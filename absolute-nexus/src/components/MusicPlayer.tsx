@@ -115,7 +115,7 @@ export default function MusicPlayer() {
   // Dynamic stream url: uses stream API if local, YouTube watch page otherwise
   const streamUrl = currentSong.localFilePath
     ? `/api/music/stream?id=${currentSong.id}`
-    : `https://www.youtube.com/watch?v=${currentSong.id}`;
+    : currentSong.url || `https://www.youtube.com/watch?v=${currentSong.id}`;
 
   const handleSeek = (value: number) => {
     // Update UI progress immediately (optimistic update)

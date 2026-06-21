@@ -38,9 +38,12 @@ import {
   Folder,
   ChevronLeft,
   Heart,
+  Smile,
+  Paperclip,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
+import EmojiPicker, { Theme } from "emoji-picker-react";
 import {
   AreaChart,
   Area,
@@ -1882,6 +1885,8 @@ interface ChatMessage {
   content: string;
   channelId: string;
   createdAt: string;
+  attachmentUrl?: string | null;
+  attachmentType?: string | null;
   user: {
     id: string;
     name: string | null;
@@ -1903,6 +1908,13 @@ function ChatView() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [socket, setSocket] = useState<ReturnType<typeof socketIO> | null>(null);
   const currentChannelRef = useRef<string>(activeChannel);
+
+  // Phase 5 Additions
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch current session userId from NextAuth
   useEffect(() => {
@@ -1969,22 +1981,77 @@ function ChatView() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
-    const trimmed = input.trim();
-    if (!trimmed || !userId || !socket) return;
-    const payload = {
-      channelId: activeChannel,
-      content: trimmed,
-      userId,
-    };
-    console.log("Mensaje enviado:", payload);
-    socket.emit("send-message", payload);
-    setInput("");
+  const handleEmojiClick = (emojiData: any) => {
+    const emoji = emojiData.emoji;
+    const inputEl = inputRef.current;
+    if (!inputEl) {
+      setInput((prev) => prev + emoji);
+      return;
+    }
+
+    const start = inputEl.selectionStart ?? 0;
+    const end = inputEl.selectionEnd ?? 0;
+    const text = input;
+    const newText = text.substring(0, start) + emoji + text.substring(end);
+    setInput(newText);
+
+    // Reposition cursor after emoji
+    setTimeout(() => {
+      inputEl.focus();
+      inputEl.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    handleSend();
+    const trimmed = input.trim();
+    if (!trimmed && !selectedFile) return;
+    if (!userId || !socket) return;
+
+    setIsUploading(true);
+    let attachmentUrl: string | undefined = undefined;
+    let attachmentType: string | undefined = undefined;
+
+    try {
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        const res = await fetch("/api/chat/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error("Error al subir archivo");
+        const uploadData = await res.json();
+        attachmentUrl = uploadData.url;
+        attachmentType = uploadData.type;
+      }
+
+      const payload = {
+        channelId: activeChannel,
+        content: trimmed,
+        userId,
+        attachmentUrl,
+        attachmentType,
+      };
+
+      console.log("Mensaje enviado:", payload);
+      socket.emit("send-message", payload);
+
+      setInput("");
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err: any) {
+      alert(err.message || "Error al enviar mensaje");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const getAvatar = (user: ChatMessage["user"]) => {
@@ -2016,6 +2083,41 @@ function ChatView() {
     if (d.toDateString() === t.toDateString()) return "Hoy";
     if (d.toDateString() === y.toDateString()) return "Ayer";
     return d.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  const renderAttachment = (msg: ChatMessage) => {
+    if (!msg.attachmentUrl) return null;
+    if (msg.attachmentType === "image") {
+      return (
+        <div className="mt-2 max-w-sm rounded-lg overflow-hidden border border-[#232428] shadow-md bg-[#2B2D31]">
+          <img
+            src={msg.attachmentUrl}
+            alt="Adjunto"
+            className="max-h-60 object-contain hover:scale-[1.01] transition-transform duration-200 cursor-pointer"
+            onClick={() => window.open(msg.attachmentUrl!, "_blank")}
+          />
+        </div>
+      );
+    }
+    const fileName = msg.attachmentUrl.split("/").pop() || "archivo";
+    return (
+      <div className="mt-2 flex items-center gap-3 p-3 rounded bg-[#2B2D31] border border-[#1F2023] max-w-md shadow-sm">
+        <Folder className="w-10 h-10 text-[#5865F2] shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-[#F2F3F5] truncate" title={fileName}>
+            {fileName}
+          </p>
+          <p className="text-[10px] text-[#949BA4]">Archivo adjunto</p>
+        </div>
+        <a
+          href={msg.attachmentUrl}
+          download
+          className="bg-[#5865F2] hover:bg-[#4752C4] text-white text-xs font-semibold py-1.5 px-3.5 rounded transition-colors shrink-0 cursor-pointer text-center"
+        >
+          Descargar
+        </a>
+      </div>
+    );
   };
 
   const renderMessages = () => {
@@ -2050,7 +2152,10 @@ function ChatView() {
                 {fmt(msg.createdAt)}
               </span>
             </div>
-            <p className="text-[#DBDEE1] text-sm leading-relaxed break-words min-w-0">{msg.content}</p>
+            <div className="flex-1 min-w-0">
+              {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
+              {renderAttachment(msg)}
+            </div>
           </div>
         );
       } else {
@@ -2064,7 +2169,8 @@ function ChatView() {
                 </span>
                 <span className="text-[11px] text-[#80848E]">{fmt(msg.createdAt)}</span>
               </div>
-              <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>
+              {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
+              {renderAttachment(msg)}
             </div>
           </div>
         );
@@ -2076,7 +2182,7 @@ function ChatView() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden relative bg-[#313338]">
       {/* Messages list */}
       <div className="flex-1 overflow-y-auto py-2">
         {isLoading && (
@@ -2112,26 +2218,101 @@ function ChatView() {
         </div>
       )}
 
+      {/* File attachment preview */}
+      {selectedFile && (
+        <div className="mx-4 mb-2 p-2 bg-[#2B2D31] rounded-lg border border-[#1F2023] flex items-center justify-between animate-in fade-in duration-100 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Paperclip className="w-4 h-4 text-[#B5BAC1]" />
+            <span className="text-xs text-[#DBDEE1] truncate font-medium">
+              {selectedFile.name}
+            </span>
+            <span className="text-[10px] text-[#949BA4]">
+              ({(selectedFile.size / 1024).toFixed(1)} KB)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+            className="text-[#949BA4] hover:text-white transition-colors cursor-pointer text-xs"
+            title="Quitar Adjunto"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Input bar — pressed to the bottom */}
-      <form onSubmit={handleSubmit} className="px-4 pb-6 pt-3 shrink-0">
+      <form onSubmit={handleSubmit} className="px-4 pb-6 pt-3 shrink-0 relative">
+        {/* Emoji Picker Popover */}
+        {showEmojiPicker && (
+          <div className="absolute bottom-20 right-4 z-50">
+            <div className="fixed inset-0" onClick={() => setShowEmojiPicker(false)} />
+            <div className="relative shadow-2xl rounded-lg overflow-hidden border border-[#1F2023]">
+              <EmojiPicker
+                theme={Theme.DARK}
+                onEmojiClick={handleEmojiClick}
+                width={320}
+                height={400}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 bg-[#383A40] rounded-lg px-4 py-3 border border-[#383A40] focus-within:border-[#5865F2]/60 transition-colors">
+          {/* File select button */}
           <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!isConnected || isUploading}
+            className="text-[#80848E] hover:text-[#DBDEE1] transition-colors disabled:opacity-30 cursor-pointer shrink-0"
+            title="Adjuntar archivo"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+
+          <input
+            ref={inputRef}
             id="chat-input"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={`Mensaje #${activeChannel}`}
-            disabled={!isConnected}
+            disabled={!isConnected || isUploading}
             className="flex-1 bg-transparent text-[#DBDEE1] text-sm placeholder-[#72767D] outline-none disabled:opacity-50"
             autoComplete="off"
           />
+
+          {/* Emoji button */}
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            disabled={!isConnected || isUploading}
+            className="text-[#80848E] hover:text-[#DBDEE1] transition-colors disabled:opacity-30 cursor-pointer shrink-0 mr-1"
+            title="Emojis"
+          >
+            <Smile className="w-5 h-5" />
+          </button>
+
           <button
             type="submit"
-            disabled={!isConnected || !input.trim()}
-            className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+            disabled={!isConnected || (!input.trim() && !selectedFile) || isUploading}
+            className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
             title="Enviar (Enter)"
           >
-            <Send className="w-4 h-4" />
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[#5865F2]" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </div>
         <p className="text-[10px] text-[#72767D] mt-1 px-1">

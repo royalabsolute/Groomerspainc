@@ -12,6 +12,7 @@
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^5.19.1",
     "bcryptjs": "^3.0.3",
+    "emoji-picker-react": "^4.19.1",
     "lucide-react": "^1.17.0",
     "minecraft-server-util": "^5.4.4",
     "next": "16.2.7",

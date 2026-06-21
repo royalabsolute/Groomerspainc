@@ -80,8 +80,8 @@ function startServer() {
     });
 
     // Cliente envía un mensaje
-    socket.on("send-message", async ({ channelId, content, userId }) => {
-      if (!channelId || !content || !userId) return;
+    socket.on("send-message", async ({ channelId, content, userId, attachmentUrl, attachmentType }) => {
+      if (!channelId || !userId || (!content && !attachmentUrl)) return;
       try {
         // Asegurar que el usuario existe (por si la DB fue reiniciada y se mantiene la sesión JWT)
         let dbUser = await prisma.user.findUnique({ where: { id: userId } });
@@ -98,7 +98,13 @@ function startServer() {
         }
 
         const message = await prisma.message.create({
-          data: { channelId, content: content.trim(), userId },
+          data: {
+            channelId,
+            content: content ? content.trim() : "",
+            userId,
+            attachmentUrl,
+            attachmentType,
+          },
           include: { user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } } },
         });
         // Emitir el mensaje a todos en el canal (incluido el remitente)

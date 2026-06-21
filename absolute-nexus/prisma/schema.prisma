@@ -324,13 +324,15 @@ model Channel {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  content   String
-  channelId String
-  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  content        String
+  channelId      String
+  channel        Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachmentUrl  String?
+  attachmentType String?
+  createdAt      DateTime @default(now())
 
   @@index([channelId, createdAt])
 }

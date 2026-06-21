@@ -82,3 +82,49 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "El ID del canal es requerido" },
+        { status: 400 }
+      );
+    }
+
+    if (id === "general") {
+      return NextResponse.json(
+        { error: "No se puede eliminar el canal general" },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si existe
+    const channel = await prisma.channel.findUnique({
+      where: { id },
+    });
+
+    if (!channel) {
+      return NextResponse.json(
+        { error: "El canal no existe" },
+        { status: 404 }
+      );
+    }
+
+    // Eliminar canal (cascada se encarga de los mensajes)
+    await prisma.channel.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, id });
+  } catch (err: any) {
+    console.error("[API /chat/channels DELETE] Error:", err);
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    );
+  }
+}

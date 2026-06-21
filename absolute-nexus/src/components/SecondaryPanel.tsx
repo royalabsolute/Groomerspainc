@@ -27,6 +27,7 @@ import {
   Database,
   Code,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG, Channel } from "@/context/NavigationContext";
 import { signOut } from "next-auth/react";
@@ -229,6 +230,12 @@ function ChatSidebar() {
   const [creating, setCreating] = useState(false);
   const socketRef = useRef<ReturnType<typeof socketIO> | null>(null);
 
+  // Ref to track the current activeChannel to avoid closure issues in socket callbacks
+  const activeChannelRef = useRef(activeChannel);
+  useEffect(() => {
+    activeChannelRef.current = activeChannel;
+  }, [activeChannel]);
+
   // Fetch channels list
   const fetchChannels = async () => {
     try {
@@ -247,7 +254,7 @@ function ChatSidebar() {
   useEffect(() => {
     fetchChannels();
 
-    // Setup socket to listen for channel creation
+    // Setup socket to listen for channel creation and deletion
     const socket = socketIO("/chat", {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
@@ -259,6 +266,13 @@ function ChatSidebar() {
         if (prev.some((c) => c.id === newChannel.id)) return prev;
         return [...prev, newChannel];
       });
+    });
+
+    socket.on("channel-deleted", (deletedChannelId: string) => {
+      setChannels((prev) => prev.filter((c) => c.id !== deletedChannelId));
+      if (activeChannelRef.current === deletedChannelId) {
+        setChannel("general");
+      }
     });
 
     return () => {
@@ -309,6 +323,38 @@ function ChatSidebar() {
     }
   };
 
+  const handleDeleteChannel = async (id: string, name: string) => {
+    if (id === "general") return;
+    const confirm = window.confirm(`¿Estás seguro de que deseas eliminar el canal #${name}? Esta acción no se puede deshacer y se borrarán todos sus mensajes.`);
+    if (!confirm) return;
+
+    try {
+      const res = await fetch(`/api/chat/channels?id=${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error al eliminar el canal");
+      }
+
+      // Emit socket event to notify other clients
+      if (socketRef.current) {
+        socketRef.current.emit("channel-deleted", id);
+      }
+
+      // Remove channel from local state
+      setChannels((prev) => prev.filter((c) => c.id !== id));
+
+      // If active channel was deleted, redirect to general
+      if (activeChannel === id) {
+        setChannel("general");
+      }
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar el canal");
+    }
+  };
+
   return (
     <div className="flex-grow space-y-4">
       <div className="pt-2">
@@ -338,22 +384,38 @@ function ChatSidebar() {
             {channels.map((ch) => {
               const isActive = activeChannel === ch.id;
               return (
-                <button
+                <div
                   key={ch.id}
-                  onClick={() => setChannel(ch.id)}
-                  className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
+                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded text-sm font-medium transition-colors duration-150 group ${
                     isActive
                       ? "bg-[#404249] text-white"
                       : "text-[#949BA4] hover:bg-[#313338] hover:text-white"
                   }`}
                 >
-                  <Hash
-                    className={`w-5 h-5 shrink-0 transition-colors ${
-                      isActive ? "text-white" : "text-[#80848E] group-hover:text-[#DBDEE1]"
-                    }`}
-                  />
-                  <span className="truncate">{ch.name}</span>
-                </button>
+                  <button
+                    onClick={() => setChannel(ch.id)}
+                    className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer"
+                  >
+                    <Hash
+                      className={`w-5 h-5 shrink-0 transition-colors ${
+                        isActive ? "text-white" : "text-[#80848E] group-hover:text-[#DBDEE1]"
+                      }`}
+                    />
+                    <span className="truncate">{ch.name}</span>
+                  </button>
+                  {ch.id !== "general" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChannel(ch.id, ch.name);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-[#949BA4] hover:text-[#F23F43] transition-all cursor-pointer p-0.5 rounded hover:bg-[#35373C]/80"
+                      title="Eliminar Canal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               );
             })}
           </div>

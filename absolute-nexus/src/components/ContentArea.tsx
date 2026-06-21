@@ -1928,7 +1928,10 @@ function ChatView() {
     });
     socket.on("disconnect", () => setIsConnected(false));
     socket.on("new-message", (msg: ChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      console.log("Mensaje recibido:", msg);
+      if (msg.channelId === currentChannelRef.current) {
+        setMessages((prev) => [...prev, msg]);
+      }
     });
 
     return () => { socket.disconnect(); };
@@ -1957,16 +1960,19 @@ function ChatView() {
   const handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed || !userId || !socketRef.current) return;
-    socketRef.current.emit("send-message", {
+    const payload = {
       channelId: activeChannel,
       content: trimmed,
       userId,
-    });
+    };
+    console.log("Mensaje enviado:", payload);
+    socketRef.current.emit("send-message", payload);
     setInput("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSend();
   };
 
   const getAvatar = (user: ChatMessage["user"]) => {
@@ -2095,23 +2101,22 @@ function ChatView() {
       )}
 
       {/* Input bar — pressed to the bottom */}
-      <div className="px-4 pb-6 pt-3 shrink-0">
+      <form onSubmit={handleSubmit} className="px-4 pb-6 pt-3 shrink-0">
         <div className="flex items-center gap-2 bg-[#383A40] rounded-lg px-4 py-3 border border-[#383A40] focus-within:border-[#5865F2]/60 transition-colors">
           <input
             id="chat-input"
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder={`Mensaje #${activeChannel}`}
             disabled={!isConnected}
             className="flex-1 bg-transparent text-[#DBDEE1] text-sm placeholder-[#72767D] outline-none disabled:opacity-50"
             autoComplete="off"
           />
           <button
-            onClick={handleSend}
+            type="submit"
             disabled={!isConnected || !input.trim()}
-            className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="text-[#80848E] hover:text-[#5865F2] transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             title="Enviar (Enter)"
           >
             <Send className="w-4 h-4" />
@@ -2124,7 +2129,7 @@ function ChatView() {
           </kbd>{" "}
           para enviar
         </p>
-      </div>
+      </form>
     </div>
   );
 }

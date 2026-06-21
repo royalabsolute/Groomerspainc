@@ -73,6 +73,12 @@ function startServer() {
       console.log(`[Socket Chat] Canal creado notificado a todos: ${channel.name}`);
     });
 
+    // Canal eliminado
+    socket.on("channel-deleted", (channelId) => {
+      chatIo.emit("channel-deleted", channelId);
+      console.log(`[Socket Chat] Canal eliminado notificado a todos: ${channelId}`);
+    });
+
     // Cliente envía un mensaje
     socket.on("send-message", async ({ channelId, content, userId }) => {
       if (!channelId || !content || !userId) return;

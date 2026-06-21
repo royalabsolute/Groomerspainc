@@ -332,6 +332,12 @@ model Message {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachmentUrl  String?
   attachmentType String?
+  
+  // Self-relation fields for message replies
+  replyToId      String?
+  replyTo        Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[] @relation("MessageReplies")
+  
   createdAt      DateTime @default(now())
 
   @@index([channelId, createdAt])

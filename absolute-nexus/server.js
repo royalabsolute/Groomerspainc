@@ -80,7 +80,7 @@ function startServer() {
     });
 
     // Cliente envía un mensaje
-    socket.on("send-message", async ({ channelId, content, userId, attachmentUrl, attachmentType }) => {
+    socket.on("send-message", async ({ channelId, content, userId, attachmentUrl, attachmentType, replyToId }) => {
       if (!channelId || !userId || (!content && !attachmentUrl)) return;
       try {
         // Asegurar que el usuario existe (por si la DB fue reiniciada y se mantiene la sesión JWT)
@@ -104,14 +104,35 @@ function startServer() {
             userId,
             attachmentUrl,
             attachmentType,
+            replyToId: replyToId || null,
           },
-          include: { user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } } },
+          include: {
+            user: { select: { id: true, name: true, email: true, image: true, avatarUrl: true } },
+            replyTo: {
+              include: {
+                user: { select: { id: true, name: true, email: true } }
+              }
+            }
+          },
         });
         // Emitir el mensaje a todos en el canal (incluido el remitente)
         chatIo.to(channelId).emit("new-message", message);
       } catch (err) {
         console.error("[Socket Chat] Error guardando mensaje:", err.message);
         socket.emit("chat-error", { error: "No se pudo enviar el mensaje." });
+      }
+    });
+
+    // Cliente elimina un mensaje
+    socket.on("delete-message", async ({ messageId }) => {
+      if (!messageId) return;
+      try {
+        await prisma.message.delete({ where: { id: messageId } });
+        chatIo.emit("message-deleted", messageId);
+        console.log(`[Socket Chat] Mensaje eliminado notificado a todos: ${messageId}`);
+      } catch (err) {
+        console.error("[Socket Chat] Error eliminando mensaje:", err.message);
+        socket.emit("chat-error", { error: "No se pudo eliminar el mensaje." });
       }
     });
 

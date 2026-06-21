@@ -27,6 +27,17 @@ export async function GET(req: NextRequest) {
             avatarUrl: true,
           },
         },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 50,

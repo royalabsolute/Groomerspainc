@@ -40,6 +40,8 @@ import {
   Heart,
   Smile,
   Paperclip,
+  CornerUpLeft,
+  Trash2,
 } from "lucide-react";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
 import FileExplorer from "@/components/FileExplorer";
@@ -1887,6 +1889,16 @@ interface ChatMessage {
   createdAt: string;
   attachmentUrl?: string | null;
   attachmentType?: string | null;
+  replyToId?: string | null;
+  replyTo?: {
+    id: string;
+    content: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  } | null;
   user: {
     id: string;
     name: string | null;
@@ -1915,6 +1927,9 @@ function ChatView() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Phase 6 Additions
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
   // Fetch current session userId from NextAuth
   useEffect(() => {
@@ -1945,7 +1960,7 @@ function ChatView() {
     };
   }, []);
 
-  // Handle incoming messages
+  // Handle incoming messages and deletions
   useEffect(() => {
     if (!socket) return;
     const handleNewMessage = (msg: ChatMessage) => {
@@ -1955,9 +1970,16 @@ function ChatView() {
       }
     };
 
+    const handleMessageDeleted = (deletedId: string) => {
+      console.log("Mensaje eliminado del servidor:", deletedId);
+      setMessages((prev) => prev.filter((msg) => msg.id !== deletedId));
+    };
+
     socket.on("new-message", handleNewMessage);
+    socket.on("message-deleted", handleMessageDeleted);
     return () => {
       socket.off("new-message", handleNewMessage);
+      socket.off("message-deleted", handleMessageDeleted);
     };
   }, [socket]);
 
@@ -2008,6 +2030,11 @@ function ChatView() {
     }
   };
 
+  const handleDeleteMessage = (messageId: string) => {
+    if (!socket) return;
+    socket.emit("delete-message", { messageId });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = input.trim();
@@ -2039,6 +2066,7 @@ function ChatView() {
         userId,
         attachmentUrl,
         attachmentType,
+        replyToId: replyingTo?.id || null,
       };
 
       console.log("Mensaje enviado:", payload);
@@ -2046,6 +2074,7 @@ function ChatView() {
 
       setInput("");
       setSelectedFile(null);
+      setReplyingTo(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err: any) {
       alert(err.message || "Error al enviar mensaje");
@@ -2129,8 +2158,8 @@ function ChatView() {
     messages.forEach((msg, i) => {
       const msgDate = fmtDate(msg.createdAt);
       const msgTs = new Date(msg.createdAt).getTime();
-      // Compact if same user within 5 minutes
-      const compact = lastUid === msg.user.id && msgTs - lastTs < 300000;
+      // Compact if same user within 5 minutes and not a reply
+      const compact = lastUid === msg.user.id && msgTs - lastTs < 300000 && !msg.replyTo;
 
       if (msgDate !== lastDate) {
         items.push(
@@ -2144,9 +2173,45 @@ function ChatView() {
         lastUid = "";
       }
 
+      // Hover actions overlay
+      const actionsOverlay = (
+        <div className="absolute right-4 top-1 hidden group-hover:flex items-center gap-1 bg-[#313338] border border-[#1F2023] rounded px-1 py-0.5 shadow-md z-10">
+          <button
+            onClick={() => setReplyingTo(msg)}
+            className="p-1 text-[#B5BAC1] hover:text-white hover:bg-[#35373C] rounded transition-colors cursor-pointer"
+            title="Responder"
+          >
+            <CornerUpLeft className="w-3.5 h-3.5" />
+          </button>
+          {userId && msg.user.id === userId && (
+            <button
+              onClick={() => handleDeleteMessage(msg.id)}
+              className="p-1 text-[#F23F43] hover:bg-[#F23F43]/10 rounded transition-colors cursor-pointer"
+              title="Eliminar mensaje"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      );
+
+      // Curved line linking replies
+      const replyCitation = msg.replyTo && (
+        <div className="flex items-center gap-1.5 text-[11px] text-[#B5BAC1] pl-14 mb-0.5 select-none relative">
+          <div className="absolute left-[33px] top-[9px] w-[18px] h-[10px] border-l-2 border-t-2 border-[#4F545C] rounded-tl-[4px]" />
+          <span className="font-bold text-[#E3E5E8] pl-1 truncate max-w-[120px]">
+            @{msg.replyTo.user.name || msg.replyTo.user.email}
+          </span>
+          <span className="text-[#949BA4] truncate max-w-sm italic">
+            {msg.replyTo.content || "[Archivo adjunto]"}
+          </span>
+        </div>
+      );
+
       if (compact) {
         items.push(
-          <div key={msg.id} className="group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035] rounded">
+          <div key={msg.id} className="relative group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035] rounded">
+            {actionsOverlay}
             <div className="w-10 flex-shrink-0 flex justify-center items-center pt-0.5">
               <span className="text-[10px] text-[#80848E] opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none">
                 {fmt(msg.createdAt)}
@@ -2160,17 +2225,21 @@ function ChatView() {
         );
       } else {
         items.push(
-          <div key={msg.id} className="group flex items-start gap-3 px-4 py-2 hover:bg-[#2e3035] rounded mt-1">
-            {getAvatar(msg.user)}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2 mb-0.5">
-                <span className="font-semibold text-[#F2F3F5] text-sm">
-                  {msg.user.name || msg.user.email}
-                </span>
-                <span className="text-[11px] text-[#80848E]">{fmt(msg.createdAt)}</span>
+          <div key={msg.id} className="flex flex-col mt-1.5">
+            {replyCitation}
+            <div className="relative group flex items-start gap-3 px-4 py-1.5 hover:bg-[#2e3035] rounded">
+              {actionsOverlay}
+              {getAvatar(msg.user)}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline gap-2 mb-0.5">
+                  <span className="font-semibold text-[#F2F3F5] text-sm">
+                    {msg.user.name || msg.user.email}
+                  </span>
+                  <span className="text-[11px] text-[#80848E]">{fmt(msg.createdAt)}</span>
+                </div>
+                {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
+                {renderAttachment(msg)}
               </div>
-              {msg.content && <p className="text-[#DBDEE1] text-sm leading-relaxed break-words">{msg.content}</p>}
-              {renderAttachment(msg)}
             </div>
           </div>
         );
@@ -2261,7 +2330,32 @@ function ChatView() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 bg-[#383A40] rounded-lg px-4 py-3 border border-[#383A40] focus-within:border-[#5865F2]/60 transition-colors">
+        {/* Replying Preview Banner */}
+        {replyingTo && (
+          <div className="px-4 py-2 bg-[#2B2D31] rounded-t-lg border-x border-t border-[#1F2023] flex items-center justify-between animate-in slide-in-from-bottom-2 duration-100 shrink-0">
+            <div className="flex items-center gap-1.5 text-xs text-[#B5BAC1] min-w-0">
+              <span className="text-[#949BA4]">Respondiendo a</span>
+              <span className="font-semibold text-white">
+                @{replyingTo.user.name || replyingTo.user.email}
+              </span>
+              <span className="text-[#949BA4] truncate italic max-w-xs">
+                "{replyingTo.content || "[Archivo adjunto]"}"
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="text-[#949BA4] hover:text-white transition-colors cursor-pointer text-xs font-bold font-mono"
+              title="Cancelar respuesta"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        <div className={`flex items-center gap-2 bg-[#383A40] px-4 py-3 border border-[#383A40] focus-within:border-[#5865F2]/60 transition-colors ${
+          replyingTo ? "rounded-b-lg border-t-0" : "rounded-lg"
+        }`}>
           {/* File select button */}
           <input
             ref={fileInputRef}

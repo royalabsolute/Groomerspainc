@@ -71,10 +71,13 @@ export async function GET(request: NextRequest) {
       const stream = await yt.download(videoId, { type: "audio", quality: "best" });
       
       // Conversión crítica para Next.js
+      const reader = stream.getReader();
       const webStream = new ReadableStream({
         async start(controller) {
-          for await (const chunk of stream) {
-            controller.enqueue(chunk as any);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
           }
           controller.close();
         }

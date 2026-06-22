@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       // Dynamic import needed because youtubei.js is ESM-only (type: module)
       const { Innertube } = await import("youtubei.js");
 
-      const yt = await Innertube.create({ clientType: "ANDROID" });
+      const yt = await Innertube.create({ client_type: "ANDROID" } as any);
       const stream = await yt.download(videoId, { type: "audio", quality: "best" });
       
       // Conversión crítica para Next.js

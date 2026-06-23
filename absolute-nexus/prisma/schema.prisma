@@ -9,12 +9,13 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  name      String?
+  name      String   @default("")
   email     String   @unique
   password  String
   image     String?
   avatarUrl String?  // Optional column for Supabase avatar storage
-  role      String   @default("USER")
+  role      String   @default("ADMIN_GENERAL")
+  bio       String?
   createdAt DateTime @default(now())
   playlists Playlist[]
   messages  Message[]

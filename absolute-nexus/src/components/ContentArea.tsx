@@ -45,6 +45,11 @@ import {
   Mic,
   MicOff,
   Pencil,
+  Lock,
+  Shield,
+  Key,
+  UploadCloud,
+  Check,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useNav, MODULE_CONFIG } from "@/context/NavigationContext";
@@ -62,6 +67,11 @@ import { useMusicStore } from "@/store/useMusicStore";
 import type { SongData } from "@/store/useMusicStore";
 import SyncedLyricsView from "@/components/SyncedLyricsView";
 
+interface EnvVar {
+  key: string;
+  value: string;
+}
+
 // ─── Props passed from page.tsx (server state) ────────────────────────────────
 interface ContentAreaProps {
   // Server stats (only used by IT module)
@@ -75,6 +85,7 @@ interface ContentAreaProps {
   cpuUsage: number;
   ramUsage: number;
   diskUsage: number;
+  envVars?: EnvVar[];
 }
 
 // ─── Helper: Log line color ───────────────────────────────────────────────────
@@ -114,6 +125,7 @@ export default function ContentArea({
   cpuUsage,
   ramUsage,
   diskUsage,
+  envVars = [],
 }: ContentAreaProps) {
   const { state } = useNav();
   const { activeModule, activeChannel } = state;
@@ -213,16 +225,8 @@ export default function ContentArea({
       )}
 
       {/* Settings module */}
-      {activeModule === "settings" && activeChannel === "usuarios" && (
-        <SettingsUsersView />
-      )}
-      {activeModule === "settings" && activeChannel !== "usuarios" && (
-        <PlaceholderView
-          icon={Settings}
-          label={`Configuración — ${channelObj?.label || activeChannel}`}
-          color="#949BA4"
-          subtitle="Gestión de configuración (próximamente)"
-        />
+      {activeModule === "settings" && (
+        <SettingsModuleView envVars={envVars} />
       )}
     </main>
   );
@@ -780,55 +784,272 @@ function PlaceholderView({ icon: Icon, label, color, subtitle }: { icon: React.E
   );
 }
 
-// ─── Settings Users View ──────────────────────────────────────────────────────
-function SettingsUsersView() {
+// ─── Settings Views (Cuenta, Seguridad, Usuarios, Variables de Entorno) ───────
+
+function SettingsModuleView({ envVars }: { envVars: EnvVar[] }) {
+  const { state } = useNav();
+  const { activeChannel } = state;
+
+  switch (activeChannel) {
+    case "cuenta":
+      return <SettingsCuentaView />;
+    case "seguridad":
+      return <SettingsSecurityView />;
+    case "usuarios":
+      return <SettingsUsersView />;
+    case "variables-entorno":
+      return <SettingsEnvVarsView envVars={envVars} />;
+    default:
+      return (
+        <PlaceholderView
+          icon={Settings}
+          label="Módulo en desarrollo"
+          color="#949BA4"
+          subtitle="Esta sección de configuración estará disponible próximamente."
+        />
+      );
+  }
+}
+
+// ─── Pestaña Cuenta ───
+function SettingsCuentaView() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("USER");
-  const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bio, setBio] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const showToast = useMusicStore((s) => s.showToast);
 
-  const generateRandomPassword = () => {
-    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*";
-    let pass = "";
-    for (let i = 0; i < 12; i++) {
-      pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setPassword(pass);
-    setShowPassword(true);
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await fetch("/api/users/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setName(data.user.name || "");
+            setEmail(data.user.email || "");
+            setBio(data.user.bio || "");
+            setImage(data.user.image || null);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password || !role) {
-      setStatus({ type: "error", message: "Todos los campos obligatorios deben completarse." });
-      return;
-    }
-    setIsSubmitting(true);
-    setStatus(null);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
     try {
-      const res = await fetch("/api/users/create", {
+      const res = await fetch("/api/users/avatar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role }),
+        body: formData,
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setStatus({ type: "success", message: data.message });
-        setName("");
-        setEmail("");
-        setPassword("");
-        setRole("USER");
+        setImage(data.url);
+        showToast("Imagen de perfil actualizada correctamente.");
       } else {
-        setStatus({ type: "error", message: data.error || "Error al crear el usuario." });
+        showToast(data.error || "Error al subir la imagen.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setStatus({ type: "error", message: "Error de red al intentar conectar con la API." });
+      showToast("Error de conexión al subir la imagen.");
     } finally {
-      setIsSubmitting(false);
+      setUploading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/users/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, bio }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Perfil guardado con éxito.");
+      } else {
+        showToast(data.error || "Error al actualizar perfil.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error de conexión al guardar el perfil.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-400 mr-2" /> Cargando perfil...
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 p-6 overflow-y-auto">
+      <div className="max-w-xl mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            👤 Configuración de Cuenta
+          </h2>
+          <p className="text-xs text-[#949BA4] mt-1">
+            Actualiza tu información personal y foto de perfil corporativa.
+          </p>
+        </div>
+
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Avatar Click-to-upload */}
+          <div className="flex flex-col items-center gap-2">
+            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide">
+              Foto de Perfil
+            </label>
+            <div 
+              onClick={handleAvatarClick}
+              className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-zinc-700 bg-zinc-800 cursor-pointer group hover:border-[#5865F2] transition-colors"
+            >
+              {image ? (
+                <img src={image} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-2xl font-bold bg-[#5865F2]">
+                  {name.charAt(0).toUpperCase() || email.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <UploadCloud className="w-5 h-5 text-white" />
+                <span className="text-[9px] text-white font-bold mt-1 uppercase">Subir</span>
+              </div>
+              {uploading && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                </div>
+              )}
+            </div>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+            <span className="text-[10px] text-[#949BA4]">Haz clic para cambiar de foto (Formatos permitidos: PNG, JPG, WEBP)</span>
+          </div>
+
+          {/* Form fields */}
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+                Nombre Completo
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ingresa tu nombre completo"
+                className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+                Correo Electrónico
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="correo@absolutenexus.com"
+                className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
+                Biografía
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Cuéntanos un poco sobre ti..."
+                rows={4}
+                className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors resize-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2.5 px-4 rounded transition-colors cursor-pointer shadow-sm"
+          >
+            {saving ? "Guardando..." : "Guardar Cambios"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pestaña Seguridad ───
+function SettingsSecurityView() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const showToast = useMusicStore((s) => s.showToast);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showToast("La nueva contraseña y su confirmación no coinciden.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/users/security", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Contraseña cambiada correctamente.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        showToast(data.error || "Error al cambiar la contraseña.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error de conexión al cambiar la contraseña.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -837,113 +1058,474 @@ function SettingsUsersView() {
       <div className="max-w-md mx-auto bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-zinc-400" /> Crear Cuenta Secundaria
+            🔒 Seguridad de la Cuenta
           </h2>
           <p className="text-xs text-[#949BA4] mt-1">
-            Permite registrar un nuevo miembro del equipo asignando un rol de acceso específico.
+            Cambia tu contraseña periódicamente para mantener tu cuenta segura.
           </p>
         </div>
 
-        {status && (
-          <div
-            className={`p-3 rounded text-xs flex items-start gap-2 border ${
-              status.type === "success"
-                ? "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/30"
-                : "bg-[#F23F43]/10 text-[#F23F43] border-[#F23F43]/30"
-            }`}
-          >
-            <div className="mt-0.5 font-bold shrink-0">
-              {status.type === "success" ? "✓" : "⚠"}
-            </div>
-            <div>{status.message}</div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
-              Nombre Completo (Opcional)
+              Contraseña Actual
             </label>
             <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Juan Pérez"
-              className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
-              Correo Electrónico <span className="text-[#F23F43]">*</span>
-            </label>
-            <input
-              type="email"
+              type="password"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@absolutenexus.com"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••••••"
               className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
-              Contraseña <span className="text-[#F23F43]">*</span>
+              Nueva Contraseña
             </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Contraseña de acceso"
-                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-[#949BA4] hover:text-white transition-colors"
-                  title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                >
-                  {showPassword ? "👁" : "👁‍┐"}
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={generateRandomPassword}
-                className="bg-zinc-800 text-[#DBDEE1] border border-zinc-700 hover:bg-zinc-700 px-3 py-2.5 rounded text-xs font-semibold shrink-0 cursor-pointer transition-colors"
-              >
-                Generar
-              </button>
-            </div>
+            <input
+              type="password"
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min. 8 caracteres"
+              className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
+            />
           </div>
 
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-[#949BA4] uppercase tracking-wide block">
-              Rol de Acceso <span className="text-[#F23F43]">*</span>
+              Confirmar Nueva Contraseña
             </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              title="Seleccionar rol de acceso"
+            <input
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirmar contraseña"
               className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2.5 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] transition-colors"
-            >
-              <option value="USER">Usuario (Acceso Estándar)</option>
-              <option value="MODERATOR">Moderador (Acceso Elevado)</option>
-              <option value="ADMIN_GENERAL">Administrador General (Acceso Total)</option>
-            </select>
+            />
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-[#23A55A] hover:bg-[#1a7f43] disabled:bg-[#23A55A]/50 text-white font-semibold text-xs py-2.5 px-4 rounded transition-colors mt-2 cursor-pointer shadow-sm"
+            disabled={saving}
+            className="w-full bg-[#5865F2] hover:bg-[#4752C4] disabled:bg-[#5865F2]/50 text-white font-semibold text-xs py-2.5 px-4 rounded transition-colors cursor-pointer shadow-sm"
           >
-            {isSubmitting ? "Registrando..." : "Crear Usuario"}
+            {saving ? "Actualizando..." : "Actualizar Contraseña"}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pestaña Gestión de Usuarios CRUD ───
+function SettingsUsersView() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Modal CRUD states
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  // Form states
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("USER");
+  const [bio, setBio] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const showToast = useMusicStore((s) => s.showToast);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.users) {
+          setUsers(data.users);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    // Get logged-in user to prevent self-deletion
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(data => {
+        if (data?.user) {
+          setCurrentUserId(data.user.id);
+        }
+      });
+  }, []);
+
+  const openAddModal = () => {
+    setModalMode("add");
+    setSelectedUser(null);
+    setName("");
+    setEmail("");
+    setPassword("");
+    setRole("USER");
+    setBio("");
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user: any) => {
+    setModalMode("edit");
+    setSelectedUser(user);
+    setName(user.name || "");
+    setEmail(user.email || "");
+    setPassword(""); // Keep empty to not change password
+    setRole(user.role || "USER");
+    setBio(user.bio || "");
+    setIsModalOpen(true);
+  };
+
+  const handleModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const payload: any = { name, email, role, bio };
+      if (modalMode === "edit" && selectedUser) {
+        payload.id = selectedUser.id;
+        if (password.trim() !== "") {
+          payload.password = password;
+        }
+        const res = await fetch("/api/admin/users", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast("Usuario actualizado correctamente.");
+          setIsModalOpen(false);
+          fetchUsers();
+        } else {
+          showToast(data.error || "Error al actualizar usuario.");
+        }
+      } else {
+        payload.password = password;
+        const res = await fetch("/api/admin/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast("Usuario creado correctamente.");
+          setIsModalOpen(false);
+          fetchUsers();
+        } else {
+          showToast(data.error || "Error al crear usuario.");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error de conexión al procesar la solicitud.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (id === currentUserId) {
+      showToast("No puedes eliminar tu propia cuenta.");
+      return;
+    }
+    if (!confirm(`¿Estás seguro de que deseas eliminar el usuario "${name}"? Esta acción es irreversible.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Usuario eliminado con éxito.");
+        fetchUsers();
+      } else {
+        showToast(data.error || "Error al eliminar el usuario.");
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Error de conexión al eliminar usuario.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[#949BA4] text-sm">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-400 mr-2" /> Cargando usuarios...
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 p-6 overflow-y-auto relative">
+      <div className="bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div className="flex justify-between items-center gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              👥 Gestión de Usuarios
+            </h2>
+            <p className="text-xs text-[#949BA4] mt-1">
+              Administración centralizada de cuentas secundarias, roles y accesos del panel.
+            </p>
+          </div>
+          <button
+            onClick={openAddModal}
+            className="bg-[#23A55A] hover:bg-[#1a7f43] text-white text-xs px-3.5 py-2.5 rounded font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow"
+          >
+            + Añadir Usuario
+          </button>
+        </div>
+
+        {/* Data Table */}
+        <div className="bg-[#1E1F22] rounded-lg border border-[#1F2023] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-[#111214] text-[#949BA4] font-bold border-b border-[#1F2023] uppercase text-[10px] tracking-wider">
+                  <th className="p-3">Usuario</th>
+                  <th className="p-3">Email</th>
+                  <th className="p-3">Rol</th>
+                  <th className="p-3">Biografía</th>
+                  <th className="p-3 text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1F2023]">
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <tr key={user.id} className="hover:bg-[#2B2D31]/40 text-[#DBDEE1] transition-colors">
+                      <td className="p-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                          {user.image ? (
+                            <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-white">
+                              {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold">{user.name || "Sin nombre"}</span>
+                        {user.id === currentUserId && (
+                          <span className="text-[9px] bg-zinc-800 text-zinc-400 px-1 py-0.5 rounded ml-1 border border-zinc-700">Tú</span>
+                        )}
+                      </td>
+                      <td className="p-3 font-mono text-[#B5BAC1]">{user.email}</td>
+                      <td className="p-3">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${
+                          user.role === "ADMIN_GENERAL" 
+                            ? "bg-[#A78BFA]/10 text-[#A78BFA] border-[#A78BFA]/20" 
+                            : user.role === "MODERATOR" 
+                            ? "bg-[#60A5FA]/10 text-[#60A5FA] border-[#60A5FA]/20"
+                            : "bg-[#23A55A]/10 text-[#23A55A] border-[#23A55A]/20"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="p-3 text-zinc-500 italic max-w-[200px] truncate">
+                        {user.bio || "Sin biografía"}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex justify-center gap-1.5">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-[#DBDEE1] p-1.5 rounded transition cursor-pointer border border-zinc-700"
+                            title="Editar usuario"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id, user.name || user.email)}
+                            disabled={user.id === currentUserId}
+                            className={`p-1.5 rounded border transition ${
+                              user.id === currentUserId 
+                                ? "bg-zinc-800/40 border-zinc-800 text-zinc-600 cursor-not-allowed" 
+                                : "bg-[#F23F43]/15 hover:bg-[#F23F43] hover:text-white text-[#F23F43] border-[#F23F43]/20 cursor-pointer"
+                            }`}
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="p-4 text-center text-zinc-500">
+                      No hay usuarios registrados en el sistema.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* CRUD Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#2B2D31] border border-[#1F2023] rounded-lg w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="bg-[#1E1F22] p-4 border-b border-[#1F2023] flex justify-between items-center">
+              <h3 className="font-bold text-white text-sm">
+                {modalMode === "add" ? "Añadir Nuevo Usuario" : "Editar Usuario"}
+              </h3>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="text-[#949BA4] hover:text-white text-sm"
+                title="Cerrar modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleModalSubmit} className="p-4 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-[#949BA4] uppercase tracking-wide">
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ej. Pedro Pérez"
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-[#949BA4] uppercase tracking-wide">
+                  Correo Electrónico
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="pedro@absolutenexus.com"
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-[#949BA4] uppercase tracking-wide">
+                  Contraseña {modalMode === "edit" && "(dejar en blanco para conservar actual)"}
+                </label>
+                <input
+                  type="password"
+                  required={modalMode === "add"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={modalMode === "add" ? "Mín. 8 caracteres" : "Nueva contraseña (opcional)"}
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-[#949BA4] uppercase tracking-wide">
+                  Rol de Acceso
+                </label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  title="Seleccionar rol de acceso del usuario"
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2]"
+                >
+                  <option value="USER">Usuario (Acceso Estándar)</option>
+                  <option value="MODERATOR">Moderador (Acceso Elevado)</option>
+                  <option value="ADMIN_GENERAL">Administrador General (Acceso Total)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-[#949BA4] uppercase tracking-wide">
+                  Biografía
+                </label>
+                <textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Detalles del puesto o biografía..."
+                  rows={3}
+                  className="w-full bg-[#1E1F22] text-[#DBDEE1] text-xs p-2 rounded border border-[#1F2023] outline-none focus:border-[#5865F2] resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#1F2023]">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-[#DBDEE1] px-4 py-2 rounded text-xs font-semibold cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-[#23A55A] hover:bg-[#1a7f43] text-white px-4 py-2 rounded text-xs font-semibold cursor-pointer disabled:opacity-50"
+                >
+                  {saving ? "Guardando..." : "Guardar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Pestaña Variables de Entorno (Enmascarado Seguro) ───
+function SettingsEnvVarsView({ envVars }: { envVars: EnvVar[] }) {
+  return (
+    <div className="flex-1 p-6 overflow-y-auto">
+      <div className="bg-[#2B2D31] rounded-lg border border-[#1F2023] p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            🔑 Variables de Entorno (Enmascaramiento de Seguridad)
+          </h2>
+          <p className="text-xs text-[#949BA4] mt-1">
+            Se muestran las variables del sistema en ejecución. Los valores están enmascarados del lado del servidor para prevenir fugas de secretos en el DOM o bundle de producción.
+          </p>
+        </div>
+
+        {/* Console / Monospaced Listing */}
+        <div className="bg-[#1E1F22] rounded-lg border border-[#1F2023] p-4 font-mono text-xs space-y-2.5 overflow-hidden select-text">
+          <div className="text-zinc-500 italic pb-2 border-b border-[#2B2D31] flex justify-between">
+            <span>LLAVE DEL SISTEMA</span>
+            <span>VALOR ACTUAL ENMACHARADO (SERVER-SIDE)</span>
+          </div>
+          {envVars.length > 0 ? (
+            envVars.map((env) => (
+              <div key={env.key} className="flex justify-between items-center gap-4 py-1.5 hover:bg-[#2B2D31]/35 px-2 rounded transition-colors">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                  <span className="text-[#60A5FA] font-semibold truncate select-all">{env.key}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                  <Shield className="w-3 h-3 text-[#23A55A]" />
+                  <span className="text-[#80848E] font-bold tracking-wide select-none">{env.value}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-zinc-600 italic">No se cargaron variables de entorno desde el servidor.</div>
+          )}
+        </div>
       </div>
     </div>
   );

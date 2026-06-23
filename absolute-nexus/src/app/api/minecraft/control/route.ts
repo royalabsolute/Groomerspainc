@@ -263,35 +263,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: "Restart cycle scheduled" });
     }
 
-    // --- Action: COMMAND (RCON execution) ---
-    if (action === "command") {
-      if (!command) {
-        return NextResponse.json({ success: false, error: "Command is required" }, { status: 400 });
-      }
 
-      // Send command via RCON TCP Client
-      try {
-        const response = await sendRconCommand(rconHost, rconPort, rconPassword, command);
-        addServerLog(`[RCON Command Run] ${command} -> ${response.trim()}`);
-        return NextResponse.json({ success: true, response });
-      } catch (error) {
-        const errMsg = (error as Error).message;
-        
-        // High fidelity dev fallback: if connection refused, simulate command output so testing still works
-        if (errMsg.includes("ECONNREFUSED") || errMsg.includes("Timeout")) {
-          const mockResponse = getMockCommandResponse(command);
-          addServerLog(`[MOCK RCON] ${command} -> ${mockResponse}`);
-          return NextResponse.json({ 
-            success: true, 
-            response: mockResponse, 
-            warning: "Simulated output (RCON Offline)" 
-          });
-        }
-
-        addServerLog(`[RCON Error] Failed to run command: ${errMsg}`);
-        return NextResponse.json({ success: false, error: errMsg }, { status: 500 });
-      }
-    }
 
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 });
   } catch (error) {
@@ -315,26 +287,7 @@ function addServerLog(msg: string) {
   }
 }
 
-// Mock responses dictionary for high-fidelity developer previews
-function getMockCommandResponse(command: string): string {
-  const cmd = command.trim().toLowerCase();
-  if (cmd.startsWith("help")) {
-    return "Available mock commands: /list, /say, /tps, /op, /deop, /kick";
-  }
-  if (cmd.startsWith("list") || cmd.startsWith("/list")) {
-    return "There are 3 players online: Jagger, Steve, Alex";
-  }
-  if (cmd.startsWith("tps") || cmd.startsWith("/tps")) {
-    return "TPS from last 1m: 20.0 (100% capacity)";
-  }
-  if (cmd.startsWith("say") || cmd.startsWith("/say")) {
-    return `[Broadcast] ${command.substring(cmd.indexOf("say") + 3).trim()}`;
-  }
-  if (cmd.startsWith("op") || cmd.startsWith("/op")) {
-    return `Granted operator privileges to user.`;
-  }
-  return `Command executed successfully (Mock Mode): "${command}"`;
-}
+
 
 export async function GET() {
   const session = await auth();

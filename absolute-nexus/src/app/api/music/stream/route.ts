@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { existsSync, createReadStream, statSync } from "fs";
 import db from "@/lib/db";
 import { auth } from "@/auth";
+import { getYoutubeClient } from "@/lib/youtube";
 
 export async function GET(request: NextRequest) {
   try {
@@ -64,10 +65,7 @@ export async function GET(request: NextRequest) {
 
     // ── Branch B: Stream from YouTube via InnerTube (youtubei.js v17) ────────
     if (videoId) {
-      // Dynamic import needed because youtubei.js is ESM-only (type: module)
-      const { Innertube } = await import("youtubei.js");
-
-      const yt = await Innertube.create({ client_type: "ANDROID" } as any);
+      const yt = await getYoutubeClient();
       const stream = await yt.download(videoId, { type: "audio", quality: "best" });
       
       // Conversión crítica para Next.js

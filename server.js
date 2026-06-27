@@ -26,6 +26,29 @@ app.prepare().then(startServer);
 
 function startServer() {
   const server = http.createServer((req, res) => {
+    // Interceptar la petición de recursos estáticos en public/uploads de forma directa
+    if (req.url.startsWith("/uploads/")) {
+      const filePath = path.join(__dirname, "public", req.url);
+      if (fs.existsSync(filePath)) {
+        const ext = path.extname(filePath).toLowerCase();
+        let contentType = "application/octet-stream";
+        if (ext === ".png") contentType = "image/png";
+        else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
+        else if (ext === ".gif") contentType = "image/gif";
+        else if (ext === ".svg") contentType = "image/svg+xml";
+        else if (ext === ".webm") contentType = "video/webm";
+        else if (ext === ".mp4") contentType = "video/mp4";
+        
+        res.writeHead(200, { "Content-Type": contentType });
+        fs.createReadStream(filePath).pipe(res);
+        return;
+      } else {
+        res.writeHead(404);
+        res.end("Not Found");
+        return;
+      }
+    }
+
     return handler(req, res).catch((err) => {
       console.error("Handler error:", err);
       res.statusCode = 500;

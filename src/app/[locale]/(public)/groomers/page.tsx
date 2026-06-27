@@ -7,6 +7,12 @@ import { PopArtDots, PopArtZap, PopArtStar } from '@/components/public/PopArtDec
 import { ZigzagYellowDoodle, OrangeBlobDoodle, CyanPlusDoodle } from '@/components/public/Doodles';
 import InfiniteMarquee from "@/components/public/InfiniteMarquee";
 import TornPaperDivider from "@/components/public/TornPaperDivider";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Groomers, INC. | Peluquería Canina a Domicilio Premium",
+  description: "Servicio profesional de peluquería canina a domicilio en Miami y Broward. Cortes de pelo expertos, baños completos y spa canino.",
+};
 
 const GallerySection = dynamic(() => import('@/components/public/GallerySection'), {
   loading: () => <div className="min-h-[400px] bg-secondary/10 animate-pulse rounded-3xl m-8" />

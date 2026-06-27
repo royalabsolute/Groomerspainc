@@ -25,6 +25,7 @@ services:
       - /:/vps-root
       - /var/minecraft/server:/var/minecraft/server
       - /var/nexus/music:/app/music_storage
+      - /var/www/groomingpet/public/uploads:/app/public/uploads
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
     logging:

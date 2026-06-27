@@ -2590,7 +2590,11 @@ function ChatView() {
 
   // Connect to /chat namespace once on mount
   useEffect(() => {
-    const s = socketIO("/chat", {
+    const socketUrl = typeof window !== "undefined" && window.location.port === "3000"
+      ? "http://localhost:3001/chat"
+      : "/chat";
+
+    const s = socketIO(socketUrl, {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
     });

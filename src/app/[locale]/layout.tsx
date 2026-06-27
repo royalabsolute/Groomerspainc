@@ -21,14 +21,14 @@ export async function generateMetadata({
 
     return {
         title: {
-            template: '%s | Groomers, INC. Miami',
+            template: '%s | Royal Absolute',
             default: isEs
-                ? 'Groomers, INC. | Peluquería Canina a Domicilio Premium en Miami, FL'
-                : 'Groomers, INC. | Premium Mobile Dog & Pet Grooming in Miami, FL'
+                ? 'Royal Absolute | Portal Central de Gestión Multinegocio'
+                : 'Royal Absolute | Central Multi-business Management Portal'
         },
         description: isEs
-            ? 'Servicio profesional de peluquería canina a domicilio en Miami y Broward. Cortes de pelo expertos, baños completos, limpieza dental y spa canino de lujo.'
-            : 'Top-rated professional mobile pet grooming services in Miami and Broward, Florida. Expert dog haircuts, full baths, teeth cleaning, and luxury spa treatments.',
+            ? 'Portal corporativo unificado de Royal Absolute para servicios, hospitality y peluquería canina.'
+            : 'Unified corporate portal of Royal Absolute for services, hospitality and mobile pet grooming.',
         keywords: isEs
             ? ["peluqueria canina Miami", "grooming a domicilio Miami", "baño de perros a domicilio", "estilista canino Miami", "limpieza de dientes perros Miami", "Groomers, INC.", "peluqueria canina cerca de mi", "mobile grooming miami"]
             : ["pet grooming Miami", "mobile dog grooming Miami", "dog grooming near me", "Miami pet spa", "dog haircuts Miami FL", "professional dog bath", "Groomers, INC.", "pet stylist Florida"],

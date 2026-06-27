@@ -34,7 +34,11 @@ export default function DashboardContent({ envVars }: DashboardContentProps) {
 
   // ── WebSocket: logs + status + telemetry ──────────────────────────────────
   useEffect(() => {
-    const socket = io(typeof window !== "undefined" ? window.location.origin : "", {
+    const socketUrl = typeof window !== "undefined" && window.location.port === "3000"
+      ? "http://localhost:3001"
+      : (typeof window !== "undefined" ? window.location.origin : "");
+
+    const socket = io(socketUrl, {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,

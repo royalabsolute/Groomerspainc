@@ -5,6 +5,15 @@ import MusicPlayer from "@/components/MusicPlayer";
 import SessionProviderWrapper from "@/components/admin/SessionProviderWrapper";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    template: "%s | Absolute Nexus",
+    default: "Absolute Nexus | ERP Panel",
+  },
+  description: "Absolute Nexus Enterprise Resource Planning Panel",
+};
 
 export default async function AdminLayout({
   children,

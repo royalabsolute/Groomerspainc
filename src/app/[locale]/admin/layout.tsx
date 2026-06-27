@@ -1,67 +1,64 @@
-import AdminSidebar from "@/components/admin/AdminSidebar";
-import AdminHeaderBar from "@/components/admin/AdminHeaderBar";
+import AppSidebar from "@/components/AppSidebar";
+import SecondaryPanel from "@/components/SecondaryPanel";
+import { NavigationProvider } from "@/context/NavigationContext";
+import MusicPlayer from "@/components/MusicPlayer";
+import SessionProviderWrapper from "@/components/admin/SessionProviderWrapper";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import db from "@/lib/db";
-import SessionProviderWrapper from "@/components/admin/SessionProviderWrapper";
 
 export default async function AdminLayout({
-    children,
-    params
+  children,
+  params,
 }: {
-    children: React.ReactNode;
-    params: Promise<{ locale: string }>;
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
-    const session = await auth();
+  const session = await auth();
+  const { locale } = await params;
 
-    // Protection to ensure only authorized users access this layout
-    const { locale } = await (params as any);
-    if (!session) {
-        redirect(`/${locale}/login-admin`);
-    }
+  // Redirigir si no está autenticado
+  if (!session || !session.user) {
+    redirect(`/${locale}/login-admin?callbackUrl=/${locale}/admin`);
+  }
 
-    const rawPending = await (db as any).quoteRequest.findMany({
-        where: { status: 'PENDING_REVIEW' },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
-        include: {
-            pets: {
-                include: {
-                    services: true
-                }
-            }
-        }
-    });
+  return (
+    <SessionProviderWrapper>
+      <NavigationProvider>
+        <div className="flex h-screen w-full select-none overflow-hidden bg-[#1E1F22] font-sans antialiased text-[#DBDEE1]">
+          {/* Barra lateral izquierda de Absolute Nexus (72px) */}
+          <AppSidebar />
 
-    const serializedInquiries = rawPending.map((q: any) => {
-        const petNames = (q.pets || []).map((p: any) => p.name).join(", ") || "N/A";
-        const serviceNames = (q.pets || [])
-            .flatMap((p: any) => (p.services || []).map((s: any) => s.nameEs))
-            .filter(Boolean)
-            .join(", ") || "Grooming";
+          {/* Barra de canales secundaria (240px) */}
+          <SecondaryPanel />
 
-        return {
-            id: q.id,
-            name: q.ownerName,
-            petName: petNames,
-            service: serviceNames,
-            message: q.message || "",
-            createdAt: q.createdAt.toISOString(),
-            status: q.status
-        };
-    });
+          {/* Área principal del panel administrativo */}
+          <div className="flex-1 bg-[#313338] flex flex-col min-w-0 overflow-hidden relative">
+            {/* Header unificado estilo Discord */}
+            <header className="h-12 border-b border-[#1F2023] flex items-center justify-between px-6 shrink-0 bg-[#313338] shadow-[0_1px_2px_rgba(0,0,0,0.24)] z-10">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-white text-sm">Absolute ERP Panel</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-zinc-400 font-light">
+                  Sesión activa: <strong className="text-zinc-200 font-semibold">{session.user.name || session.user.email}</strong>
+                </span>
+                <span className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300 capitalize text-[10px]">
+                  {session.user.role || "ADMIN_GENERAL"}
+                </span>
+              </div>
+            </header>
 
-    return (
-        <SessionProviderWrapper>
-            <div className="admin-scope flex bg-[#121212] text-[#E0E0E0] h-screen w-full overflow-hidden">
-                <AdminSidebar />
-                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                    <AdminHeaderBar user={session?.user} pendingInquiries={serializedInquiries} />
-                    <main className="flex-1 overflow-y-auto pt-6 pb-24 lg:pt-8 lg:pb-8 px-4 md:px-8">
-                        {children}
-                    </main>
-                </div>
-            </div>
-        </SessionProviderWrapper>
-    );
+            {/* Contenido de la página */}
+            <main className="flex-1 overflow-y-auto min-w-0">
+              {children}
+            </main>
+          </div>
+        </div>
+
+        {/* Reproductor de música global */}
+        <MusicPlayer />
+      </NavigationProvider>
+    </SessionProviderWrapper>
+  );
 }

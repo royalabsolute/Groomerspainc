@@ -4,6 +4,21 @@ import { PrismaAdapter } from "@auth/prisma-adapter"
 import db from "@/lib/db"
 import { compare } from "bcryptjs"
 
+declare module "next-auth" {
+    interface User {
+        role?: string;
+    }
+    interface Session {
+        user: {
+            id?: string;
+            email?: string;
+            name?: string;
+            image?: string;
+            role?: string;
+        };
+    }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
     adapter: PrismaAdapter(db),
     session: {
@@ -37,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     email: user.email,
                     name: user.name,
                     image: user.image,
+                    role: user.role || "ADMIN_GENERAL",
                 }
             }
         })
@@ -50,12 +66,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 token.id = (user as { id?: string }).id;
                 token.name = (user as { name?: string | null }).name;
                 token.image = (user as { image?: string | null }).image;
+                token.role = (user as { role?: string }).role;
             }
             // Handle active update in session
             if (trigger === "update" && session) {
                 if (session.name !== undefined) token.name = session.name;
                 if (session.image !== undefined) token.image = session.image;
                 if (session.email !== undefined) token.email = session.email;
+                if (session.role !== undefined) token.role = session.role;
             }
             return token
         },
@@ -65,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 (session.user as { name?: string | null }).name = token.name as string | null;
                 (session.user as { image?: string | null }).image = token.image as string | null;
                 (session.user as { email?: string }).email = token.email as string;
+                (session.user as any).role = token.role as string;
             }
             return session
         }

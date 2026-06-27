@@ -9,13 +9,17 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  name      String?
+  name      String   @default("")
   email     String   @unique
   password  String
   image     String?
   avatarUrl String?  // Optional column for Supabase avatar storage
+  role      String   @default("ADMIN_GENERAL")
+  bio       String?
   createdAt DateTime @default(now())
   playlists Playlist[]
+  messages  Message[]
+  reactions Reaction[]
 }
 
 
@@ -132,7 +136,7 @@ model SiteConfig {
   instagramActive           Boolean @default(true)
   twitterActive             Boolean @default(true)
   accentColor               String? @default("#7C3AED") // Hex accent color configuration
-  primaryColor              String? @default("#121212") // Primary Hex color configuration
+  primaryColor              String? @default("#121212") // Hex color configuration
   heroSectionActive         Boolean @default(true)      // Section toggle states
   servicesSectionActive     Boolean @default(true)
   testimonialsSectionActive Boolean @default(true)
@@ -145,6 +149,9 @@ model SiteConfig {
   weightTier2Price          Float?  @default(60.0)
   weightTier3Price          Float?  @default(75.0)
   weightTier4Price          Float?  @default(95.0)
+  minecraftPath             String? @default("e:/ABSOLUTE FILES/MINECRAFT SERVER 1.20.1 FABRIC")
+  minecraftServerPath       String? @default("/var/minecraft/server")
+  publicIp                  String? @default("mc.absolutenexus.net")
 }
 
 model Transformation {
@@ -155,7 +162,7 @@ model Transformation {
   serviceDate           DateTime
   beforePhotoUrl        String   // Ruta local NVMe
   afterPhotoUrl         String   // Ruta local NVMe
-  contractImage         String?  // Documento/Contrato de Evaluación (portafolio)
+  contractImage         String?  // Documento/Contrato de Evaluación
   technicalDescriptionEs String
   technicalDescriptionEn String
   visible               Boolean  @default(true)
@@ -190,8 +197,6 @@ model Transaction {
   @@index([type])
   @@index([date])
 }
-
-
 
 model ServiceItem {
   id        String          @id @default(cuid())
@@ -297,8 +302,19 @@ model Song {
   thumbnail     String
   localFilePath String?    // Path on the VPS storage
   playlists     Playlist[]
+  lyrics        Lyrics?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
+}
+
+model Lyrics {
+  id           String   @id @default(cuid())
+  songId       String   @unique
+  song         Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  provider     String   @default("LRCLIB")
+  plainLyrics  String?
+  syncedLyrics String?
+  updatedAt    DateTime @updatedAt
 }
 
 model Playlist {
@@ -310,4 +326,86 @@ model Playlist {
   songs     Song[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model LiveRoom {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isLive      Boolean  @default(false)
+  activeUsers Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Chat Interno ──────────────────────────────────────────────────────────────
+model Channel {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  messages  Message[]
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  content        String
+  channelId      String
+  channel        Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachmentUrl  String?
+  attachmentType String?
+  isEdited       Boolean  @default(false)
+  reactions      Reaction[]
+  
+  // Self-relation fields for message replies
+  replyToId      String?
+  replyTo        Message?  @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[] @relation("MessageReplies")
+  
+  createdAt      DateTime @default(now())
+
+  @@index([channelId, createdAt])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([userId])
+}
+
+model HotelProperty {
+  id            String      @id @default(cuid())
+  name          String
+  descriptionEs String
+  descriptionEn String
+  rooms         HotelRoom[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model HotelRoom {
+  id         String        @id @default(cuid())
+  propertyId String
+  property   HotelProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String
+  status     String        @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
+  price      Float
+  svgMapId   String        @unique // ID del polígono/rectángulo interactivo en el SVG
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([propertyId])
+}
+
+model HotelContent {
+  key String @id
+  es  String
+  en  String
 }

@@ -16,9 +16,7 @@ const hostname = process.env.HOSTNAME || "0.0.0.0";
 let handler;
 
 const next = require("next");
-const targetDir = fs.existsSync(path.join(__dirname, "absolute-nexus"))
-  ? path.join(__dirname, "absolute-nexus")
-  : __dirname;
+const targetDir = __dirname;
 
 const app = next({ dev, hostname, port, dir: targetDir });
 handler = app.getRequestHandler();

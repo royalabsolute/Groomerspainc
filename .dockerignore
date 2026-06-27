@@ -1,0 +1,16 @@
+.git
+.next
+node_modules
+absolute-nexus
+MINECRAFT SERVER 1.20.1 FABRIC.7z
+FOTOS PORTAFOLIO
+.env
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

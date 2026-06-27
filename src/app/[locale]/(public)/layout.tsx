@@ -12,7 +12,7 @@ export default async function PublicLayout({
     const config = await getConfig();
 
     return (
-        <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
+        <div className="min-h-screen w-full m-0 p-0 overflow-x-hidden bg-background">
             {/* Realtime listener for client-side socket sync */}
             <RealtimeListener />
             
@@ -20,7 +20,7 @@ export default async function PublicLayout({
             <Navbar config={config} />
             
             {/* Main content flow */}
-            <main className="flex-1 w-full overflow-x-hidden">{children}</main>
+            <main className="min-h-screen w-full m-0 p-0 overflow-x-hidden bg-background">{children}</main>
             
             {/* Notification service */}
             <Toaster richColors position="top-right" />

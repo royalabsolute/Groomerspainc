@@ -3,6 +3,12 @@ import { auth } from "./auth";
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname === "/login";
+  const isHospitalityPublic = req.nextUrl.pathname.startsWith("/hospitality");
+
+  // Permitir acceso público a la web de hospitalidad
+  if (isHospitalityPublic) {
+    return;
+  }
 
   // Redirigir a /login si el usuario no ha iniciado sesión y no está en la página de login
   if (!isLoggedIn && !isLoginPage) {

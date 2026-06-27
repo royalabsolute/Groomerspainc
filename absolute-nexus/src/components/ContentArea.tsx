@@ -954,6 +954,8 @@ function SettingsCuentaView() {
               onChange={handleFileChange} 
               accept="image/*" 
               className="hidden" 
+              title="Subir foto de perfil"
+              placeholder="Subir foto de perfil"
             />
             <span className="text-[10px] text-[#949BA4]">Haz clic para cambiar de foto (Formatos permitidos: PNG, JPG, WEBP)</span>
           </div>
@@ -1892,7 +1894,7 @@ function MusicModuleView() {
             <span>🎤 Letras Sincronizadas</span>
             <span className="text-[9px] text-[#23A55A] font-bold bg-[#23A55A]/10 border border-[#23A55A]/25 px-1.5 py-0.5 rounded">LRCLIB</span>
           </div>
-          <div className="flex-grow flex-shrink min-h-0 overflow-hidden">
+          <div className="grow shrink min-h-0 overflow-hidden">
             <SyncedLyricsView />
           </div>
         </div>
@@ -2872,15 +2874,14 @@ function ChatView() {
   const getAvatar = (user: ChatMessage["user"]) => {
     const src = user.avatarUrl || user.image;
     const initial = (user.name || user.email || "A")[0].toUpperCase();
-    const palette = ["#5865F2", "#23A55A", "#F23F43", "#FFa500", "#60A5FA", "#A78BFA"];
-    const bg = palette[initial.charCodeAt(0) % palette.length];
+    const palette = ["bg-[#5865F2]", "bg-[#23A55A]", "bg-[#F23F43]", "bg-[#FFa500]", "bg-[#60A5FA]", "bg-[#A78BFA]"];
+    const bgClass = palette[initial.charCodeAt(0) % palette.length];
     if (src) {
-      return <img src={src} alt={user.name ?? user.email} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />;
+      return <img src={src} alt={user.name ?? user.email} className="w-10 h-10 rounded-full object-cover shrink-0" />;
     }
     return (
       <div
-        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-        style={{ backgroundColor: bg }}
+        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 ${bgClass}`}
       >
         {initial}
       </div>
@@ -2967,6 +2968,8 @@ function ChatView() {
             onChange={(e) => setEditInput(e.target.value)}
             className="w-full bg-[#383a40] text-[#dbdee1] text-sm px-3 py-2 rounded outline-none border border-[#5865f2]"
             autoFocus
+            title="Editar mensaje"
+            placeholder="Editar mensaje"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 handleEditMessage(msg.id, editInput);
@@ -2988,7 +2991,7 @@ function ChatView() {
     return (
       <div className="text-sm flex flex-col items-start">
         {msg.content && (
-          <div className="text-[#dbdee1] text-sm leading-relaxed break-words whitespace-pre-wrap select-text">
+          <div className="text-[#dbdee1] text-sm leading-relaxed wrap-break-word whitespace-pre-wrap select-text">
             <ReactMarkdown
               components={{
                 code({ className, children, ...props }) {
@@ -3149,7 +3152,7 @@ function ChatView() {
         items.push(
           <div key={msg.id} className="relative group flex items-start gap-3 px-4 py-0.5 hover:bg-[#2e3035] rounded">
             {buildActionsOverlay(msg)}
-            <div className="w-10 flex-shrink-0 flex justify-center items-center pt-0.5">
+            <div className="w-10 shrink-0 flex justify-center items-center pt-0.5">
               <span className="text-[10px] text-[#80848E] opacity-0 group-hover:opacity-100 transition-opacity select-none leading-none">
                 {fmt(msg.createdAt)}
               </span>
@@ -3311,6 +3314,8 @@ function ChatView() {
             type="file"
             onChange={handleFileChange}
             className="hidden"
+            title="Adjuntar archivo"
+            placeholder="Adjuntar archivo"
           />
           <button
             type="button"

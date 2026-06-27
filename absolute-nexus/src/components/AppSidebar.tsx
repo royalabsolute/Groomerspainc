@@ -22,7 +22,7 @@ const MODULES: {
 }[] = [
   { id: "home",     icon: Home,         label: "Absolute Home" },
   { id: "grooming", icon: Scissors,     label: "Grooming Pet" },
-  { id: "hotel",    icon: BedDouble,    label: "Hotelera Pet" },
+  { id: "hotel",    icon: BedDouble,    label: "Gestión Hotelera" },
   { id: "it",       icon: Terminal,     label: "Consola IT & VPS" },
   { id: "files",    icon: FolderOpen,   label: "File Manager" },
   { id: "chat",     icon: MessageSquare,label: "Chat Interno" },
@@ -108,6 +108,18 @@ function AppPill({
 export default function AppSidebar() {
   const { state, setModule } = useNav();
 
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const mod = params.get("module") as GlobalModule;
+      if (mod && MODULE_CONFIG[mod]) {
+        setModule(mod);
+        // Clean query parameters
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [setModule]);
+
   return (
     <aside className="w-[72px] bg-[#1E1F22] flex flex-col items-center py-3 gap-2 shrink-0 overflow-y-auto overflow-x-hidden scrollbar-none">
       {MODULES.map((mod) => (
@@ -117,7 +129,17 @@ export default function AppSidebar() {
             icon={mod.icon}
             label={mod.label}
             isActive={state.activeModule === mod.id}
-            onClick={() => setModule(mod.id)}
+            onClick={() => {
+              if (mod.id === "hotel") {
+                window.location.href = "/admin/hospitality";
+              } else {
+                if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin/hospitality")) {
+                  window.location.href = `/?module=${mod.id}`;
+                } else {
+                  setModule(mod.id);
+                }
+              }
+            }}
           />
           {/* Horizontal divider after the defined separator */}
           {mod.id === SEPARATOR_AFTER && (

@@ -379,3 +379,33 @@ model Reaction {
   @@index([messageId])
   @@index([userId])
 }
+
+model HotelProperty {
+  id            String      @id @default(cuid())
+  name          String
+  descriptionEs String
+  descriptionEn String
+  rooms         HotelRoom[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model HotelRoom {
+  id         String        @id @default(cuid())
+  propertyId String
+  property   HotelProperty @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name       String
+  status     String        @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
+  price      Float
+  svgMapId   String        @unique // ID del polígono/rectángulo interactivo en el SVG
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([propertyId])
+}
+
+model HotelContent {
+  key String @id
+  es  String
+  en  String
+}

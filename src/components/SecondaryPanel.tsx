@@ -414,7 +414,7 @@ function ChatSidebar() {
   };
 
   return (
-    <div className="flex-grow space-y-4">
+    <div className="grow space-y-4">
       <div className="pt-2">
         {/* Category Header with "+" button */}
         <div className="w-full flex items-center justify-between px-2 pb-1 text-xs font-bold text-[#949BA4] tracking-wider uppercase">

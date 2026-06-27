@@ -65,7 +65,7 @@ export default function LoginPage() {
             <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.05)_0%,transparent_100%)] pointer-events-none" />
             
             {/* Tech grid overlay */}
-            <div className="absolute inset-0 z-0 opacity-[0.02] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+            <div className="absolute inset-0 z-0 opacity-[0.02] bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-size-[24px_24px] pointer-events-none" />
 
             {/* Language Selector */}
             <div className="absolute top-6 right-6 z-20 flex bg-slate-900/80 backdrop-blur-md border border-slate-800 p-0.5 rounded-lg">

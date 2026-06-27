@@ -125,9 +125,11 @@ export default function SecondaryPanel() {
                     const locale = (pathParts[0] === "es" || pathParts[0] === "en") ? pathParts[0] : "es";
 
                     if (activeModule === "grooming") {
-                      let target = ch.id;
-                      if (ch.id === "dashboard-grooming") target = "dashboard";
-                      window.location.href = `/${locale}/admin/${target}`;
+                      if (ch.id === "dashboard-grooming") {
+                        window.location.href = `/${locale}/admin/groomers`;
+                      } else {
+                        window.location.href = `/${locale}/admin/groomers/${ch.id}`;
+                      }
                     } else if (activeModule === "hotel") {
                       const isOnHotelPage = window.location.pathname.includes("/admin/hospitality");
                       if (!isOnHotelPage) {
@@ -182,9 +184,11 @@ export default function SecondaryPanel() {
                               const locale = (pathParts[0] === "es" || pathParts[0] === "en") ? pathParts[0] : "es";
 
                               if (activeModule === "grooming") {
-                                let target = ch.id;
-                                if (ch.id === "dashboard-grooming") target = "dashboard";
-                                window.location.href = `/${locale}/admin/${target}`;
+                                if (ch.id === "dashboard-grooming") {
+                                  window.location.href = `/${locale}/admin/groomers`;
+                                } else {
+                                  window.location.href = `/${locale}/admin/groomers/${ch.id}`;
+                                }
                               } else if (activeModule === "hotel") {
                                 const isOnHotelPage = window.location.pathname.includes("/admin/hospitality");
                                 if (!isOnHotelPage) {

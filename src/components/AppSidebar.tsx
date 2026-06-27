@@ -141,7 +141,7 @@ export default function AppSidebar() {
                 if (mod.id === "hotel") {
                   window.location.href = `/${locale}/admin/hospitality`;
                 } else if (mod.id === "grooming") {
-                  window.location.href = `/${locale}/admin/dashboard`;
+                  window.location.href = `/${locale}/admin/groomers`;
                 } else if (mod.id === "home") {
                   window.location.href = `/${locale}/admin`;
                 } else {

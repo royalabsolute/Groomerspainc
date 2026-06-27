@@ -203,12 +203,7 @@ export default async function RootLayout({
             </head>
             <body className="antialiased selection:bg-primary/30 scroll-smooth overflow-x-hidden">
                 <NextIntlClientProvider messages={messages}>
-                    <RealtimeListener />
-                    <div className="flex min-h-screen flex-col w-full overflow-x-hidden">
-                        <Navbar config={config} />
-                        <main className="flex-1 w-full overflow-x-hidden">{children}</main>
-                    </div>
-                    <Toaster richColors position="top-right" />
+                    {children}
                 </NextIntlClientProvider>
             </body>
         </html>

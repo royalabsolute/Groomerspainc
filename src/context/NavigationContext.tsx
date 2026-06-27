@@ -66,7 +66,7 @@ export const MODULE_CONFIG: Record<
       { id: "dashboard-grooming", label: "Dashboard", icon: "activity", category: "GESTIÓN" },
       { id: "inquiries", label: "Solicitudes de Citas", icon: "calendar", category: "GESTIÓN" },
       { id: "users", label: "Clientes y Usuarios", icon: "users", category: "GESTIÓN" },
-      { id: "servicios", label: "Servicios y Precios", icon: "package", category: "CONFIGURACIÓN" },
+      { id: "services", label: "Servicios y Precios", icon: "package", category: "CONFIGURACIÓN" },
       { id: "cupones", label: "Cupones Descuento", icon: "archive", category: "CONFIGURACIÓN" },
       { id: "zonas", label: "Zonas de Servicio", icon: "folder", category: "CONFIGURACIÓN" },
       { id: "finanzas", label: "Finanzas y Caja", icon: "activity", category: "NEGOCIO" },

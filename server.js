@@ -9,6 +9,8 @@ const mcUtils = require("minecraft-server-util");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
+let ytInstance = null;
+
 const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT || "3001", 10);
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -23,28 +25,149 @@ handler = app.getRequestHandler();
 app.prepare().then(startServer);
 
 function startServer() {
-  const server = http.createServer((req, res) => {
-    // Interceptar la petición de recursos estáticos en public/uploads de forma directa
-    if (req.url.startsWith("/uploads/")) {
-      const filePath = path.join(__dirname, "public", req.url);
-      if (fs.existsSync(filePath)) {
-        const ext = path.extname(filePath).toLowerCase();
-        let contentType = "application/octet-stream";
-        if (ext === ".png") contentType = "image/png";
-        else if (ext === ".jpg" || ext === ".jpeg") contentType = "image/jpeg";
-        else if (ext === ".gif") contentType = "image/gif";
-        else if (ext === ".svg") contentType = "image/svg+xml";
-        else if (ext === ".webm") contentType = "video/webm";
-        else if (ext === ".mp4") contentType = "video/mp4";
-        
-        res.writeHead(200, { "Content-Type": contentType });
-        fs.createReadStream(filePath).pipe(res);
-        return;
-      } else {
-        res.writeHead(404);
-        res.end("Not Found");
+  const server = http.createServer(async (req, res) => {
+    try {
+      const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      const pathname = parsedUrl.pathname;
+
+      // ── TAREA 1: Servir archivos dinámicos de uploads directamente con soporte de rangos ──
+      if (pathname.startsWith("/uploads/")) {
+        const filePath = path.join(targetDir, "public", decodeURIComponent(pathname));
+        if (fs.existsSync(filePath)) {
+          const stat = fs.statSync(filePath);
+          const totalSize = stat.size;
+          const ext = path.extname(filePath).toLowerCase();
+
+          let mimeType = "application/octet-stream";
+          if (ext === ".mp3") mimeType = "audio/mpeg";
+          else if (ext === ".wav") mimeType = "audio/wav";
+          else if (ext === ".ogg") mimeType = "audio/ogg";
+          else if (ext === ".m4a") mimeType = "audio/mp4";
+          else if (ext === ".webm") mimeType = "audio/webm";
+          else if (ext === ".mp4") mimeType = "video/mp4";
+          else if (ext === ".png") mimeType = "image/png";
+          else if (ext === ".jpg" || ext === ".jpeg") mimeType = "image/jpeg";
+          else if (ext === ".gif") mimeType = "image/gif";
+          else if (ext === ".pdf") mimeType = "application/pdf";
+
+          const range = req.headers.range;
+          if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+            const chunksize = (end - start) + 1;
+
+            res.writeHead(206, {
+              "Content-Range": `bytes ${start}-${end}/${totalSize}`,
+              "Accept-Ranges": "bytes",
+              "Content-Length": chunksize,
+              "Content-Type": mimeType,
+              "Cache-Control": "no-cache"
+            });
+
+            const fileStream = fs.createReadStream(filePath, { start, end });
+            fileStream.pipe(res);
+          } else {
+            res.writeHead(200, {
+              "Content-Length": totalSize,
+              "Content-Type": mimeType,
+              "Accept-Ranges": "bytes",
+              "Cache-Control": "no-cache"
+            });
+            fs.createReadStream(filePath).pipe(res);
+          }
+          return;
+        } else {
+          res.statusCode = 404;
+          res.end("Not Found");
+          return;
+        }
+      }
+
+      // ── TAREA 2: Interceptar /api/music/stream para evadir el App Router ──
+      if (pathname === "/api/music/stream") {
+        const localId = parsedUrl.searchParams.get("id");
+        const videoId = parsedUrl.searchParams.get("videoId");
+
+        // Sub-Branch A: Streaming de archivos de música locales desde el disco
+        if (localId) {
+          let song = await prisma.song.findUnique({ where: { id: localId } });
+          if (!song) {
+            song = await prisma.song.findUnique({ where: { youtubeId: localId } });
+          }
+
+          if (!song || !song.localFilePath) {
+            res.statusCode = 404;
+            res.end("Song or local file path not found");
+            return;
+          }
+
+          const filePath = song.localFilePath;
+          if (!fs.existsSync(filePath)) {
+            res.statusCode = 404;
+            res.end("File not found on disk");
+            return;
+          }
+
+          const stat = fs.statSync(filePath);
+          const totalSize = stat.size;
+          const range = req.headers.range;
+
+          if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            const start = parseInt(parts[0], 10);
+            const end = parts[1] ? parseInt(parts[1], 10) : totalSize - 1;
+            const chunksize = (end - start) + 1;
+
+            res.writeHead(206, {
+              "Content-Range": `bytes ${start}-${end}/${totalSize}`,
+              "Accept-Ranges": "bytes",
+              "Content-Length": chunksize,
+              "Content-Type": "audio/mpeg",
+            });
+
+            const fileStream = fs.createReadStream(filePath, { start, end });
+            fileStream.pipe(res);
+          } else {
+            res.writeHead(200, {
+              "Content-Length": totalSize,
+              "Content-Type": "audio/mpeg",
+              "Accept-Ranges": "bytes",
+            });
+            fs.createReadStream(filePath).pipe(res);
+          }
+          return;
+        }
+
+        // Sub-Branch B: Streaming desde YouTube a través de youtubei.js
+        if (videoId) {
+          const { Innertube } = require("youtubei.js");
+          if (!ytInstance) {
+            ytInstance = await Innertube.create({ clientType: "ANDROID" });
+          }
+
+          const stream = await ytInstance.download(videoId, { type: "audio", quality: "best" });
+
+          res.writeHead(200, {
+            "Content-Type": "audio/mp4",
+            "Accept-Ranges": "bytes",
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": "*"
+          });
+
+          for await (const chunk of stream) {
+            res.write(chunk);
+          }
+          res.end();
+          return;
+        }
+
+        res.statusCode = 400;
+        res.end("Bad Request: id or videoId required");
         return;
       }
+    } catch (err) {
+      console.error("Custom route error in server.js:", err);
     }
 
     return handler(req, res).catch((err) => {

@@ -69,13 +69,10 @@ export async function GET(request: NextRequest) {
       const stream = await yt.download(videoId, { type: "audio", quality: "best" });
       
       // Conversión crítica para Next.js
-      const reader = stream.getReader();
       const webStream = new ReadableStream({
         async start(controller) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            controller.enqueue(value);
+          for await (const chunk of stream as any) {
+            controller.enqueue(chunk);
           }
           controller.close();
         }
@@ -86,7 +83,7 @@ export async function GET(request: NextRequest) {
           "Content-Type": "audio/mp4",
           "Accept-Ranges": "bytes",
           "Cache-Control": "no-store",
-          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Origin": "*"
         }
       });
     }

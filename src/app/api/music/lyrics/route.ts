@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 
 const titleCleanupPatterns = [
-  /\s*\(.*?(official|video|audio|lyrics|lyric|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit).*?\)/gi,
-  /\s*\[.*?(official|video|audio|lyrics|lyric|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit).*?\]/gi,
+  // Parentheses containing keywords (preventing matching across multiple parentheses)
+  /\s*\([^\)]*?(official|video|audio|lyrics|lyric|letra|letras|oficial|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit|clip)[^\)]*?\)/gi,
+  // Brackets containing keywords (preventing matching across multiple brackets)
+  /\s*\[[^\]]*?(official|video|audio|lyrics|lyric|letra|letras|oficial|visualizer|hd|hq|4k|remaster|remix|live|acoustic|version|edit|extended|radio|clean|explicit|clip)[^\]]*?\]/gi,
+  // Japanese brackets
   /\s*【.*?】/g,
+  // Standalone keywords/labels as word boundaries
   /\s*\b(official video|music video|lyric video|official audio|lyrics video|official music video|video oficial|audio oficial)\b/gi,
+  // Vertical bar and everything after it
   /\s*\|.*$/g,
-  /\s*-\s*(official|video|audio|lyrics|lyric|visualizer).*$/gi,
+  // Dash followed by exact ending labels (avoiding cutting off real titles like "Video Games")
+  /\s*-\s*(official video|music video|lyric video|official audio|lyrics video|official music video|video oficial|audio oficial|official|visualizer|lyrics|lyric|letra|letras|oficial|live|remix)\s*$/gi,
+  // Feat / ft patterns
   /\s*\(feat\..*?\)/gi,
   /\s*\(ft\..*?\)/gi,
   /\s*feat\..*$/gi,
@@ -20,6 +27,8 @@ function cleanArtist(artist: string): string {
   let cleaned = artist.trim();
   // Remove VEVO suffix (e.g. ShakiraVEVO -> Shakira, Shakira Vevo -> Shakira)
   cleaned = cleaned.replace(/\s*vevo\s*$/gi, "");
+  // Insert space before uppercase letters (e.g. TaylorSwift -> Taylor Swift)
+  cleaned = cleaned.replace(/([a-z])([A-Z])/g, "$1 $2");
 
   for (const separator of artistSeparators) {
     const lowerSeparators = separator.toLowerCase();
